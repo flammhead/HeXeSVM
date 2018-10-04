@@ -1,0 +1,16 @@
+#!/usr/bin/env python
+
+import logging as lg
+import sys
+from PyQt5 import QtWidgets as qw
+#from hexesvm import gui as svmgui
+
+if __name__ == "__main__":
+    # create main logger
+    log = lg.getLogger("hexesvm")
+    log.info("Creating main window")
+    app = qw.QApplication(sys.argv)
+    app_win = svmgui.MainWindow()
+    app_win.show()
+    log.info("Starting Qt5 application")
+    sys.exit(app.exec_())
