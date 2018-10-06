@@ -1,5 +1,4 @@
 import serial
-import time
 
 class hv_module:
 
@@ -7,9 +6,11 @@ class hv_module:
         self.name = name
         self.port = port
         self.sleep_time = 1
+        self.response_timeout = 0.2
+        self.is_high_precission = False
 
     def establish_connection(self):
-        self.serial_conn = serial.Serial(port=self.port, timeout=0.15)
+        self.serial_conn = serial.Serial(port=self.port, timeout=self.response_timeout)
         return self.serial_conn.is_open
 
     def print_connection(self):
@@ -19,6 +20,8 @@ class hv_module:
         command += "\r\n"
         for i in range(len(command)):
             self.serial_conn.write(command[i].encode())
+            #Test if this works better! should also be sufficient!
+            #if self.serial_conn.read(1).decode() != command[i]:
             if self.serial_conn.readline().decode() != command[i]:
                 print("inconsistent response from module!")
                 return None
@@ -46,6 +49,20 @@ class hv_channel:
         self.name = name
         self.module = host_module
         self.channel = int(this_hv_channel)
+        
+        self.voltage = float('nan')
+        self.current = float('nan')
+        self.set_voltage = float('nan')
+        self.ramp_speed = float('nan')
+        self.voltage_limit = float('nan')
+        self.current_limit = float('nan')
+        self.trip_current = float('nan')
+        
+        self.is_high_precission = self.module.is_high_precission
+        self.channel_in_error = False
+        
+        self.mode = "disconnect"
+	
 
     
     # iSeg read commands
