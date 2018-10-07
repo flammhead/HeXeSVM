@@ -79,11 +79,11 @@ class MainWindow(_qw.QMainWindow):
     def kill_all_hv(self):
         MainWindow.log.debug("Called KILL ALL HV method!")
         response = []
-        message = "High Voltage KILL was triggered and performed!\nChannel responses:"
-        for key in self.channels.keys():
-            response_ch = self.channels[key].kill_hv()
-            response.append((key, response_ch))
-            message+="\n"+key+"\t"+str(response_ch)
+        message = "High Voltage KILL was triggered and performed!\nModule responses:"
+        for key in self.modules.keys():
+            response_mod = self.modules[key].kill_hv()
+            response.append((key, response_mod))
+            message+="\n"+key+"\t"+str(response_mod)
         self.hv_kill_msg = _qw.QMessageBox.warning(self, "HV Kill", message)
         MainWindow.log.debug(response)
         
@@ -186,15 +186,36 @@ class MainWindow(_qw.QMainWindow):
 
     def _init_module_tabs(self):
     
+        self.module_connect_buttons = []
+        self.module_com_labels = []
+        self.module_com_line_edits = []
+        self.module_grid_layouts = []
+        
         MainWindow.log.debug("Called MainWindow._init_module_tabs")
         for i, key in zip(range(len(self.modules)), self.modules.keys()):
 
             this_tab = self.mod_tabs[i]
             this_module = self.modules[key]
             this_modules_channels = this_module.child_channels
+    
+            this_connect_button = _qw.QPushButton("connect")
+            self.module_connect_buttons.append(this_connect_button)
+            this_com_port_label = _qw.QLabel("Port:")
+            self.module_com_labels.append(this_com_port_label)
+            this_com_port = _qw.QLineEdit(this_tab)
+            self.module_com_line_edits.append(this_com_port)
+            this_com_port.returnPressed.connect(this_connect_button.click)                  
             
+
+            grid = _qw.QGridLayout()
+            grid.setSpacing(10)       
+            grid.addWidget(this_com_port_label, 1,1)
+            grid.addWidget(this_com_port, 1,2,1,2)
+            grid.addWidget(this_connect_button, 2,2)
+            this_tab.setLayout(grid)
+            self.module_grid_layouts.append(grid)
             
-            return
+        return
         
         #return
 

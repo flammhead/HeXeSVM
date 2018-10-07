@@ -1,4 +1,6 @@
-import serial
+#import serial
+import fake_serial as serial
+import time
 
 class hv_module:
 
@@ -14,12 +16,16 @@ class hv_module:
         self.i_max = ""
         self.model_no = ""
         self.firmware_vers = ""
+        self.block_commands = False
         
     def add_channel(self, number, name):
         new_child_hv_channel = hv_channel(name, self, number)
         self.child_channels.append(new_child_hv_channel)
         
         return new_child_hv_channel
+
+    def set_comport(self, port):
+        self.port = port
 
     def establish_connection(self):
         self.serial_conn = serial.Serial(port=self.port, timeout=self.response_timeout)
@@ -33,8 +39,8 @@ class hv_module:
         for i in range(len(command)):
             self.serial_conn.write(command[i].encode())
             #Test if this works better! should also be sufficient!
-            #if self.serial_conn.read(1).decode() != command[i]:
-            if self.serial_conn.readline().decode() != command[i]:
+            if self.serial_conn.read(1).decode() != command[i]:
+            #if self.serial_conn.readline().decode() != command[i]:
                 print("inconsistent response from module!")
                 return None
         result_1 = self.serial_conn.readline()
@@ -52,13 +58,26 @@ class hv_module:
 
     def read_module_info(self):
         answer = self.send_long_command("#")
+        if answer is None:
+            return False
         parts = answer.split(';')
+        if len(parts) < 4:
+            return False
         self.u_max = parts[2]
-        self.i_max = parts[4]
+        self.i_max = parts[3]
         self.model_no = parts[0]
         self.firmware_vers = parts[1]
+        return True
         
-            
+    def kill_hv(self):
+        result = []
+        for channel in self.child_channels:
+            self.block_commands = True
+            outcome = channel.kill_hv()
+            result.append(outcome)
+        self.block_commands = False
+        return result
+        
     def close_connection(self):
         self.serial_conn.close()
         self.is_connected = False
@@ -97,6 +116,9 @@ class hv_channel:
                 self.voltage = float('nan')
                 return float('nan')
         else:
+            if answer is None:
+                self.voltage = float('nan')
+                return float('nan')      
             parts = answer[1:].split('-')
             if len(parts) != 2:
                 self.voltage = float('nan')
@@ -112,6 +134,9 @@ class hv_channel:
     def read_current(self):
         command = ("I%d" % self.channel)
         answer = self.module.send_long_command(command)
+        if answer is None:
+            self.current = float('nan')
+            return float('nan')        
         parts = answer.split('-')
         if len(parts) != 2:
             self.current = float('nan')
@@ -128,7 +153,7 @@ class hv_channel:
         answer = self.module.send_long_command(command)
         try: value = int(answer)
         except (ValueError, TypeError): 
-            self.voltage_limit ) float('nan')
+            self.voltage_limit = float('nan')
             return float('nan')
         self.voltage_limit = value
         return value
@@ -152,6 +177,9 @@ class hv_channel:
                 self.set_voltage = float('nan')
                 return float('nan')
         else:
+            if answer is None:
+                self.set_voltage = float('nan')
+                return float('nan')                
             parts = answer.split('-')
             if len(parts) != 2:
                 self.set_voltage = float('nan')
@@ -176,6 +204,9 @@ class hv_channel:
     def read_trip_current(self):
         command = ("L%d" % self.channel)
         answer = self.module.send_long_command(command)
+        if answer is None:
+            self.trip_current = float('nan')
+            return float('nan')                        
         parts = answer.split('-')
         if len(parts) != 2:
             self.trip_current = float('nan')
@@ -258,10 +289,12 @@ class hv_channel:
         # here needs to come an interrupt signal to give this command
         # direct access to the board communication
         if self.module.is_connected:
+            self.module.block_commands = True
             self.kill_active = True
             set_voltage_received = self.write_set_voltage(0)
             ramp_speed_received = self.write_ramp_speed(255)
             answer = selt.start_voltage_change()
             if "H2L" in answer:
+                self.module.block_commands = False
                 return True
         return False
