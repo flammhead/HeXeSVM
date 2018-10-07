@@ -4,6 +4,7 @@ import sys
 import logging as _lg
 import sqlalchemy as _sql
 import numpy as _np
+from datetime import datetime as _dt
 from collections import OrderedDict
 from PyQt5 import QtCore as _qc
 from PyQt5 import QtGui as _qg
@@ -36,9 +37,11 @@ class MainWindow(_qw.QMainWindow):
         self.locker = _interlock()
         # create database flag
         self.db_connection = False
+        self.db_connection_write = False
+        self.output_buffer_file = open("tempdata_log.dat", 'a')
 
         timer = _qc.QTimer(self)
-        timer.timeout.connect(self.updateUI )
+        timer.timeout.connect(self.updateUI)
         timer.start(1000)
 
         self.startUI()
@@ -73,6 +76,22 @@ class MainWindow(_qw.QMainWindow):
         "Cathode": self.modules["Drift module"].add_channel(1, "cathode"),
         "Bottom PMT": self.modules["PMT module"].add_channel(2, "bottom pmt")})
         
+    def kill_all_hv(self):
+        MainWindow.log.debug("Called KILL ALL HV method!")
+        response = []
+        message = "High Voltage KILL was triggered and performed!\nChannel responses:"
+        for key in self.channels.keys():
+            response_ch = self.channels[key].kill_hv()
+            response.append((key, response_ch))
+            message+="\n"+key+"\t"+str(response_ch)
+        self.hv_kill_msg = _qw.QMessageBox.warning(self, "HV Kill", message)
+        MainWindow.log.debug(response)
+        
+    def update_interlock(self):
+        # if too slow, the interlocker must be outsourced to an own thread?
+        self.interlock_value = self.locker.check_interlock()
+        if not self.interlock_value and self.db_connection:
+            self.kill_all_hv()
 
     def _init_geom(self):
         """Initializes the main window's geometry"""
@@ -118,8 +137,7 @@ class MainWindow(_qw.QMainWindow):
         self.update_status_bar()
 
     def update_status_bar(self):
-        # if too slow, the interlocker must be outsourced to an own thread?
-        self.interlock_value = self.locker.check_interlock()
+        self.update_interlock()
         if self.locker.lock_state:
             new_palette = self.interlock_widget.palette()
             new_palette.setColor(_qg.QPalette.WindowText, _qg.QColor(0,204,0))
@@ -133,7 +151,7 @@ class MainWindow(_qw.QMainWindow):
             self.interlock_widget.setText("Interlock: ERROR ("
                                         +str(self.locker.parameter_value)+")")
 
-        if self.db_connection:
+        if self.db_connection_write:
             new_palette = self.database_widget.palette()
             new_palette.setColor(_qg.QPalette.WindowText, _qg.QColor(0,204,0))
             self.database_widget.setPalette(new_palette)
@@ -173,6 +191,8 @@ class MainWindow(_qw.QMainWindow):
 
             this_tab = self.mod_tabs[i]
             this_module = self.modules[key]
+            this_modules_channels = this_module.child_channels
+            
             
             return
         
@@ -180,7 +200,8 @@ class MainWindow(_qw.QMainWindow):
 
     def _init_overview(self):
         MainWindow.log.debug("Called MainWindow._init_overview")
-        self.hexe_drawing = _qs.QSvgWidget('hexesvm/hexe_sketch_hv.svg')
+        self.hexe_drawing = _qw.QLabel()
+        self.hexe_drawing.setPixmap(_qg.QPixmap('hexesvm/hexe_sketch_hv.svg'))
 
         self.channel_labels = []
         self.status_lights = []
@@ -213,11 +234,17 @@ class MainWindow(_qw.QMainWindow):
             self.current_units.append(_qw.QLabel('µA'))
 
         status_label_text = _qw.QLabel('re-ramp')
+        
+        self.hv_kill_button = _qw.QPushButton('HV KILL')
+        self.hv_kill_button.clicked.connect(self.kill_all_hv)
+        self.hv_kill_button.setStyleSheet("QPushButton {background-color: red;}");
+        
         grid_layout_y_positions = ((1,2,3,5,6))
 
         grid = _qw.QGridLayout()
         grid.setSpacing(10)
         grid.addWidget(self.hexe_drawing, 1,0,6,1)
+        grid.addWidget(self.hv_kill_button, 0, 3)
         grid.addWidget(status_label_text, 0,6)
 
         for i in range(len(self.channels)):
@@ -270,6 +297,11 @@ class MainWindow(_qw.QMainWindow):
                 self.status_lights[i].setPixmap(_qg.QPixmap('hexesvm/hexe_circle_yellow.svg'))
             elif this_hv_channel.auto_reramp_mode == "off":
                 self.status_lights[i].setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray.svg'))
+                
+            # if Db is connected, run the database insertion of these values
+            if self.db_connection:
+                self.insert_values_in_database()
+                return
 
         return
 
@@ -365,9 +397,47 @@ class MainWindow(_qw.QMainWindow):
         self.sql_conn_button.setEnabled(False)
         self.locker.set_sql_container(self.sql_cont_interlock)
         self.locker.set_interlock_parameter('p1', 0.010)
-        print(self.locker.check_interlock())
-        self.update_status_bar()
-		
+        
+        
+    def insert_values_in_database(self):
+
+        MainWindow.log.debug("Called MainWindow.insert_values_in_database")
+        cathode_voltage = self.channels["Cathode"].voltage
+        gate_voltage = self.channels["Gate"].voltage
+        anode_voltage = self.channels["Anode"].voltage
+        pmt_top_voltage = self.channels["Top PMT"].voltage
+        pmt_bot_voltage = self.channels["Bottom PMT"].voltage        
+        
+        cathode_current = self.channels["Cathode"].current
+        gate_current = self.channels["Gate"].current
+        anode_current = self.channels["Anode"].current
+        pmt_top_current = self.channels["Top PMT"].current
+        pmt_bot_current = self.channels["Bottom PMT"].current 
+
+        current_datetime = _dt.now()
+
+        insert_array = ([{"time": current_datetime, 
+                          "u_anode": anode_voltage, 
+                          "i_anode": anode_current, 
+                          "u_gate": gate_voltage, 
+                          "i_gate": gate_current, 
+                          "u_cathode": cathode_voltage, 
+                          "i_cathode": cathode_current,
+                          "u_pmt_1": pmt_top_voltage,
+                          "i_pmt_1": pmt_top_current,
+                          "u_pmt_2": pmt_bot_voltage,
+                          "u_pmt_2": pmt_bot_current},])
+        
+        try:
+            self.sql_cont.write_values(insert_array)
+            self.db_connection_write = True
+            return True
+            
+        except _sql.exc.ProgrammingError:
+        
+            self.output_buffer_file.write(str(insert_array)+"\n")
+            self.db_connection_write = False
+            return False
 
 
     def closeEvent(self, event):
