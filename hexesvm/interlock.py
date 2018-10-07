@@ -9,6 +9,7 @@ class Interlock():
 		self.lock_state = False
 		self.max_time_difference = 10
 		self.parameter_value = float('nan')
+		self.container = None
 
 	def set_sql_container(self, sql_container):
 
@@ -24,7 +25,7 @@ class Interlock():
 
 		if self.container is None:
 			self.lock_stat = False
-			return
+			return False
 
 		time_now = datetime.now()
 		delta_time = timedelta(seconds=self.max_time_difference)

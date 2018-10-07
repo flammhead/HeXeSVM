@@ -15,6 +15,7 @@ from hexesvm.sql_io_writer import SqlWriter as _sql_writer
 from hexesvm.interlock import Interlock as _interlock
 
 
+
 # create module logger
 _gui_log = _lg.getLogger("hexesvm.gui")
 _gui_log.setLevel(_lg.DEBUG)
@@ -36,26 +37,42 @@ class MainWindow(_qw.QMainWindow):
         # create database flag
         self.db_connection = False
 
+        timer = _qc.QTimer(self)
+        timer.timeout.connect(self.updateUI )
+        timer.start(1000)
 
         self.startUI()
-
+        self.updateUI()
+                
     def startUI(self):
 		
         self._init_geom()
         self._init_menu()
         self._init_status_bar()
         self._init_subwindows()
+        
+                
+        
+    def updateUI(self):
+
+        self.update_status_bar()
+        self.update_overview()
+        
 
     def _initialize_hv_modules(self):		
 
-        self.modules = OrderedDict({"PMT module": _iseg.hv_module("pmt module", "COM7"),
-				        "Anode module": _iseg.hv_module("anode module", "COM17"),
-				        "Drift module": _iseg.hv_module("drift module", "COM18")})
-        self.channels = OrderedDict({"Top PMT": _iseg.hv_channel("top pmt", self.modules["PMT module"], 1),
-				        "Anode": _iseg.hv_channel("anode", self.modules["Anode module"], 2),
-				        "Gate": _iseg.hv_channel("gate", self.modules["Drift module"], 2),
-				        "Cathode": _iseg.hv_channel("cathode", self.modules["Drift module"], 1),
-				        "Bottom PMT": _iseg.hv_channel("bottom pmt", self.modules["PMT module"], 2)})
+        self.modules = OrderedDict(
+        {"PMT module": _iseg.hv_module("pmt module", "COM7"),
+        "Anode module": _iseg.hv_module("anode module", "COM17"),
+        "Drift module": _iseg.hv_module("drift module", "COM18")})		        
+				        
+        self.channels = OrderedDict(
+        {"Top PMT": self.modules["PMT module"].add_channel(1, "top pmt"),
+        "Anode": self.modules["Anode module"].add_channel(2, "anode"),
+        "Gate": self.modules["Drift module"].add_channel(2, "gate"),
+        "Cathode": self.modules["Drift module"].add_channel(1, "cathode"),
+        "Bottom PMT": self.modules["PMT module"].add_channel(2, "bottom pmt")})
+        
 
     def _init_geom(self):
         """Initializes the main window's geometry"""
@@ -101,7 +118,8 @@ class MainWindow(_qw.QMainWindow):
         self.update_status_bar()
 
     def update_status_bar(self):
-
+        # if too slow, the interlocker must be outsourced to an own thread?
+        self.interlock_value = self.locker.check_interlock()
         if self.locker.lock_state:
             new_palette = self.interlock_widget.palette()
             new_palette.setColor(_qg.QPalette.WindowText, _qg.QColor(0,204,0))
@@ -149,11 +167,19 @@ class MainWindow(_qw.QMainWindow):
         self._init_overview()
 
     def _init_module_tabs(self):
-        return
-        #here
+    
+        MainWindow.log.debug("Called MainWindow._init_module_tabs")
+        for i, key in zip(range(len(self.modules)), self.modules.keys()):
+
+            this_tab = self.mod_tabs[i]
+            this_module = self.modules[key]
+            
+            return
+        
+        #return
 
     def _init_overview(self):
-
+        MainWindow.log.debug("Called MainWindow._init_overview")
         self.hexe_drawing = _qs.QSvgWidget('hexesvm/hexe_sketch_hv.svg')
 
         self.channel_labels = []
@@ -207,7 +233,7 @@ class MainWindow(_qw.QMainWindow):
         self.update_overview()
 
     def update_overview(self):
-    
+        MainWindow.log.debug("Called MainWindow.update_overview")
         for i, key in zip(range(len(self.channels)), self.channels.keys()):
 
             this_hv_channel = self.channels[key]
@@ -229,20 +255,20 @@ class MainWindow(_qw.QMainWindow):
                 
             palette = self.channel_voltage_lcds[i].palette()
             palette.setColor(palette.Background, _qg.QColor(10,10,10))
-            if this_hv_channel.channel_in_error:
-                palette.setColor(palette.WindowText, _qg.QColor(0,255,0))
-            else:
+            if this_hv_channel.channel_in_error or this_hv_channel.channel_is_tripped:
                 palette.setColor(palette.WindowText, _qg.QColor(255,0,0))
+            else:
+                palette.setColor(palette.WindowText, _qg.QColor(0,255,0))
             self.channel_voltage_lcds[i].setPalette(palette)
             self.channel_current_lcds[i].setPalette(palette)
 
-            if this_hv_channel.mode == "ok":
+            if this_hv_channel.auto_reramp_mode == "on":
                 self.status_lights[i].setPixmap(_qg.QPixmap('hexesvm/hexe_circle_green.svg'))
-            elif this_hv_channel.mode == "trip":
+            elif this_hv_channel.auto_reramp_mode == "freq_trip":
                 self.status_lights[i].setPixmap(_qg.QPixmap('hexesvm/hexe_circle_red.svg'))
-            elif this_hv_channel.mode == "no_dac":
+            elif this_hv_channel.auto_reramp_mode == "no_dac":
                 self.status_lights[i].setPixmap(_qg.QPixmap('hexesvm/hexe_circle_yellow.svg'))
-            else:
+            elif this_hv_channel.auto_reramp_mode == "off":
                 self.status_lights[i].setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray.svg'))
 
         return

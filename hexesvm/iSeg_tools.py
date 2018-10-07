@@ -8,6 +8,14 @@ class hv_module:
         self.sleep_time = 1
         self.response_timeout = 0.2
         self.is_high_precission = False
+        self.is_connected = False
+        self.child_channels = []
+        
+    def add_channel(self, number, name):
+        new_child_hv_channel = hv_channel(name, self, number)
+        self.child_channels.append(new_child_hv_channel)
+        
+        return new_child_hv_channel
 
     def establish_connection(self):
         self.serial_conn = serial.Serial(port=self.port, timeout=self.response_timeout)
@@ -59,11 +67,11 @@ class hv_channel:
         self.trip_current = float('nan')
         
         self.is_high_precission = self.module.is_high_precission
-        self.channel_in_error = False
+        self.channel_in_error = True
+        self.channel_is_tripped = False
         
-        self.mode = "disconnect"
+        self.auto_reramp_mode = "off"
 	
-
     
     # iSeg read commands
     def read_voltage(self):
