@@ -1,4 +1,5 @@
 import time
+from random import gauss
 
 class Serial:
 
@@ -63,13 +64,13 @@ class Serial:
         if self.sum_receivedData == "#\r\n":
             answer = "123456;1.23;1000;2mA\r"
         if self.sum_receivedData == "U1\r\n":
-            answer = "1111\r"
+            answer = str(int(gauss(1111,1)))+"\r"
         if self.sum_receivedData == "U2\r\n":
-            answer = "2222\r"
+            answer = str(int(gauss(-2222,1)))+"\r"
         if self.sum_receivedData == "I1\r\n":
-            answer = "1111-06\r"
+            answer = str(int(gauss(23,1)))+"-06\r"
         if self.sum_receivedData == "I2\r\n":
-            answer = "2222-06\r"          
+            answer = str(int(gauss(23,1)))+"-06\r"          
         if self.sum_receivedData == "M1\r\n":
             answer = "41\r"
         if self.sum_receivedData == "M2\r\n":
@@ -100,15 +101,19 @@ class Serial:
             answer = "V1="+self.v1+"\r"
         if "V2=" in self.sum_receivedData:
             self.v2 = self.sum_receivedData[3:6]
-            answer = "V2="+self.v2+"\r"     
+            answer = "V2="+self.v2+"\r"    
+        if self.sum_receivedData == "G1\r\n":
+            answer = "S1=H2L\r"
+        if self.sum_receivedData == "G2\r\n":
+            answer = "S2=H2L\r"             
         if self.sum_receivedData == "L1\r\n":
             answer = "10\r"   
         if self.sum_receivedData == "L2\r\n":
             answer = "10\r"                     
         if self.sum_receivedData == "T1\r\n":
-          answer = "128\r"          
+          answer = "0\r"          
         if self.sum_receivedData == "T2\r\n":
-          answer = "128\r"         
+          answer = "0\r"         
         if self.sum_receivedData == "S1\r\n":
           answer = "ON\r"    
         if self.sum_receivedData == "S2\r\n":

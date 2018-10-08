@@ -5,15 +5,18 @@ import logging as _lg
 import sqlalchemy as _sql
 import numpy as _np
 from datetime import datetime as _dt
+import time
 from collections import OrderedDict
 from PyQt5 import QtCore as _qc
 from PyQt5 import QtGui as _qg
 from PyQt5 import QtWidgets as _qw
 from PyQt5 import QtSvg as _qs
+from functools import partial
 
 from hexesvm import iSeg_tools as _iseg
 from hexesvm.sql_io_writer import SqlWriter as _sql_writer
 from hexesvm.interlock import Interlock as _interlock
+from hexesvm import threads as _thr 
 
 
 
@@ -80,10 +83,28 @@ class MainWindow(_qw.QMainWindow):
         MainWindow.log.debug("Called KILL ALL HV method!")
         response = []
         message = "High Voltage KILL was triggered and performed!\nModule responses:"
+        # Tell the threads of all modules to terminate
         for key in self.modules.keys():
+            if not self.modules[key].is_connected:
+                continue
+            self.modules[key].stop_running_thread()      
+
+        for key in self.modules.keys():
+            if not self.modules[key].is_connected:
+                continue
+            while self.modules[key].board_occupied:
+                MainWindow.log.debug("Waiting for thread "+key+" to stop"+str(self.modules[key].stop_thread))
+                time.sleep(0.2)
+            MainWindow.log.debug("thread "+key+" stopped")                
             response_mod = self.modules[key].kill_hv()
             response.append((key, response_mod))
             message+="\n"+key+"\t"+str(response_mod)
+        # restart the reader threads
+        for key in self.modules.keys():
+            if not self.modules[key].is_connected:
+                continue        
+            self.start_reader_thread(self.modules[key])               
+        
         self.hv_kill_msg = _qw.QMessageBox.warning(self, "HV Kill", message)
         MainWindow.log.debug(response)
         
@@ -186,9 +207,22 @@ class MainWindow(_qw.QMainWindow):
 
     def _init_module_tabs(self):
     
-        self.module_connect_buttons = []
         self.module_com_labels = []
         self.module_com_line_edits = []
+        self.module_is_high_precission_labels = []        
+        self.module_is_high_precission_boxes = []
+        self.module_connect_buttons = []
+        self.module_disconnect_buttons = []           
+        self.module_umax_labels = []
+        self.module_umax_fields = []        
+        self.module_imax_labels = []
+        self.module_imax_fields = []
+        self.module_serial_labels = []
+        self.module_serial_fields = []        
+        self.module_firmware_labels = []
+        self.module_firmware_fields = []
+        self.module_hsep = []              
+        self.module_vsep = []                            
         self.module_grid_layouts = []
         
         MainWindow.log.debug("Called MainWindow._init_module_tabs")
@@ -198,26 +232,199 @@ class MainWindow(_qw.QMainWindow):
             this_module = self.modules[key]
             this_modules_channels = this_module.child_channels
     
-            this_connect_button = _qw.QPushButton("connect")
-            self.module_connect_buttons.append(this_connect_button)
             this_com_port_label = _qw.QLabel("Port:")
             self.module_com_labels.append(this_com_port_label)
             this_com_port = _qw.QLineEdit(this_tab)
+            this_com_port.setText(this_module.port)
             self.module_com_line_edits.append(this_com_port)
-            this_com_port.returnPressed.connect(this_connect_button.click)                  
+            #this_com_port.returnPressed.connect(this_connect_button.click)
+            
+            this_high_precision_label = _qw.QLabel("High precision:")
+            self.module_is_high_precission_labels.append(this_high_precision_label)
+            this_high_precision_box = _qw.QCheckBox(this_tab)
+            self.module_is_high_precission_boxes.append(this_high_precision_box)
+            
+            this_connect_button = _qw.QPushButton("connect")
+            self.module_connect_buttons.append(this_connect_button)
+            this_connect_button.clicked.connect(partial(self.connect_hv_module, key, i))
+            
+            this_disconnect_button = _qw.QPushButton("disconnect")
+            this_disconnect_button.setEnabled(False)               
+            self.module_disconnect_buttons.append(this_disconnect_button)
+            this_disconnect_button.clicked.connect(partial(self.disconnect_hv_module, key, i))      
+            
+            this_u_max_label = _qw.QLabel("U(V):")
+            self.module_umax_labels.append(this_u_max_label)
+            this_u_max_field = _qw.QLineEdit(this_tab)
+            this_u_max_field.setDisabled(True)
+            self.module_umax_fields.append(this_u_max_label)
+            
+            this_i_max_label = _qw.QLabel("I(mA):")
+            self.module_imax_labels.append(this_i_max_label)
+            this_i_max_field = _qw.QLineEdit(this_tab)
+            this_i_max_field.setDisabled(True)
+            self.module_imax_fields.append(this_i_max_label)            
+
+            this_serial_number_label = _qw.QLabel("Serial:")
+            self.module_serial_labels.append(this_serial_number_label)
+            this_serial_number_field = _qw.QLineEdit(this_tab)
+            this_serial_number_field.setDisabled(True)
+            self.module_serial_fields.append(this_serial_number_field)  
+            
+            this_firmware_label = _qw.QLabel("Firmware:")
+            self.module_firmware_labels.append(this_firmware_label)
+            this_firmware_field = _qw.QLineEdit(this_tab)
+            this_firmware_field.setDisabled(True)
+            self.module_firmware_fields.append(this_firmware_field)    
+            
+            horizontal_separator = _qw.QLabel("")
+            self.module_hsep.append(horizontal_separator)
+            horizontal_separator.setFrameStyle(_qw.QFrame.HLine)
+            vertical_separator = _qw.QLabel("")
+            vertical_separator.setFrameStyle(_qw.QFrame.VLine)
+        
+            grid = _qw.QGridLayout()
+            grid.setSpacing(10)
+            # Row 1 widgetd
+            grid.addWidget(this_com_port_label, 1,2)
+            grid.addWidget(this_com_port, 1,3,1,2)
+            grid.addWidget(this_high_precision_label, 1, 7)
+            grid.addWidget(this_high_precision_box, 1,8)
+            # Row 2 widgets
+            grid.addWidget(this_connect_button, 2,2, 1,2)
+            grid.addWidget(this_disconnect_button, 2,7, 1,2)            
+            # Row 3 widgets
+            grid.addWidget(this_u_max_label, 3,1)
+            grid.addWidget(this_u_max_field, 3,2)
+            grid.addWidget(this_i_max_label, 3,3)
+            grid.addWidget(this_i_max_field, 3,4)
+            grid.addWidget(this_serial_number_label, 3,6)
+            grid.addWidget(this_serial_number_field, 3,7)  
+            grid.addWidget(this_firmware_label, 3,8)
+            grid.addWidget(this_firmware_field, 3,9)
+            # Row 4 widget (horizontal separator)
+            grid.addWidget(horizontal_separator, 4,1,1,9)
             
 
-            grid = _qw.QGridLayout()
-            grid.setSpacing(10)       
-            grid.addWidget(this_com_port_label, 1,1)
-            grid.addWidget(this_com_port, 1,2,1,2)
-            grid.addWidget(this_connect_button, 2,2)
+            channel_grid = self._init_channel_section(i, this_modules_channels[0])
+            grid.addLayout(channel_grid, 5,1, 8,3)
+            grid.addWidget(vertical_separator, 5, 5, 8, 1)
             this_tab.setLayout(grid)
-            self.module_grid_layouts.append(grid)
             
+            self.module_grid_layouts.append(grid)           
+
+        return
+
+    def _init_channel_section(self, mod_index, channel):
+        this_tab = self.mod_tabs[mod_index]
+        #this_channel = self.channels[channel_key]
+        this_channel = channel
+        
+        this_channel_name_label = _qw.QLabel(this_channel.name)
+        
+        this_channel_error_label = _qw.QLabel("Error")
+        this_channel_error_sign = _qw.QLabel()
+        this_channel_error_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
+
+        this_channel_trip_label = _qw.QLabel("Trip")
+        this_channel_trip_sign = _qw.QLabel()
+        this_channel_trip_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
+        
+        this_channel_inhibit_label = _qw.QLabel("Inhibit")
+        this_channel_inhibit_sign = _qw.QLabel()
+        this_channel_inhibit_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
+        
+        this_channel_kill_label = _qw.QLabel("Kill")
+        this_channel_kill_sign = _qw.QLabel()
+        this_channel_kill_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
+        
+        this_channel_hv_on_label = _qw.QLabel("HV on")
+        this_channel_hv_on_sign = _qw.QLabel()
+        this_channel_hv_on_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
+        
+        this_channel_dac_on_label = _qw.QLabel("DAC on")
+        this_channel_dac_on_sign = _qw.QLabel()
+        this_channel_dac_on_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
+        
+        this_channel_hv_ramp_label = _qw.QLabel("HV ramp")
+        this_channel_hv_ramp_sign = _qw.QLabel()
+        this_channel_hv_ramp_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
+        
+        this_channel_trip_rate_label = _qw.QLabel("Trips/24hr: ")
+        this_channel_trip_rate_field = _qw.QLineEdit(this_tab)
+        this_channel_trip_rate_field.setDisabled(True)
+        
+        grid = _qw.QGridLayout()
+        grid.setSpacing(5)
+        
+        grid.addWidget(this_channel_name_label, 1,1)
+        grid.addWidget(this_channel_error_label, 2,1)
+        grid.addWidget(this_channel_error_sign, 2,2)
+        grid.addWidget(this_channel_trip_label, 3,1)
+        grid.addWidget(this_channel_trip_sign, 3,2)
+        grid.addWidget(this_channel_inhibit_label, 4,1)
+        grid.addWidget(this_channel_inhibit_sign, 4,2)
+        grid.addWidget(this_channel_kill_label, 5,1)
+        grid.addWidget(this_channel_kill_sign, 5,2)
+        grid.addWidget(this_channel_hv_on_label, 6,1)
+        grid.addWidget(this_channel_hv_on_sign, 6,2)
+        grid.addWidget(this_channel_dac_on_label, 7,1)
+        grid.addWidget(this_channel_dac_on_sign, 7,2)
+        grid.addWidget(this_channel_hv_ramp_label, 8,1)
+        grid.addWidget(this_channel_hv_ramp_sign, 8,2)
+        grid.addWidget(this_channel_trip_rate_label, 9,1)
+        grid.addWidget(this_channel_trip_rate_field, 9,2)
+
+        
+        return grid
+        
+        
+    def connect_hv_module(self, key, index):
+        MainWindow.log.debug("connecting "+key)  
+        com_port = self.module_com_line_edits[index].text().strip()
+        self.modules[key].set_comport(com_port)
+        is_high_precission = self.module_is_high_precission_boxes[index].checkState()
+        self.modules[key].is_high_precission = is_high_precission
+        
+        try:
+            self.modules[key].establish_connection()
+            
+        except FileNotFoundError:
+            MainWindow.log.warning("Could not connect to HV Module: "
+                   			"Wrong COM Port")
+            self.err_msg_module = _qw.QMessageBox.warning(self, "HV module",
+                                   	"Connection Failed! "
+                                   	"Wrong Com port!")
+            return
+        # add here exception for com port in use!
+        self.modules[key].sync_module()
+        self.module_connect_buttons[index].setEnabled(False)
+        self.module_disconnect_buttons[index].setEnabled(True)        
+        self.start_reader_thread(self.modules[key])
         return
         
-        #return
+    def disconnect_hv_module(self, key, index):
+        MainWindow.log.debug("disconnecting "+key)  
+        if not self.modules[key].is_connected:
+            return
+        self.modules[key].stop_running_thread()      
+
+        while self.modules[key].board_occupied:
+            MainWindow.log.debug("Waiting for thread "+key+" to stop"+str(self.modules[key].stop_thread))
+            time.sleep(0.2)
+        MainWindow.log.debug("thread "+key+" stopped")  
+        
+        self.modules[key].close_connection()                
+        self.module_disconnect_buttons[index].setEnabled(False)        
+        self.module_connect_buttons[index].setEnabled(True)
+        return
+        
+    def start_reader_thread(self, module):
+        if module.is_connected:
+            module_thread = _thr.MonitorIsegModule(module)
+            module.set_reader_thread(module_thread)
+            module_thread.start()
+
 
     def _init_overview(self):
         MainWindow.log.debug("Called MainWindow._init_overview")
@@ -238,6 +445,7 @@ class MainWindow(_qw.QMainWindow):
             this_status_light.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray.svg'))
             self.status_lights.append(this_status_light)
 
+            #this_voltage_lcd = _qw.QLabel()
             this_voltage_lcd = _qw.QLCDNumber()
             this_voltage_lcd.setNumDigits(5)
             this_voltage_lcd.setSegmentStyle(_qw.QLCDNumber.Flat)
@@ -246,6 +454,7 @@ class MainWindow(_qw.QMainWindow):
 
             self.voltage_units.append(_qw.QLabel('V'))
 
+            #this_current_lcd = _qw.QLabel()
             this_current_lcd = _qw.QLCDNumber()
             this_current_lcd.setNumDigits(5)
             this_current_lcd.setSegmentStyle(_qw.QLCDNumber.Flat)
@@ -288,18 +497,26 @@ class MainWindow(_qw.QMainWindow):
             
             if _np.isnan(this_hv_channel.voltage):
                 self.channel_voltage_lcds[i].display("Error")
+                #self.channel_voltage_lcds[i].setText("Error")                
             else:
                 self.channel_voltage_lcds[i].display(this_hv_channel.voltage)
-                
+                #self.channel_voltage_lcds[i].setText(str(this_hv_channel.voltage))
+
+            current_value = this_hv_channel.current
+            print(current_value)
+            if this_hv_channel.module.is_high_precission:
+                self.current_units[i].setText("nA")
+                current_value = current_value*1E9
+            else:
+                self.current_units[i].setText("µA") 
+                current_value = current_value*1E6
+                               
             if _np.isnan(this_hv_channel.current):
                 self.channel_current_lcds[i].display("Error")
+                #self.channel_current_lcds[i].setText("Error")                
             else:
-                self.channel_current_lcds[i].display(this_hv_channel.current)
-
-            if this_hv_channel.is_high_precission:
-                self.current_units[i].setText("nA")
-            else:
-                self.current_units[i].setText("µA")
+                self.channel_current_lcds[i].display(current_value)
+                #self.channel_current_lcds[i].setText(str(current_value))
                 
             palette = self.channel_voltage_lcds[i].palette()
             palette.setColor(palette.Background, _qg.QColor(10,10,10))

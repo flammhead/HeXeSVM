@@ -1,5 +1,6 @@
 #import serial
 import fake_serial as serial
+from hexesvm import threads as _thr
 import time
 
 class hv_module:
@@ -16,7 +17,9 @@ class hv_module:
         self.i_max = ""
         self.model_no = ""
         self.firmware_vers = ""
-        self.block_commands = False
+        self.stop_thread = False
+        self.board_occupied = False
+        self.reader_thread = None
         
     def add_channel(self, number, name):
         new_child_hv_channel = hv_channel(name, self, number)
@@ -26,6 +29,12 @@ class hv_module:
 
     def set_comport(self, port):
         self.port = port
+        
+    def set_reader_thread(self, thread):
+        self.reader_thread = thread
+        
+    def stop_running_thread(self):
+        self.stop_thread = True       
 
     def establish_connection(self):
         self.serial_conn = serial.Serial(port=self.port, timeout=self.response_timeout)
@@ -72,15 +81,15 @@ class hv_module:
     def kill_hv(self):
         result = []
         for channel in self.child_channels:
-            self.block_commands = True
             outcome = channel.kill_hv()
             result.append(outcome)
-        self.block_commands = False
         return result
         
     def close_connection(self):
         self.serial_conn.close()
         self.is_connected = False
+        for channel in self.child_channels:
+            channel.__init__(channel.name, self, channel.channel)
 
 
 class hv_channel:
@@ -98,7 +107,6 @@ class hv_channel:
         self.current_limit = float('nan')
         self.trip_current = float('nan')
         
-        self.is_high_precission = self.module.is_high_precission
         self.channel_in_error = True
         self.channel_is_tripped = False
         self.kill_active = False
@@ -229,7 +237,7 @@ class hv_channel:
         except (ValueError, TypeError): return False
         #Convert to binary and reverse to have same numbering as in manual
         binary = '{0:08b}'.format(value)[::-1]
-        self.bad_output_quality = (binary[7] == '1')
+        self.channel_in_error = (binary[7] == '1')
         self.channel_is_tripped = (binary[6] == '1')   
         self.hardware_inhibit = (binary[5] == '1')                
         self.kill_enable_switch = (binary[4] == '1')
@@ -289,12 +297,12 @@ class hv_channel:
         # here needs to come an interrupt signal to give this command
         # direct access to the board communication
         if self.module.is_connected:
-            self.module.block_commands = True
+            self.module.board_occupied = True
             self.kill_active = True
             set_voltage_received = self.write_set_voltage(0)
             ramp_speed_received = self.write_ramp_speed(255)
-            answer = selt.start_voltage_change()
+            answer = self.start_voltage_change()
+            self.module.board_occupied = False            
             if "H2L" in answer:
-                self.module.block_commands = False
                 return True
         return False
