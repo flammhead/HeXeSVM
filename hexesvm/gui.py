@@ -324,11 +324,11 @@ class MainWindow(_qw.QMainWindow):
         
         this_channel_error_label = _qw.QLabel("Error")
         this_channel_error_sign = _qw.QLabel()
-        this_channel_error_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
+        this_channel_error_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_red_small.svg'))
 
         this_channel_trip_label = _qw.QLabel("Trip")
         this_channel_trip_sign = _qw.QLabel()
-        this_channel_trip_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
+        this_channel_trip_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_green_small.svg'))
         
         this_channel_inhibit_label = _qw.QLabel("Inhibit")
         this_channel_inhibit_sign = _qw.QLabel()
@@ -344,14 +344,15 @@ class MainWindow(_qw.QMainWindow):
         
         this_channel_dac_on_label = _qw.QLabel("DAC on")
         this_channel_dac_on_sign = _qw.QLabel()
-        this_channel_dac_on_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
+        this_channel_dac_on_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_arrow_up.svg'))
         
         this_channel_hv_ramp_label = _qw.QLabel("HV ramp")
         this_channel_hv_ramp_sign = _qw.QLabel()
-        this_channel_hv_ramp_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
+        this_channel_hv_ramp_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_arrow_down.svg'))
         
-        this_channel_trip_rate_label = _qw.QLabel("Trips/24hr: ")
+        this_channel_trip_rate_label = _qw.QLabel("Trips")
         this_channel_trip_rate_field = _qw.QLineEdit(this_tab)
+        this_channel_trip_rate_field.setText("0 per 24hr")
         this_channel_trip_rate_field.setDisabled(True)
         
         grid = _qw.QGridLayout()
