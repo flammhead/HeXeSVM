@@ -306,8 +306,12 @@ class MainWindow(_qw.QMainWindow):
             grid.addWidget(horizontal_separator, 4,1,1,9)
             
 
-            channel_grid = self._init_channel_section(i, this_modules_channels[0])
-            grid.addLayout(channel_grid, 5,1, 8,3)
+            channel_grid_1 = self._init_channel_section(i, this_modules_channels[0])
+            grid.addLayout(channel_grid_1, 5,1, 8,3)
+            if len(this_modules_channels) > 1:
+                channel_grid_2 = self._init_channel_section(i, this_modules_channels[1])
+                grid.addLayout(channel_grid_2, 5,6, 8,3)            
+            
             grid.addWidget(vertical_separator, 5, 5, 8, 1)
             this_tab.setLayout(grid)
             
@@ -320,7 +324,7 @@ class MainWindow(_qw.QMainWindow):
         #this_channel = self.channels[channel_key]
         this_channel = channel
         
-        this_channel_name_label = _qw.QLabel(this_channel.name)
+        this_channel_name_label = _qw.QLabel('<span style="font-size:large"><b>'+this_channel.name+"</b></span>")
         
         this_channel_error_label = _qw.QLabel("Error")
         this_channel_error_sign = _qw.QLabel()
@@ -355,6 +359,26 @@ class MainWindow(_qw.QMainWindow):
         this_channel_trip_rate_field.setText("0 per 24hr")
         this_channel_trip_rate_field.setDisabled(True)
         
+        this_channel_email_settings_label = _qw.QLabel("<b>Alarm settings:</b>")
+        this_channel_single_trip_settings_label = _qw.QLabel("Single trip")
+        this_channel_frequent_trip_label = _qw.QLabel("Frequent trip")
+        this_channel_info_settings_label = _qw.QLabel("info")
+        this_channel_alarm_settings_label = _qw.QLabel("alarm")
+        this_channel_single_button_group = _qw.QButtonGroup(this_tab)
+        this_channel_single_info_button = _qw.QRadioButton()
+        this_channel_single_button_group.addButton(this_channel_single_info_button)
+        this_channel_single_alarm_button = _qw.QRadioButton()        
+        this_channel_single_button_group.addButton(this_channel_single_alarm_button)
+        this_channel_frequent_button_group = _qw.QButtonGroup(this_tab)               
+        this_channel_frequent_info_button = _qw.QRadioButton()
+        this_channel_frequent_button_group.addButton(this_channel_frequent_info_button)        
+        this_channel_frequent_alarm_button = _qw.QRadioButton()
+        this_channel_frequent_button_group.addButton(this_channel_frequent_alarm_button)        
+        this_channel_single_test_button = _qw.QPushButton("test")
+        #this_channel_single_test_button.connect(partial(self.send_mail, this_channel, 1)
+        this_channel_frequent_test_button = _qw.QPushButton("test")
+        #this_channel_frequent_test_button.connect(partial(self.send_mail, this_channel, 2)        
+        
         grid = _qw.QGridLayout()
         grid.setSpacing(5)
         
@@ -376,6 +400,17 @@ class MainWindow(_qw.QMainWindow):
         grid.addWidget(this_channel_trip_rate_label, 9,1)
         grid.addWidget(this_channel_trip_rate_field, 9,2)
 
+        grid.addWidget(this_channel_email_settings_label, 10, 1, 1, 3)
+        grid.addWidget(this_channel_single_trip_settings_label, 11, 1, 1, 3)
+        grid.addWidget(this_channel_frequent_trip_label, 12, 1, 1, 3)
+        grid.addWidget(this_channel_info_settings_label, 10, 4)
+        grid.addWidget(this_channel_alarm_settings_label, 10, 5)
+        grid.addWidget(this_channel_single_info_button, 11, 4)
+        grid.addWidget(this_channel_single_alarm_button, 11, 5)
+        grid.addWidget(this_channel_frequent_info_button, 12, 4)
+        grid.addWidget(this_channel_frequent_alarm_button, 12, 5)
+        grid.addWidget(this_channel_single_test_button, 11, 6)
+        grid.addWidget(this_channel_frequent_test_button, 12, 6)              
         
         return grid
         
