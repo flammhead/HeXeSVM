@@ -14,17 +14,23 @@ class MailNotifier():
     
         self.recipients = recipient
     
-    def send_alarm(self, hv_channel, alarm_mode):
+    def send_alarm(self, hv_channel, alarm_priority, alarm_kind):
 
         msg = MIMEMultipart()
         msg['From'] = self.from_address
         msg['To'] = self.recipients
-        if alarm_mode == 1:
-            msg['Subject'] = "HeXe SVM info: "+hv_channel.name+" single trip"
+        if alarm_priority == 1:
+            msg['Subject'] = "HeXe SVM info: "+hv_channel.name
         elif alarm_mode == 2:
-            msg['Subject'] = "HeXe SVM ALARM: "+hv_channel.name+" frequent trip"
-        else:
-            msg['Subject'] = "HeXe SVM: "+hv_channel.name
+            msg['Subject'] = "HeXe SVM ALARM: "+hv_channel.name
+        elif alarm_mode == 0:
+            del msg
+            return
+            
+        if alarm_kind == 1:
+            msg['Subject'] += " single trip"
+        elif alarm_kind == 2:
+            msg['Subject'] += " frequent trip"
 
         message_string = "Possible HV trip detected.\n"
         message_string += "Name: "+hv_channel.name+"\n"
@@ -33,4 +39,5 @@ class MailNotifier():
         msg.attach(MIMEText(message_string,'plain'))
         mail_conn = sm.SMTP("imap.mpi-hd.mpg.de")
         mail_conn.sendmail(self.from_address, self.recipients, msg.as_string())
+        return
         

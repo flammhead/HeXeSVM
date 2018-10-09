@@ -107,6 +107,14 @@ class hv_channel:
         self.current_limit = float('nan')
         self.trip_current = float('nan')
         
+        self.channel_in_error = None
+        self.channel_is_tripped = None  
+        self.hardware_inhibit = None                
+        self.kill_enable_switch = None
+        self.hv_switch_off = None
+        self.polarity_positive = None
+        self.manual_control = None        
+        
         self.channel_in_error = True
         self.channel_is_tripped = False
         self.kill_active = False

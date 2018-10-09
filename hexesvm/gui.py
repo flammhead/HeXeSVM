@@ -74,13 +74,28 @@ class MainWindow(_qw.QMainWindow):
         {"PMT module": _iseg.hv_module("pmt module", "COM7"),
         "Anode module": _iseg.hv_module("anode module", "COM17"),
         "Drift module": _iseg.hv_module("drift module", "COM18")})		        
-				        
+
+
+        '''		        
         self.channels = OrderedDict(
         {"Top PMT": self.modules["PMT module"].add_channel(1, "top pmt"),
         "Anode": self.modules["Anode module"].add_channel(2, "anode"),
         "Gate": self.modules["Drift module"].add_channel(2, "gate"),
         "Cathode": self.modules["Drift module"].add_channel(1, "cathode"),
         "Bottom PMT": self.modules["PMT module"].add_channel(2, "bottom pmt")})
+        '''
+                
+        self.channel_order_dict = ((("PMT module", "Top PMT"), ("Anode module", "Anode"), 
+                          ("Drift module", "Gate"), ("Drift module", "Cathode"),
+                          ("PMT module", "Bottom PMT")))
+                          
+        self.channels = OrderedDict(
+        {"PMT module": {"Top PMT": self.modules["PMT module"].add_channel(1, "top pmt"),
+                        "Bottom PMT": self.modules["PMT module"].add_channel(2, "bottom pmt")},
+         "Anode module": {"Anode": self.modules["Anode module"].add_channel(2, "anode")},
+         "Drift module": {"Gate": self.modules["Drift module"].add_channel(2, "gate"),
+                          "Cathode": self.modules["Drift module"].add_channel(1, "cathode")}})
+
         
     def kill_all_hv(self):
         MainWindow.log.debug("Called KILL ALL HV method!")
@@ -196,10 +211,10 @@ class MainWindow(_qw.QMainWindow):
         self.settingsTab = _qw.QWidget(self.main_widget)
         self.main_widget.addTab(self.overviewTab, "Overview")
         # create tabs for the HV modules here
-        self.mod_tabs = []
+        self.mod_tabs = {}
         for key, mod in self.modules.items():
             this_tab = _qw.QWidget(self.main_widget)
-            self.mod_tabs.append(this_tab)
+            self.mod_tabs.update({key: this_tab})
             self.main_widget.addTab(this_tab, key)
 
         self.main_widget.addTab(self.settingsTab, "Settings")
@@ -227,11 +242,62 @@ class MainWindow(_qw.QMainWindow):
         self.module_hsep = []              
         self.module_vsep = []                            
         self.module_grid_layouts = []
+
+        # create these as nested dictionaries
+        self.all_channels_error_sign = {}
+        self.all_channels_trip_sign = {}
+        self.all_channels_inhibit_sign = {}
+        self.all_channels_kill_sign = {}
+        self.all_channels_hv_on_sign = {}
+        self.all_channels_dac_on_sign = {}
+        self.all_channels_hv_ramp_sign = {}
+        self.all_channels_trip_rate_field = {}
+        self.all_channels_single_button_group = {}
+        self.all_channels_single_none_button = {}
+        self.all_channels_single_info_button = {}
+        self.all_channels_single_alarm_button = {}
+        self.all_channels_frequent_button_group = {}
+        self.all_channels_frequent_info_button = {}
+        self.all_channels_frequent_alarm_button = {}
+        self.all_channels_number_label = {}
+        self.all_channels_polarity_label = {}
+        self.all_channels_trip_detect_box = {}
+        self.all_channels_auto_reramp_box = {}
+        self.all_channels_time_between_trips_field = {}
+        self.all_channels_set_voltage_field = {}
+        self.all_channels_ramp_speed_field = {}
+        self.all_channels_apply_button = {}
+        self.all_channels_start_button = {}
         
         MainWindow.log.debug("Called MainWindow._init_module_tabs")
         for i, key in zip(range(len(self.modules)), self.modules.keys()):
 
-            this_tab = self.mod_tabs[i]
+            self.all_channels_error_sign.update({key: {}})
+            self.all_channels_trip_sign.update({key: {}})
+            self.all_channels_inhibit_sign.update({key: {}})
+            self.all_channels_kill_sign.update({key: {}})
+            self.all_channels_hv_on_sign.update({key: {}})
+            self.all_channels_dac_on_sign.update({key: {}})
+            self.all_channels_hv_ramp_sign.update({key: {}})
+            self.all_channels_trip_rate_field.update({key: {}})
+            self.all_channels_single_button_group.update({key: {}})
+            self.all_channels_single_none_button.update({key: {}})
+            self.all_channels_single_info_button.update({key: {}})
+            self.all_channels_single_alarm_button.update({key: {}})
+            self.all_channels_frequent_button_group.update({key: {}})
+            self.all_channels_frequent_info_button.update({key: {}})
+            self.all_channels_frequent_alarm_button.update({key: {}})
+            self.all_channels_number_label.update({key: {}})
+            self.all_channels_polarity_label.update({key: {}})
+            self.all_channels_trip_detect_box.update({key: {}})
+            self.all_channels_auto_reramp_box.update({key: {}})
+            self.all_channels_time_between_trips_field.update({key: {}})
+            self.all_channels_set_voltage_field.update({key: {}})
+            self.all_channels_ramp_speed_field.update({key: {}})
+            self.all_channels_apply_button.update({key: {}})
+            self.all_channels_start_button.update({key: {}})
+
+            this_tab = self.mod_tabs[key]
             this_module = self.modules[key]
             this_modules_channels = this_module.child_channels
     
@@ -283,8 +349,10 @@ class MainWindow(_qw.QMainWindow):
             horizontal_separator = _qw.QLabel("")
             self.module_hsep.append(horizontal_separator)
             horizontal_separator.setFrameStyle(_qw.QFrame.HLine)
+            horizontal_separator.setLineWidth(2)
             vertical_separator = _qw.QLabel("")
             vertical_separator.setFrameStyle(_qw.QFrame.VLine)
+            vertical_separator.setLineWidth(2)
         
             grid = _qw.QGridLayout()
             grid.setSpacing(10)
@@ -294,8 +362,8 @@ class MainWindow(_qw.QMainWindow):
             grid.addWidget(this_high_precision_label, 1, 7)
             grid.addWidget(this_high_precision_box, 1,8)
             # Row 2 widgets
-            grid.addWidget(this_connect_button, 2,2, 1,2)
-            grid.addWidget(this_disconnect_button, 2,7, 1,2)            
+            grid.addWidget(this_connect_button, 2,2, 1,4, _qc.Qt.AlignHCenter)
+            grid.addWidget(this_disconnect_button, 2,7, 1,4, _qc.Qt.AlignHCenter)            
             # Row 3 widgets
             grid.addWidget(this_u_max_label, 3,1)
             grid.addWidget(this_u_max_field, 3,2)
@@ -308,12 +376,11 @@ class MainWindow(_qw.QMainWindow):
             # Row 4 widget (horizontal separator)
             grid.addWidget(horizontal_separator, 4,1,1,9)
             
-
-            channel_grid_1 = self._init_channel_section(i, this_modules_channels[0])
-            grid.addLayout(channel_grid_1, 5,1, 8,3)
-            if len(this_modules_channels) > 1:
-                channel_grid_2 = self._init_channel_section(i, this_modules_channels[1])
-                grid.addLayout(channel_grid_2, 5,6, 8,3)            
+            channel_grid_1 = self._init_channel_section(key, list(self.channels[key].keys())[0])
+            grid.addLayout(channel_grid_1, 5,1, 8,4)
+            if len(self.channels[key].keys()) > 1:
+                channel_grid_2 = self._init_channel_section(key, list(self.channels[key].keys())[1])
+                grid.addLayout(channel_grid_2, 5,6, 8,4)            
             
             grid.addWidget(vertical_separator, 5, 5, 8, 1)
             this_tab.setLayout(grid)
@@ -322,67 +389,119 @@ class MainWindow(_qw.QMainWindow):
 
         return
 
-    def _init_channel_section(self, mod_index, channel):
-        this_tab = self.mod_tabs[mod_index]
-        #this_channel = self.channels[channel_key]
-        this_channel = channel
+    def _init_channel_section(self, mod_key, channel_key):
+        this_tab = self.mod_tabs[mod_key]
+        this_channel = self.channels[mod_key][channel_key]
         
-        this_channel_name_label = _qw.QLabel('<span style="font-size:large"><b>'+this_channel.name+"</b></span>")
-        
+        # Toggle indicator lights (left)
+        this_channel_name_label = _qw.QLabel('<span style="font-size:large"><b>'+channel_key+"</b></span>")
         this_channel_error_label = _qw.QLabel("Error")
         this_channel_error_sign = _qw.QLabel()
         this_channel_error_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_red_small.svg'))
-
+        self.all_channels_error_sign[mod_key].update({channel_key: this_channel_error_sign})
         this_channel_trip_label = _qw.QLabel("Trip")
         this_channel_trip_sign = _qw.QLabel()
         this_channel_trip_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_green_small.svg'))
-        
+        self.all_channels_trip_sign[mod_key].update({channel_key: this_channel_trip_sign})
         this_channel_inhibit_label = _qw.QLabel("Inhibit")
         this_channel_inhibit_sign = _qw.QLabel()
         this_channel_inhibit_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
-        
+        self.all_channels_inhibit_sign[mod_key].update({channel_key: this_channel_inhibit_sign})
         this_channel_kill_label = _qw.QLabel("Kill")
         this_channel_kill_sign = _qw.QLabel()
         this_channel_kill_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
-        
+        self.all_channels_kill_sign[mod_key].update({channel_key: this_channel_kill_sign})
         this_channel_hv_on_label = _qw.QLabel("HV on")
         this_channel_hv_on_sign = _qw.QLabel()
         this_channel_hv_on_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
-        
+        self.all_channels_hv_on_sign[mod_key].update({channel_key: this_channel_hv_on_label})
         this_channel_dac_on_label = _qw.QLabel("DAC on")
         this_channel_dac_on_sign = _qw.QLabel()
         this_channel_dac_on_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_arrow_up.svg'))
-        
+        self.all_channels_dac_on_sign[mod_key].update({channel_key: this_channel_dac_on_sign})
         this_channel_hv_ramp_label = _qw.QLabel("HV ramp")
         this_channel_hv_ramp_sign = _qw.QLabel()
         this_channel_hv_ramp_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_arrow_down.svg'))
-        
+        self.all_channels_hv_ramp_sign[mod_key].update({channel_key: this_channel_hv_ramp_sign})
         this_channel_trip_rate_label = _qw.QLabel("Trips")
         this_channel_trip_rate_field = _qw.QLineEdit(this_tab)
         this_channel_trip_rate_field.setText("0 per 24hr")
         this_channel_trip_rate_field.setDisabled(True)
-        
+        self.all_channels_trip_rate_field[mod_key].update({channel_key: this_channel_trip_rate_field})
+        # email alarm settings (bottom)
         this_channel_email_settings_label = _qw.QLabel("<b>Alarm settings:</b>")
         this_channel_single_trip_settings_label = _qw.QLabel("Single trip")
         this_channel_frequent_trip_label = _qw.QLabel("Frequent trip")
+        this_channel_none_settings_label = _qw.QLabel("none")
         this_channel_info_settings_label = _qw.QLabel("info")
         this_channel_alarm_settings_label = _qw.QLabel("alarm")
         this_channel_single_button_group = _qw.QButtonGroup(this_tab)
+        this_channel_single_none_button = _qw.QRadioButton()
+        this_channel_single_button_group.addButton(this_channel_single_none_button, 0)                        
         this_channel_single_info_button = _qw.QRadioButton()
         this_channel_single_info_button.setChecked(True)
-        this_channel_single_button_group.addButton(this_channel_single_info_button)
+        this_channel_single_button_group.addButton(this_channel_single_info_button, 1)
         this_channel_single_alarm_button = _qw.QRadioButton()        
-        this_channel_single_button_group.addButton(this_channel_single_alarm_button)
+        this_channel_single_button_group.addButton(this_channel_single_alarm_button, 2)
+        self.all_channels_single_button_group[mod_key].update({channel_key: this_channel_single_button_group})
         this_channel_frequent_button_group = _qw.QButtonGroup(this_tab)               
+        this_channel_frequent_none_button = _qw.QRadioButton()
+        this_channel_frequent_button_group.addButton(this_channel_frequent_none_button, 0)                
         this_channel_frequent_info_button = _qw.QRadioButton()
-        this_channel_frequent_button_group.addButton(this_channel_frequent_info_button)        
+        this_channel_frequent_button_group.addButton(this_channel_frequent_info_button, 1)        
         this_channel_frequent_alarm_button = _qw.QRadioButton()
         this_channel_frequent_alarm_button.setChecked(True)        
-        this_channel_frequent_button_group.addButton(this_channel_frequent_alarm_button)        
+        this_channel_frequent_button_group.addButton(this_channel_frequent_alarm_button, 2) 
+        self.all_channels_frequent_button_group[mod_key].update({channel_key: this_channel_frequent_button_group})
         this_channel_single_test_button = _qw.QPushButton("test")
-        this_channel_single_test_button.clicked.connect(partial(self.send_mail, this_channel, 1))
         this_channel_frequent_test_button = _qw.QPushButton("test")
-        this_channel_frequent_test_button.clicked.connect(partial(self.send_mail, this_channel, 2))        
+        this_channel_single_test_button.clicked.connect(partial(self.send_mail, this_channel, this_channel_single_button_group.checkedId()))
+        this_channel_frequent_test_button.clicked.connect(partial(self.send_mail, this_channel, this_channel_frequent_button_group.checkedId()))
+
+        # separator for controls
+        this_channel_vertical_separator = _qw.QLabel("")
+        this_channel_vertical_separator.setFrameStyle(_qw.QFrame.VLine)
+              
+        # controls of the channel (right)
+        if this_channel.channel == 1:
+            this_channel_number_label = _qw.QLabel('<span style="font-size:large"><b>A</b></span>')
+        elif this_channel.channel == 2:
+            this_channel_number_label = _qw.QLabel('<span style="font-size:large"><b>B</b></span>')
+        else:
+            this_channel_number_label = _qw.QLabel('<span style="font-size:large"><b>?</b></span>')
+        self.all_channels_number_label[mod_key].update({channel_key: this_channel_number_label})
+        
+        if this_channel.polarity_positive == True:
+            this_channel_polarity_label = _qw.QLabel('<span style="font-size:large"><b><font color="green">+</font></b></span>')
+        elif this_channel.polarity_positive == False:
+            this_channel_polarity_label = _qw.QLabel('<span style="font-size:large"><b><font color="red">-</font></b></span>')
+        else:
+            this_channel_polarity_label = _qw.QLabel('<span style="font-size:large"><b>+/-</b></span>')
+        self.all_channels_polarity_label[mod_key].update({channel_key: this_channel_polarity_label})
+        this_channel_control_label = _qw.QLabel("<b>Control</b>")
+        
+        this_channel_trip_detect_box = _qw.QCheckBox("detect trips", this_tab)
+        self.all_channels_trip_detect_box[mod_key].update({channel_key: this_channel_trip_detect_box})
+        this_channel_auto_reramp_box = _qw.QCheckBox("auto re-ramp", this_tab)
+        self.all_channels_auto_reramp_box[mod_key].update({channel_key: this_channel_auto_reramp_box})
+        this_channel_time_between_trips_label = _qw.QLabel("dT(frequent) (sec)")
+        this_channel_time_between_trips_field = _qw.QLineEdit(this_tab)
+        self.all_channels_time_between_trips_field[mod_key].update({channel_key: this_channel_time_between_trips_field})
+        this_channel_set_voltage_label = _qw.QLabel("Set voltage (V)")
+        this_channel_set_voltage_field = _qw.QLineEdit(this_tab)
+        self.all_channels_set_voltage_field[mod_key].update({channel_key: this_channel_set_voltage_field})
+        this_channel_ramp_speed_label = _qw.QLabel("Ramp speed (V/s)")
+        this_channel_ramp_speed_field = _qw.QLineEdit(this_tab)        
+        self.all_channels_ramp_speed_field[mod_key].update({channel_key: this_channel_ramp_speed_field})
+        this_channel_apply_button = _qw.QPushButton("apply")
+        this_channel_apply_button.setFixedWidth(70)
+        #this_channel_apply_button.clicked.connect(partial(self.send_mail, this_channel, 2))
+        self.all_channels_apply_button[mod_key].update({channel_key: this_channel_apply_button})
+        this_channel_start_button = _qw.QPushButton("start")
+        this_channel_start_button.setFixedWidth(70)
+        this_channel_start_button.setStyleSheet("QPushButton {background-color: red;}");        
+        #this_channel_test_button.clicked.connect(partial(self.send_mail, this_channel, 2))    
+        self.all_channels_start_button[mod_key].update({channel_key: this_channel_start_button})                 
         
         grid = _qw.QGridLayout()
         grid.setSpacing(5)
@@ -405,17 +524,36 @@ class MainWindow(_qw.QMainWindow):
         grid.addWidget(this_channel_trip_rate_label, 9,1)
         grid.addWidget(this_channel_trip_rate_field, 9,2)
 
-        grid.addWidget(this_channel_email_settings_label, 10, 1, 1, 3)
-        grid.addWidget(this_channel_single_trip_settings_label, 11, 1, 1, 3)
-        grid.addWidget(this_channel_frequent_trip_label, 12, 1, 1, 3)
-        grid.addWidget(this_channel_info_settings_label, 10, 4)
-        grid.addWidget(this_channel_alarm_settings_label, 10, 5)
-        grid.addWidget(this_channel_single_info_button, 11, 4)
-        grid.addWidget(this_channel_single_alarm_button, 11, 5)
-        grid.addWidget(this_channel_frequent_info_button, 12, 4)
-        grid.addWidget(this_channel_frequent_alarm_button, 12, 5)
-        grid.addWidget(this_channel_single_test_button, 11, 6)
-        grid.addWidget(this_channel_frequent_test_button, 12, 6)              
+        grid.addWidget(this_channel_email_settings_label, 10, 1)
+        grid.addWidget(this_channel_single_trip_settings_label, 11, 1)
+        grid.addWidget(this_channel_frequent_trip_label, 12, 1)
+        grid.addWidget(this_channel_none_settings_label, 10, 2, _qc.Qt.AlignHCenter)        
+        grid.addWidget(this_channel_info_settings_label, 10, 3, _qc.Qt.AlignHCenter)
+        grid.addWidget(this_channel_alarm_settings_label, 10, 4, _qc.Qt.AlignHCenter)
+        grid.addWidget(this_channel_single_none_button, 11 , 2, _qc.Qt.AlignHCenter)      
+        grid.addWidget(this_channel_single_info_button, 11, 3,_qc.Qt.AlignHCenter)
+        grid.addWidget(this_channel_single_alarm_button, 11, 4, _qc.Qt.AlignHCenter)
+        grid.addWidget(this_channel_frequent_none_button, 12, 2, _qc.Qt.AlignHCenter)        
+        grid.addWidget(this_channel_frequent_info_button, 12, 3, _qc.Qt.AlignHCenter)
+        grid.addWidget(this_channel_frequent_alarm_button, 12, 4, _qc.Qt.AlignHCenter)
+        grid.addWidget(this_channel_single_test_button, 11, 5, _qc.Qt.AlignHCenter)
+        grid.addWidget(this_channel_frequent_test_button, 12, 5, _qc.Qt.AlignHCenter) 
+
+        grid.addWidget(this_channel_vertical_separator, 1, 3, 9, 1)
+        
+        grid.addWidget(this_channel_number_label, 1, 5, _qc.Qt.AlignRight)
+        grid.addWidget(this_channel_polarity_label, 2, 5, _qc.Qt.AlignRight)
+        grid.addWidget(this_channel_control_label, 3, 4)
+        grid.addWidget(this_channel_trip_detect_box, 4, 4, 1, 2)
+        grid.addWidget(this_channel_auto_reramp_box, 5, 4, 1, 2)
+        grid.addWidget(this_channel_time_between_trips_label, 6, 4)
+        grid.addWidget(this_channel_time_between_trips_field, 6, 5)
+        grid.addWidget(this_channel_set_voltage_label, 7, 4)
+        grid.addWidget(this_channel_set_voltage_field, 7, 5)
+        grid.addWidget(this_channel_ramp_speed_label, 8, 4)
+        grid.addWidget(this_channel_ramp_speed_field, 8, 5)
+        grid.addWidget(this_channel_apply_button, 9, 4, _qc.Qt.AlignHCenter)
+        grid.addWidget(this_channel_start_button, 9, 5, _qc.Qt.AlignHCenter)
         
         return grid
         
@@ -479,7 +617,9 @@ class MainWindow(_qw.QMainWindow):
         self.channel_current_lcds = []
         self.current_units = []
 
-        for key, mod in self.channels.items():
+        for pair in self.channel_order_dict:
+        #for key, mod in self.channels.items():
+            key = pair[1]
             self.channel_labels.append(_qw.QLabel(key))
 
             this_status_light = _qw.QLabel()
@@ -518,7 +658,8 @@ class MainWindow(_qw.QMainWindow):
         grid.addWidget(self.hv_kill_button, 0, 3)
         grid.addWidget(status_label_text, 0,6)
 
-        for i in range(len(self.channels)):
+        #for i in range(len(self.channels)):
+        for i in range(len(self.channel_order_dict)):        
             grid.addWidget(self.channel_labels[i], grid_layout_y_positions[i], 1)
             grid.addWidget(self.channel_voltage_lcds[i], grid_layout_y_positions[i], 2)
             grid.addWidget(self.voltage_units[i], grid_layout_y_positions[i], 3)
@@ -532,9 +673,12 @@ class MainWindow(_qw.QMainWindow):
 
     def update_overview(self):
         MainWindow.log.debug("Called MainWindow.update_overview")
-        for i, key in zip(range(len(self.channels)), self.channels.keys()):
+        for i in range(len(self.channel_order_dict)):
+        #for i, key in zip(range(len(self.channels)), self.channels.keys()):
+            this_pair = self.channel_order_dict[i]
 
-            this_hv_channel = self.channels[key]
+            #this_hv_channel = self.channels[key]
+            this_hv_channel = self.channels[this_pair[0]][this_pair[1]]
             
             if _np.isnan(this_hv_channel.voltage):
                 self.channel_voltage_lcds[i].display("Error")
@@ -580,7 +724,6 @@ class MainWindow(_qw.QMainWindow):
             # if Db is connected, run the database insertion of these values
             if self.db_connection:
                 self.insert_values_in_database()
-                return
 
         return
 
@@ -609,6 +752,8 @@ class MainWindow(_qw.QMainWindow):
         self.form_password = _qw.QLineEdit(self.settingsTab)
         self.form_password.setEchoMode(_qw.QLineEdit.Password)
         self.form_password.returnPressed.connect(self.sql_conn_button.click)
+        self.form_email = _qw.QLineEdit(self.settingsTab)
+        self.form_email.returnPressed.connect(self.sql_conn_button.click)
 
         form_layout.addRow("address", self.form_address)
         form_layout.addRow("database name", self.form_db)
@@ -616,6 +761,7 @@ class MainWindow(_qw.QMainWindow):
         form_layout.addRow("table name (Interlock)", self.form_tablename_interlock)
         form_layout.addRow("user", self.form_user)
         form_layout.addRow("password", self.form_password)
+        form_layout.addRow("Email recipient", self.form_email)       
 
         # connect button and set layout
         self.sql_conn_button.clicked.connect(self.sql_connect)
@@ -633,6 +779,7 @@ class MainWindow(_qw.QMainWindow):
         self.form_tablename_hv.setText("hexe_sc_hv")
         self.form_tablename_interlock.setText("hexe_sc")
         self.form_user.setText("viewer")
+        self.form_email.setText(self.email_sender.recipients)
 
     def sql_connect(self):
 
@@ -645,6 +792,8 @@ class MainWindow(_qw.QMainWindow):
         tablename_interlock = self.form_tablename_interlock.text().strip()
         username = self.form_user.text().strip()
         password = self.form_password.text().strip()
+        # For now here....
+        self.email_sender.set_mail_recipient(self.form_email.text().strip())
 
         try:
 
@@ -681,17 +830,17 @@ class MainWindow(_qw.QMainWindow):
     def insert_values_in_database(self):
 
         MainWindow.log.debug("Called MainWindow.insert_values_in_database")
-        cathode_voltage = self.channels["Cathode"].voltage
-        gate_voltage = self.channels["Gate"].voltage
-        anode_voltage = self.channels["Anode"].voltage
-        pmt_top_voltage = self.channels["Top PMT"].voltage
-        pmt_bot_voltage = self.channels["Bottom PMT"].voltage        
+        cathode_voltage = self.channels["Drift module"]["Cathode"].voltage
+        gate_voltage = self.channels["Drift module"]["Gate"].voltage
+        anode_voltage = self.channels["Anode module"]["Anode"].voltage
+        pmt_top_voltage = self.channels["PMT module"]["Top PMT"].voltage
+        pmt_bot_voltage = self.channels["PMT module"]["Bottom PMT"].voltage        
         
-        cathode_current = self.channels["Cathode"].current
-        gate_current = self.channels["Gate"].current
-        anode_current = self.channels["Anode"].current
-        pmt_top_current = self.channels["Top PMT"].current
-        pmt_bot_current = self.channels["Bottom PMT"].current 
+        cathode_current = self.channels["Drift module"]["Cathode"].current
+        gate_current = self.channels["Drift module"]["Gate"].current
+        anode_current = self.channels["Anode module"]["Anode"].current
+        pmt_top_current = self.channels["PMT module"]["Top PMT"].current
+        pmt_bot_current = self.channels["PMT module"]["Bottom PMT"].current 
 
         current_datetime = _dt.now()
 
@@ -705,7 +854,7 @@ class MainWindow(_qw.QMainWindow):
                           "u_pmt_1": pmt_top_voltage,
                           "i_pmt_1": pmt_top_current,
                           "u_pmt_2": pmt_bot_voltage,
-                          "u_pmt_2": pmt_bot_current},])
+                          "i_pmt_2": pmt_bot_current},])
         
         try:
             self.sql_cont.write_values(insert_array)
@@ -719,13 +868,19 @@ class MainWindow(_qw.QMainWindow):
             return False
 
 
-    def send_mail(self, hv_channel, alarm_mode):
+    def send_mail(self, hv_channel, priority, alarm_mode):
         if self.email_sender.recipients == "":
             self.err_msg_mail = _qw.QMessageBox.warning(self, "Mail",
                                    "Set email recipient first!")
             return False
         
-        self.email_sender.send_alarm(hv_channel, alarm_mode)
+        self.email_sender.send_alarm(hv_channel, priority, alarm_mode)
+        self.info_msg_mail = _qw.QMessageBox()
+        self.info_msg_mail.setIcon(_qw.QMessageBox.Information)
+        self.info_msg_mail.setText("Sent Email notification")
+        self.info_msg_mail.setStandardButtons(_qw.QMessageBox.Ok)
+        self.info_msg_mail.button(_qw.QMessageBox.Ok).animateClick(5000)
+        self.info_msg_mail.exec_()
         return True
 
     def closeEvent(self, event):
