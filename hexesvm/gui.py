@@ -17,6 +17,7 @@ from hexesvm import iSeg_tools as _iseg
 from hexesvm.sql_io_writer import SqlWriter as _sql_writer
 from hexesvm.interlock import Interlock as _interlock
 from hexesvm import threads as _thr 
+from hexesvm import mail as _mail
 
 
 
@@ -36,6 +37,8 @@ class MainWindow(_qw.QMainWindow):
         MainWindow.log.debug("Created MainWindow")
         # create the iSeg modules
         self._initialize_hv_modules()
+        # create email notifier 
+        self.email_sender = _mail.MailNotifier()
         # create interlocker
         self.locker = _interlock()
         # create database flag
@@ -366,6 +369,7 @@ class MainWindow(_qw.QMainWindow):
         this_channel_alarm_settings_label = _qw.QLabel("alarm")
         this_channel_single_button_group = _qw.QButtonGroup(this_tab)
         this_channel_single_info_button = _qw.QRadioButton()
+        this_channel_single_info_button.setChecked(True)
         this_channel_single_button_group.addButton(this_channel_single_info_button)
         this_channel_single_alarm_button = _qw.QRadioButton()        
         this_channel_single_button_group.addButton(this_channel_single_alarm_button)
@@ -373,11 +377,12 @@ class MainWindow(_qw.QMainWindow):
         this_channel_frequent_info_button = _qw.QRadioButton()
         this_channel_frequent_button_group.addButton(this_channel_frequent_info_button)        
         this_channel_frequent_alarm_button = _qw.QRadioButton()
+        this_channel_frequent_alarm_button.setChecked(True)        
         this_channel_frequent_button_group.addButton(this_channel_frequent_alarm_button)        
         this_channel_single_test_button = _qw.QPushButton("test")
-        #this_channel_single_test_button.connect(partial(self.send_mail, this_channel, 1)
+        this_channel_single_test_button.clicked.connect(partial(self.send_mail, this_channel, 1))
         this_channel_frequent_test_button = _qw.QPushButton("test")
-        #this_channel_frequent_test_button.connect(partial(self.send_mail, this_channel, 2)        
+        this_channel_frequent_test_button.clicked.connect(partial(self.send_mail, this_channel, 2))        
         
         grid = _qw.QGridLayout()
         grid.setSpacing(5)
@@ -713,6 +718,15 @@ class MainWindow(_qw.QMainWindow):
             self.db_connection_write = False
             return False
 
+
+    def send_mail(self, hv_channel, alarm_mode):
+        if self.email_sender.recipients == "":
+            self.err_msg_mail = _qw.QMessageBox.warning(self, "Mail",
+                                   "Set email recipient first!")
+            return False
+        
+        self.email_sender.send_alarm(hv_channel, alarm_mode)
+        return True
 
     def closeEvent(self, event):
         if not self.file_quit():
