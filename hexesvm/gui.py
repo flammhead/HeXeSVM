@@ -499,14 +499,14 @@ class MainWindow(_qw.QMainWindow):
         self.all_channels_ramp_speed_field[mod_key].update({channel_key: this_channel_ramp_speed_field})
         this_channel_apply_button = _qw.QPushButton("apply")
         this_channel_apply_button.setFixedWidth(70)
-        #this_channel_apply_button.clicked.connect(partial(self.send_mail, this_channel, 2))
+        this_channel_apply_button.clicked.connect(partial(self.apply_hv_settings, mod_key, channel_key))
         self.all_channels_apply_button[mod_key].update({channel_key: this_channel_apply_button})
         this_channel_start_button = _qw.QPushButton("start")
         this_channel_start_button.setFixedWidth(70)
         this_channel_start_button.setStyleSheet("QPushButton {background-color: red;}");        
-        #this_channel_test_button.clicked.connect(partial(self.send_mail, this_channel, 2))    
+        this_channel_start_button.clicked.connect(partial(self.start_hv_change, mod_key, channel_key))    
         self.all_channels_start_button[mod_key].update({channel_key: this_channel_start_button})                 
-        
+              
         grid = _qw.QGridLayout()
         grid.setSpacing(5)
         
@@ -656,8 +656,8 @@ class MainWindow(_qw.QMainWindow):
         else:
             this_channel_polarity_label.setText('<span style="font-size:xx-large"><b><font color="#00ff00">-</font></b></span>')
         
-        self.all_channels_set_voltage_field[mod_key][channel_key].setText(str(this_channel.set_voltage))
-        self.all_channels_ramp_speed_field[mod_key][channel_key].setText(str(this_channel.ramp_speed))
+        self.all_channels_set_voltage_field[mod_key][channel_key].setPlaceholderText(str(this_channel.set_voltage))
+        self.all_channels_ramp_speed_field[mod_key][channel_key].setPlaceholderText(str(this_channel.ramp_speed))
         
         
         
@@ -693,14 +693,7 @@ class MainWindow(_qw.QMainWindow):
         
     def disconnect_hv_module(self, key, index):
         MainWindow.log.debug("disconnecting "+key)  
-        if not self.modules[key].is_connected:
-            return
-        self.modules[key].stop_running_thread()      
-
-        while self.modules[key].board_occupied:
-            MainWindow.log.debug("Waiting for thread "+key+" to stop"+str(self.modules[key].stop_thread))
-            time.sleep(0.2)
-        MainWindow.log.debug("thread "+key+" stopped")  
+        self.stop_reader_thread(self.modules[key])
         
         self.modules[key].close_connection()
         self.module_com_line_edits[index].setDisabled(False)      
@@ -715,6 +708,94 @@ class MainWindow(_qw.QMainWindow):
             module.set_reader_thread(module_thread)
             module_thread.start()
 
+    def stop_reader_thread(self, module):
+        if not module.is_connected:
+            return False
+        module.stop_running_thread()      
+
+        while module.board_occupied:
+            MainWindow.log.debug("Waiting for thread "+module.name+" to stop")
+            time.sleep(0.2)
+        MainWindow.log.debug("thread "+module.name+" stopped")  
+        
+    def apply_hv_settings(self, module_key, channel_key):
+        channel = self.channels[module_key][channel_key]
+        if not self.modules[module_key].is_connected:
+            self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Module", 
+                "Module is not connected!")
+            return False
+        self.stop_reader_thread(self.modules[module_key])
+        
+        ramp_speed_text = self.all_channels_ramp_speed_field[module_key][channel_key].text().strip()
+        set_voltage_text = self.all_channels_set_voltage_field[module_key][channel_key].text().strip()
+
+        try:
+            if not (ramp_speed_text == ""):
+                ramp_speed = abs(int(float(ramp_speed_text)))
+            else:
+                ramp_speed = self.all_channels_ramp_speed_field[module_key][channel_key].placeholderText()
+                
+            if not (set_voltage_text == ""):
+                set_voltage = abs(int(float(set_voltage_text)))
+            else:
+                set_voltage = self.all_channels_set_voltage_field[module_key][channel_key].placeholderText()                
+                
+        except (ValueError, TypeError):
+            self.err_msg_set_hv_values = _qw.QMessageBox.warning(self, "Values",
+                                   	"Invalid input for the Board parameters!")
+       	    self.start_reader_thread(self.modules[module_key])
+            return False
+        if not (channel.write_ramp_speed(ramp_speed) == ramp_speed):
+            self.err_msg_set_hv_values_speed = _qw.QMessageBox.warning(self, "Set Ramp speed", 
+            "Invalid response from HV Channel. Check values!")
+            self.start_reader_thread(self.modules[module_key])
+            return False
+        if not (channel.write_set_voltage(set_voltage) == set_voltage):
+            self.err_msg_set_hv_values_voltage = _qw.QMessageBox.warning(self, "Set Voltage",
+                           	"Invalid response from HV Channel. Check values!")
+            self.start_reader_thread(self.modules[module_key])
+            return False
+        self.all_channels_ramp_speed_field[module_key][channel_key].text() = ""
+        self.all_channels_set_voltage_field[module_key][channel_key].text() = ""
+        self.start_reader_thread(self.modules[module_key])
+        return True
+        
+    def start_hv_change(self, module_key, channel_key):
+        if not self.modules[module_key].is_connected:
+            self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Module", 
+                "Module is not connected!")
+            return False
+            
+        if _np.isnan(self.channels[module_key][channel_key].set_voltage) or _np.isnan(self.channels[module_key][channel_key].ramp_speed):
+            self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Channel", 
+                "Channel shows invalid value!")        
+            return False
+
+        print(str(self.channels[module_key][channel_key].ramp_speed))
+
+        confirmation = _qw.QMessageBox.question(self, "Are you sure?", 
+        "You are about to ramp channel: "+self.channels[module_key][channel_key].name+
+        "\nSet Voltage: "+str(self.channels[module_key][channel_key].set_voltage)+
+        "\nRamp Speed: "+str(self.channels[module_key][channel_key].ramp_speed)+
+        "\nPlease Confirm!", _qw.QMessageBox.Yes, _qw.QMessageBox.No)
+
+        if confirmation == _qw.QMessageBox.Yes:
+            answer = self.channels[module_key][channel_key].start_voltage_change()
+            if not ("H2L" in answer or "L2H" in answer):
+                self.err_msg_voltage_change = _qw.QMessageBox.warning(self, "Voltage Change",
+               	"Invalid response from HV Channel. Check values!")
+               	self.start_reader_thread(self.modules[module_key])
+               	return False
+            else:
+                self.err_msg_voltage_change_good = _qw.QMessageBox.info(self, "Voltage Change",
+                "Voltage is changing!")
+                self.start_reader_thread(self.modules[module_key])
+                return True
+        else:
+            self.err_msg_voltage_change_abort = _qw.QMessageBox.warning(self, "Voltage Change",
+               	"Operation aborted!")
+            self.start_reader_thread(self.modules[module_key])
+            return False
 
     def _init_overview(self):
         MainWindow.log.debug("Called MainWindow._init_overview")
@@ -1012,12 +1093,4 @@ class MainWindow(_qw.QMainWindow):
             return(True)
         else:
             return(False)
-		
-def get_bool_pixmap(bool_var):
-    if bool_var == None:
-        return _qg.QPixmap('hexesvm/hexe_circle_gray_small.svg')
-    elif bool_var:    
-        return _qg.QPixmap('hexesvm/hexe_circle_green_small.svg')
-    elif not bool_var:
-        return _qg.QPixmap('hexesvm/hexe_circle_red_small.svg')
 
