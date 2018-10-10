@@ -26,6 +26,8 @@ class Serial:
         self.v2 = "002"
         self.d1 = "0000"
         self.d2 = "0000"
+        self.chan1_down = False
+        self.chan2_down = False
 
     ## isOpen()
     # returns True if the port to the Arduino is open.  False otherwise
@@ -104,20 +106,26 @@ class Serial:
             answer = "V2="+self.v2+"\r"    
         if self.sum_receivedData == "G1\r\n":
             answer = "S1=H2L\r"
+            self.chan1_down = True
         if self.sum_receivedData == "G2\r\n":
-            answer = "S2=H2L\r"             
+            answer = "S2=H2L\r"
+            self.chan2_down = True          
         if self.sum_receivedData == "L1\r\n":
             answer = "10\r"   
         if self.sum_receivedData == "L2\r\n":
             answer = "10\r"                     
         if self.sum_receivedData == "T1\r\n":
-          answer = "0\r"          
+          answer = "255\r"          
         if self.sum_receivedData == "T2\r\n":
-          answer = "0\r"         
+          answer = "128\r"         
         if self.sum_receivedData == "S1\r\n":
-          answer = "ON\r"    
+          answer = "S1=ON\r"    
+          if self.chan1_down:
+          	answer = "S1=H2L"
         if self.sum_receivedData == "S2\r\n":
-          answer = "ON\r"                                      
+          answer = "S2=ON\r" 
+          if self.chan2_down:
+          	answer = "S2=H2L"                                     
         if self.sum_receivedData == "A1\r\n":
           answer = "8\r"  
         if self.sum_receivedData == "A2\r\n":

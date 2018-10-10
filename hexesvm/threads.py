@@ -14,7 +14,7 @@ class MonitorIsegModule(_qc.QThread):
         # This functino is meant to be run in a thread
         self.module.stop_thread = False        
         n_read_all = 5
-        i = 0
+        i = n_read_all
         self.module.board_occupied = True
         self.stop_looping = False
         while not self.stop_looping:
@@ -61,7 +61,10 @@ class MonitorIsegModule(_qc.QThread):
                     channel.read_device_status()
                     if self.module.stop_thread:
                         self.stop()   
-                                                   
+                        
+                    channel.read_status()
+                    if self.module.stop_thread:
+                        self.stop()   
                     channel.read_auto_start()
             if i >= n_read_all:
                 i = 0

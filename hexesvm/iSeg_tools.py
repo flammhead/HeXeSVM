@@ -91,6 +91,13 @@ class hv_module:
         for channel in self.child_channels:
             channel.__init__(channel.name, self, channel.channel)
 
+        self.u_max = ""
+        self.i_max = ""
+        self.model_no = ""
+        self.firmware_vers = ""
+        self.stop_thread = False
+        self.board_occupied = False
+        self.reader_thread = None
 
 class hv_channel:
 
@@ -113,13 +120,15 @@ class hv_channel:
         self.kill_enable_switch = None
         self.hv_switch_off = None
         self.polarity_positive = None
-        self.manual_control = None        
+        self.manual_control = None
         
-        self.channel_in_error = True
-        self.channel_is_tripped = False
+        self.status = ""   
+        
+        self.channel_in_failure = True
         self.kill_active = False
         
         self.auto_reramp_mode = "off"
+        self.trip_rate = 0
 	
     
     # iSeg read commands
@@ -236,7 +245,12 @@ class hv_channel:
         
     def read_status(self):
         command = ("S%d" % self.channel)
-        return self.module.send_long_command(command)        
+        answer = self.module.send_long_command(command)
+        answer_split = answer.split("=")
+        if len(answer_split)<=1:
+            return None
+        self.status = answer_split[1]
+        return self.status
         
     def read_device_status(self):
         command = ("T%d" % self.channel)

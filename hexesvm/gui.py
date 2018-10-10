@@ -66,6 +66,7 @@ class MainWindow(_qw.QMainWindow):
 
         self.update_status_bar()
         self.update_overview()
+        self.update_module_tabs()
         
 
     def _initialize_hv_modules(self):		
@@ -200,6 +201,7 @@ class MainWindow(_qw.QMainWindow):
             new_palette.setColor(_qg.QPalette.WindowText, _qg.QColor(255,0,0))
             self.database_widget.setPalette(new_palette)
             self.database_widget.setText("Database: ERROR")
+        return
 
 
     def _init_subwindows(self):
@@ -299,7 +301,6 @@ class MainWindow(_qw.QMainWindow):
 
             this_tab = self.mod_tabs[key]
             this_module = self.modules[key]
-            this_modules_channels = this_module.child_channels
     
             this_com_port_label = _qw.QLabel("Port:")
             self.module_com_labels.append(this_com_port_label)
@@ -326,13 +327,13 @@ class MainWindow(_qw.QMainWindow):
             self.module_umax_labels.append(this_u_max_label)
             this_u_max_field = _qw.QLineEdit(this_tab)
             this_u_max_field.setDisabled(True)
-            self.module_umax_fields.append(this_u_max_label)
+            self.module_umax_fields.append(this_u_max_field)
             
             this_i_max_label = _qw.QLabel("I(mA):")
             self.module_imax_labels.append(this_i_max_label)
             this_i_max_field = _qw.QLineEdit(this_tab)
             this_i_max_field.setDisabled(True)
-            self.module_imax_fields.append(this_i_max_label)            
+            self.module_imax_fields.append(this_i_max_field)            
 
             this_serial_number_label = _qw.QLabel("Serial:")
             self.module_serial_labels.append(this_serial_number_label)
@@ -376,8 +377,9 @@ class MainWindow(_qw.QMainWindow):
             # Row 4 widget (horizontal separator)
             grid.addWidget(horizontal_separator, 4,1,1,9)
             
-            channel_grid_1 = self._init_channel_section(key, list(self.channels[key].keys())[0])
-            grid.addLayout(channel_grid_1, 5,1, 8,4)
+            if len(self.channels[key].keys()) > 0:
+                channel_grid_1 = self._init_channel_section(key, list(self.channels[key].keys())[0])
+                grid.addLayout(channel_grid_1, 5,1, 8,4)
             if len(self.channels[key].keys()) > 1:
                 channel_grid_2 = self._init_channel_section(key, list(self.channels[key].keys())[1])
                 grid.addLayout(channel_grid_2, 5,6, 8,4)            
@@ -385,7 +387,9 @@ class MainWindow(_qw.QMainWindow):
             grid.addWidget(vertical_separator, 5, 5, 8, 1)
             this_tab.setLayout(grid)
             
-            self.module_grid_layouts.append(grid)           
+            self.module_grid_layouts.append(grid)
+            
+        self.update_module_tabs()   
 
         return
 
@@ -397,11 +401,11 @@ class MainWindow(_qw.QMainWindow):
         this_channel_name_label = _qw.QLabel('<span style="font-size:large"><b>'+channel_key+"</b></span>")
         this_channel_error_label = _qw.QLabel("Error")
         this_channel_error_sign = _qw.QLabel()
-        this_channel_error_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_red_small.svg'))
+        this_channel_error_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
         self.all_channels_error_sign[mod_key].update({channel_key: this_channel_error_sign})
         this_channel_trip_label = _qw.QLabel("Trip")
         this_channel_trip_sign = _qw.QLabel()
-        this_channel_trip_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_green_small.svg'))
+        this_channel_trip_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
         self.all_channels_trip_sign[mod_key].update({channel_key: this_channel_trip_sign})
         this_channel_inhibit_label = _qw.QLabel("Inhibit")
         this_channel_inhibit_sign = _qw.QLabel()
@@ -414,14 +418,14 @@ class MainWindow(_qw.QMainWindow):
         this_channel_hv_on_label = _qw.QLabel("HV on")
         this_channel_hv_on_sign = _qw.QLabel()
         this_channel_hv_on_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
-        self.all_channels_hv_on_sign[mod_key].update({channel_key: this_channel_hv_on_label})
+        self.all_channels_hv_on_sign[mod_key].update({channel_key: this_channel_hv_on_sign})
         this_channel_dac_on_label = _qw.QLabel("DAC on")
         this_channel_dac_on_sign = _qw.QLabel()
-        this_channel_dac_on_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_arrow_up.svg'))
+        this_channel_dac_on_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
         self.all_channels_dac_on_sign[mod_key].update({channel_key: this_channel_dac_on_sign})
         this_channel_hv_ramp_label = _qw.QLabel("HV ramp")
         this_channel_hv_ramp_sign = _qw.QLabel()
-        this_channel_hv_ramp_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_arrow_down.svg'))
+        this_channel_hv_ramp_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_bar.svg'))
         self.all_channels_hv_ramp_sign[mod_key].update({channel_key: this_channel_hv_ramp_sign})
         this_channel_trip_rate_label = _qw.QLabel("Trips")
         this_channel_trip_rate_field = _qw.QLineEdit(this_tab)
@@ -464,19 +468,19 @@ class MainWindow(_qw.QMainWindow):
               
         # controls of the channel (right)
         if this_channel.channel == 1:
-            this_channel_number_label = _qw.QLabel('<span style="font-size:large"><b>A</b></span>')
+            this_channel_number_label = _qw.QLabel('<span style="font-size:xx-large"><b>A</b></span>')
         elif this_channel.channel == 2:
-            this_channel_number_label = _qw.QLabel('<span style="font-size:large"><b>B</b></span>')
+            this_channel_number_label = _qw.QLabel('<span style="font-size:xx-large"><b>B</b></span>')
         else:
-            this_channel_number_label = _qw.QLabel('<span style="font-size:large"><b>?</b></span>')
+            this_channel_number_label = _qw.QLabel('<span style="font-size:xx-large"><b>?</b></span>')
         self.all_channels_number_label[mod_key].update({channel_key: this_channel_number_label})
         
         if this_channel.polarity_positive == True:
-            this_channel_polarity_label = _qw.QLabel('<span style="font-size:large"><b><font color="green">+</font></b></span>')
+            this_channel_polarity_label = _qw.QLabel('<span style="font-size:xx-large"><b><font color="red">+</font></b></span>')
         elif this_channel.polarity_positive == False:
-            this_channel_polarity_label = _qw.QLabel('<span style="font-size:large"><b><font color="red">-</font></b></span>')
+            this_channel_polarity_label = _qw.QLabel('<span style="font-size:xx-large"><b><font color="#00ff00">-</font></b></span>')
         else:
-            this_channel_polarity_label = _qw.QLabel('<span style="font-size:large"><b>+/-</b></span>')
+            this_channel_polarity_label = _qw.QLabel('<span style="font-size:xx-large"><b>+/-</b></span>')
         self.all_channels_polarity_label[mod_key].update({channel_key: this_channel_polarity_label})
         this_channel_control_label = _qw.QLabel("<b>Control</b>")
         
@@ -541,8 +545,8 @@ class MainWindow(_qw.QMainWindow):
 
         grid.addWidget(this_channel_vertical_separator, 1, 3, 9, 1)
         
-        grid.addWidget(this_channel_number_label, 1, 5, _qc.Qt.AlignRight)
-        grid.addWidget(this_channel_polarity_label, 2, 5, _qc.Qt.AlignRight)
+        grid.addWidget(this_channel_number_label, 1, 4, 2,1,_qc.Qt.AlignLeft)
+        grid.addWidget(this_channel_polarity_label, 1, 5,2,1, _qc.Qt.AlignRight)
         grid.addWidget(this_channel_control_label, 3, 4)
         grid.addWidget(this_channel_trip_detect_box, 4, 4, 1, 2)
         grid.addWidget(this_channel_auto_reramp_box, 5, 4, 1, 2)
@@ -557,6 +561,108 @@ class MainWindow(_qw.QMainWindow):
         
         return grid
         
+    def update_module_tabs(self):
+        MainWindow.log.debug("Called MainWindow.update_module_tabs")
+        for i, key in zip(range(len(self.modules)), self.modules.keys()):    
+            this_tab = self.mod_tabs[key]
+            this_module = self.modules[key]
+            
+            self.module_umax_fields[i].setText(this_module.u_max)
+            self.module_imax_fields[i].setText(this_module.i_max)
+            self.module_serial_fields[i].setText(this_module.model_no)
+            self.module_firmware_fields[i].setText(this_module.firmware_vers)
+            
+            if len(self.channels[key].keys()) > 0:
+                self.update_channel_section(key, list(self.channels[key].keys())[0])
+            if len(self.channels[key].keys()) > 1:
+                self.update_channel_section(key, list(self.channels[key].keys())[1])
+                
+        return
+        
+    def update_channel_section(self, mod_key, channel_key):
+        this_tab = self.mod_tabs[mod_key]
+        this_channel = self.channels[mod_key][channel_key]
+        
+        none_pix = _qg.QPixmap('hexesvm/hexe_circle_gray_small.svg')
+        ok_pix = _qg.QPixmap('hexesvm/hexe_circle_green_small.svg')
+        err_pix = _qg.QPixmap('hexesvm/hexe_circle_red_small.svg')
+        
+        if this_channel.channel_in_error is None:
+            self.all_channels_error_sign[mod_key][channel_key].setPixmap(none_pix)
+        elif this_channel.channel_in_error is True:
+            self.all_channels_error_sign[mod_key][channel_key].setPixmap(err_pix)        
+        elif this_channel.channel_in_error is False:
+            self.all_channels_error_sign[mod_key][channel_key].setPixmap(ok_pix)
+            
+        if this_channel.channel_is_tripped is None:
+            self.all_channels_trip_sign[mod_key][channel_key].setPixmap(none_pix)
+        elif this_channel.channel_is_tripped is True:
+            self.all_channels_trip_sign[mod_key][channel_key].setPixmap(err_pix)        
+        elif this_channel.channel_is_tripped is False:
+            self.all_channels_trip_sign[mod_key][channel_key].setPixmap(ok_pix)      
+            
+        if this_channel.hardware_inhibit is None:
+            self.all_channels_inhibit_sign[mod_key][channel_key].setPixmap(none_pix)
+        elif this_channel.hardware_inhibit is True:
+            self.all_channels_inhibit_sign[mod_key][channel_key].setPixmap(err_pix)        
+        elif this_channel.hardware_inhibit is False:
+            self.all_channels_inhibit_sign[mod_key][channel_key].setPixmap(ok_pix)          
+            
+        if this_channel.kill_enable_switch is None:
+            self.all_channels_kill_sign[mod_key][channel_key].setPixmap(none_pix)
+        elif this_channel.kill_enable_switch is True:
+            self.all_channels_kill_sign[mod_key][channel_key].setPixmap(err_pix)     
+        elif this_channel.kill_enable_switch is False:
+            self.all_channels_kill_sign[mod_key][channel_key].setPixmap(ok_pix)  
+            
+        if this_channel.hv_switch_off is None:
+            self.all_channels_hv_on_sign[mod_key][channel_key].setPixmap(none_pix)
+        elif this_channel.hv_switch_off is True:
+            self.all_channels_hv_on_sign[mod_key][channel_key].setPixmap(err_pix)        
+        elif this_channel.hv_switch_off is False:
+            self.all_channels_hv_on_sign[mod_key][channel_key].setPixmap(ok_pix)  
+            
+        if this_channel.manual_control is None:
+            self.all_channels_dac_on_sign[mod_key][channel_key].setPixmap(none_pix)
+        elif this_channel.manual_control is True:
+            self.all_channels_dac_on_sign[mod_key][channel_key].setPixmap(err_pix)        
+        elif this_channel.manual_control is False:
+            self.all_channels_dac_on_sign[mod_key][channel_key].setPixmap(ok_pix)
+        
+        if this_channel.status == "":
+            self.all_channels_hv_ramp_sign[mod_key][channel_key].setPixmap(none_pix)
+        elif this_channel.status == "ON":
+            self.all_channels_hv_ramp_sign[mod_key][channel_key].setPixmap(_qg.QPixmap('hexesvm/hexe_bar.svg'))
+        elif this_channel.status == "H2L":
+            self.all_channels_hv_ramp_sign[mod_key][channel_key].setPixmap(_qg.QPixmap('hexesvm/hexe_arrow_down.svg'))        
+        elif this_channel.status == "L2H":                
+            self.all_channels_hv_ramp_sign[mod_key][channel_key].setPixmap(_qg.QPixmap('hexesvm/hexe_arrow_up.svg'))
+            
+        self.all_channels_trip_rate_field[mod_key][channel_key].setText(str(this_channel.trip_rate))
+        
+        this_channel_number_label = self.all_channels_number_label[mod_key][channel_key]
+        if this_channel.channel == 1:
+            this_channel_number_label = _qw.QLabel('<span style="font-size:xx-large"><b>A</b></span>')
+        elif this_channel.channel == 2:
+            this_channel_number_label = _qw.QLabel('<span style="font-size:xx-large"><b>B</b></span>')
+        else:
+            this_channel_number_label = _qw.QLabel('<span style="font-size:xx-large"><b>?</b></span>')
+            
+        this_channel_polarity_label = self.all_channels_polarity_label[mod_key][channel_key]
+        if this_channel.polarity_positive is None:
+            this_channel_polarity_label.setText('<span style="font-size:xx-large"><b>+/-</b></span>')
+        elif this_channel.polarity_positive:
+            this_channel_polarity_label.setText('<span style="font-size:xx-large"><b><font color="red">+</font></b></span>')
+        else:
+            this_channel_polarity_label.setText('<span style="font-size:xx-large"><b><font color="#00ff00">-</font></b></span>')
+        
+        self.all_channels_set_voltage_field[mod_key][channel_key].setText(str(this_channel.set_voltage))
+        self.all_channels_ramp_speed_field[mod_key][channel_key].setText(str(this_channel.ramp_speed))
+        
+        
+        
+        return
+            
         
     def connect_hv_module(self, key, index):
         MainWindow.log.debug("connecting "+key)  
@@ -577,6 +683,9 @@ class MainWindow(_qw.QMainWindow):
             return
         # add here exception for com port in use!
         self.modules[key].sync_module()
+        self.modules[key].read_module_info()
+        self.module_com_line_edits[index].setDisabled(True)
+        self.module_is_high_precission_boxes[index].setEnabled(False)
         self.module_connect_buttons[index].setEnabled(False)
         self.module_disconnect_buttons[index].setEnabled(True)        
         self.start_reader_thread(self.modules[key])
@@ -593,7 +702,9 @@ class MainWindow(_qw.QMainWindow):
             time.sleep(0.2)
         MainWindow.log.debug("thread "+key+" stopped")  
         
-        self.modules[key].close_connection()                
+        self.modules[key].close_connection()
+        self.module_com_line_edits[index].setDisabled(False)      
+        self.module_is_high_precission_boxes[index].setEnabled(True)        
         self.module_disconnect_buttons[index].setEnabled(False)        
         self.module_connect_buttons[index].setEnabled(True)
         return
@@ -705,7 +816,7 @@ class MainWindow(_qw.QMainWindow):
                 
             palette = self.channel_voltage_lcds[i].palette()
             palette.setColor(palette.Background, _qg.QColor(10,10,10))
-            if this_hv_channel.channel_in_error or this_hv_channel.channel_is_tripped:
+            if _np.isnan(this_hv_channel.voltage) or this_hv_channel.channel_is_tripped:
                 palette.setColor(palette.WindowText, _qg.QColor(255,0,0))
             else:
                 palette.setColor(palette.WindowText, _qg.QColor(0,255,0))
@@ -902,3 +1013,11 @@ class MainWindow(_qw.QMainWindow):
         else:
             return(False)
 		
+def get_bool_pixmap(bool_var):
+    if bool_var == None:
+        return _qg.QPixmap('hexesvm/hexe_circle_gray_small.svg')
+    elif bool_var:    
+        return _qg.QPixmap('hexesvm/hexe_circle_green_small.svg')
+    elif not bool_var:
+        return _qg.QPixmap('hexesvm/hexe_circle_red_small.svg')
+
