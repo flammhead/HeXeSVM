@@ -1,5 +1,5 @@
 from PyQt5 import QtCore as _qc
-from hexesvm import iSeg_tools as _iseg
+#from hexesvm import iSeg_tools as _iseg
 import time
 
 

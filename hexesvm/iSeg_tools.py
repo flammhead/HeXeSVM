@@ -1,5 +1,5 @@
 #import serial
-import fake_serial as serial
+from hexesvm import fake_serial as serial
 from hexesvm import threads as _thr
 import time
 
@@ -128,7 +128,12 @@ class hv_channel:
         self.kill_active = False
         
         self.auto_reramp_mode = "off"
+        self.min_time_trips = 10
+        # Voltage below which channel is considered tripped
+        self.trip_voltage = 7
         self.trip_rate = 0
+        self.trip_time_stamps = []
+        self.trip_detected = False
 	
     
     # iSeg read commands
@@ -284,14 +289,23 @@ class hv_channel:
     # iSeg Operation commands
     def start_voltage_change(self):
         command = ("G%d" % self.channel)
-        return self.module.send_long_command(command)
+        print(command)        
+        answer = self.module.send_long_command(command)
+        status = answer.split('=')
+        print(status)
+        if len(status) < 2:
+            return status
+        return status[1]
         
     def write_set_voltage(self, voltage):
         try: voltage_int = int(voltage)
         except (ValueError, TypeError): return False
         command = ("D%d=%d" % (self.channel, voltage_int))
         answer = self.module.send_long_command(command)
-        try: value = float(answer)
+        ramp_speed = answer.split('=')
+        if len(ramp_speed) < 2:
+            return False
+        try: value = int(ramp_speed[1])
         except (ValueError, TypeError): return False
         return value
         
@@ -300,7 +314,10 @@ class hv_channel:
         except (ValueError, TypeError): return False
         command = ("V%d=%d" % (self.channel, speed_int))
         answer = self.module.send_long_command(command)
-        try: value = int(answer)
+        ramp_speed = answer.split('=')
+        if len(ramp_speed) < 2:
+            return False
+        try: value = int(ramp_speed[1])
         except (ValueError, TypeError): return False
         return value   
              
@@ -309,9 +326,12 @@ class hv_channel:
         except (ValueError, TypeError): return False
         command = ("L%d=%d" % (self.channel, trip_current_int))
         answer = self.module.send_long_command(command)
-        try: value = int(answer)
+        trip_current = answer.split('=')
+        if len(trip_current) < 2:
+            return False
+        try: value = int(trip_current[1])
         except (ValueError, TypeError): return False
-        return value        
+        return value           
         
     # Subsequent High level methods
             

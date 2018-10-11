@@ -75,16 +75,6 @@ class MainWindow(_qw.QMainWindow):
         {"PMT module": _iseg.hv_module("pmt module", "COM7"),
         "Anode module": _iseg.hv_module("anode module", "COM17"),
         "Drift module": _iseg.hv_module("drift module", "COM18")})		        
-
-
-        '''		        
-        self.channels = OrderedDict(
-        {"Top PMT": self.modules["PMT module"].add_channel(1, "top pmt"),
-        "Anode": self.modules["Anode module"].add_channel(2, "anode"),
-        "Gate": self.modules["Drift module"].add_channel(2, "gate"),
-        "Cathode": self.modules["Drift module"].add_channel(1, "cathode"),
-        "Bottom PMT": self.modules["PMT module"].add_channel(2, "bottom pmt")})
-        '''
                 
         self.channel_order_dict = ((("PMT module", "Top PMT"), ("Anode module", "Anode"), 
                           ("Drift module", "Gate"), ("Drift module", "Cathode"),
@@ -101,12 +91,16 @@ class MainWindow(_qw.QMainWindow):
     def kill_all_hv(self):
         MainWindow.log.debug("Called KILL ALL HV method!")
         response = []
-        message = "High Voltage KILL was triggered and performed!\nModule responses:"
+        message = "High Voltage KILL was triggered and performed!\nModule responses:"        
         # Tell the threads of all modules to terminate
         for key in self.modules.keys():
             if not self.modules[key].is_connected:
                 continue
             self.modules[key].stop_running_thread()      
+
+        for pair in self.channel_order_dict:
+            self.all_channels_auto_reramp_box[pair[0]][pair[1]].setCheckState(False)
+            self.all_channels_auto_reramp_box[pair[0]][pair[1]].setEnabled(False)
 
         for key in self.modules.keys():
             if not self.modules[key].is_connected:
@@ -427,9 +421,8 @@ class MainWindow(_qw.QMainWindow):
         this_channel_hv_ramp_sign = _qw.QLabel()
         this_channel_hv_ramp_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_bar.svg'))
         self.all_channels_hv_ramp_sign[mod_key].update({channel_key: this_channel_hv_ramp_sign})
-        this_channel_trip_rate_label = _qw.QLabel("Trips")
+        this_channel_trip_rate_label = _qw.QLabel("Trips (24hrs)")
         this_channel_trip_rate_field = _qw.QLineEdit(this_tab)
-        this_channel_trip_rate_field.setText("0 per 24hr")
         this_channel_trip_rate_field.setDisabled(True)
         self.all_channels_trip_rate_field[mod_key].update({channel_key: this_channel_trip_rate_field})
         # email alarm settings (bottom)
@@ -488,7 +481,12 @@ class MainWindow(_qw.QMainWindow):
         self.all_channels_trip_detect_box[mod_key].update({channel_key: this_channel_trip_detect_box})
         this_channel_auto_reramp_box = _qw.QCheckBox("auto re-ramp", this_tab)
         self.all_channels_auto_reramp_box[mod_key].update({channel_key: this_channel_auto_reramp_box})
-        this_channel_time_between_trips_label = _qw.QLabel("dT(frequent) (sec)")
+        
+        # this ensures, that trip detect is active when auto reramp is on (sorry for sausage code.
+        self.all_channels_trip_detect_box[mod_key][channel_key].toggled.connect(lambda a: self.all_channels_auto_reramp_box[mod_key][channel_key].setChecked(a and self.all_channels_auto_reramp_box[mod_key][channel_key].checkState()))        
+        self.all_channels_auto_reramp_box[mod_key][channel_key].toggled.connect(lambda a: self.all_channels_trip_detect_box[mod_key][channel_key].setChecked(a or self.all_channels_trip_detect_box[mod_key][channel_key].checkState()))
+        
+        this_channel_time_between_trips_label = _qw.QLabel("dT(frequent) (min)")
         this_channel_time_between_trips_field = _qw.QLineEdit(this_tab)
         self.all_channels_time_between_trips_field[mod_key].update({channel_key: this_channel_time_between_trips_field})
         this_channel_set_voltage_label = _qw.QLabel("Set voltage (V)")
@@ -620,12 +618,12 @@ class MainWindow(_qw.QMainWindow):
         elif this_channel.hv_switch_off is True:
             self.all_channels_hv_on_sign[mod_key][channel_key].setPixmap(err_pix)        
         elif this_channel.hv_switch_off is False:
-            self.all_channels_hv_on_sign[mod_key][channel_key].setPixmap(ok_pix)  
+            self.all_channels_hv_on_sign[mod_key][channel_key].setPixmap(ok_pix)   
             
         if this_channel.manual_control is None:
             self.all_channels_dac_on_sign[mod_key][channel_key].setPixmap(none_pix)
         elif this_channel.manual_control is True:
-            self.all_channels_dac_on_sign[mod_key][channel_key].setPixmap(err_pix)        
+            self.all_channels_dac_on_sign[mod_key][channel_key].setPixmap(err_pix)
         elif this_channel.manual_control is False:
             self.all_channels_dac_on_sign[mod_key][channel_key].setPixmap(ok_pix)
         
@@ -637,7 +635,12 @@ class MainWindow(_qw.QMainWindow):
             self.all_channels_hv_ramp_sign[mod_key][channel_key].setPixmap(_qg.QPixmap('hexesvm/hexe_arrow_down.svg'))        
         elif this_channel.status == "L2H":                
             self.all_channels_hv_ramp_sign[mod_key][channel_key].setPixmap(_qg.QPixmap('hexesvm/hexe_arrow_up.svg'))
-            
+
+        this_channel.trip_rate = 0
+        now = time.time()
+        for trip_time in this_channel.trip_time_stamps:
+            if now - tip_time < 24*3600:
+                this_channel.trip_rate += 1
         self.all_channels_trip_rate_field[mod_key][channel_key].setText(str(this_channel.trip_rate))
         
         this_channel_number_label = self.all_channels_number_label[mod_key][channel_key]
@@ -655,11 +658,42 @@ class MainWindow(_qw.QMainWindow):
             this_channel_polarity_label.setText('<span style="font-size:xx-large"><b><font color="red">+</font></b></span>')
         else:
             this_channel_polarity_label.setText('<span style="font-size:xx-large"><b><font color="#00ff00">-</font></b></span>')
-        
+
+        # check for trips, and auto-reramp
+        if not _np.isnan(this_channel.voltage):
+            if self.all_channels_trip_detect_box[mod_key][channel_key].checkState():
+                if (abs(this_channel.voltage) < this_channel.trip_voltage):
+                    if not this_channel.trip_detected:
+                        # channel is probably tripped
+                        this_channel.trip_detected = True
+                        single_priority = self.all_channels_single_button_group[mod_key, channel_key].checkedId()
+                        self.send_mail(this_channel, single_priority, 1)            
+                        this_channel.trip_time_stamps.append(time.time())
+                        dt_last_trip = time.time() - this_channel.trip_time_stamps[-2]
+                        if dt_last_trip < self.min_time_trips*60:
+                            freq_priority = self.all_channels_frequent_button_group[mod_key, channel_key].checkedId()
+                            self.send_mail(this_channel, freq_priority, 2)         
+                            this_channel.auto_reramp_mode = "freq_trip"
+                        else:
+                            if not this_channel.manual_control:
+                                if self.all_channels_auto_reramp_box[mod_key][channel_key].checkState():
+                                    if not (_np.isnan(self.channels[mod_key][channel_key].set_voltage) or _np.isnan(self.channels[mod_key][channel_key].ramp_speed)):
+                                        if not self.interlock_value:
+                                            self.stop_reader_thread(self.modules[mod_key])
+                                            self.channels[mod_key][channel_key].read_status()
+                                            answer = self.channels[mod_key][channel_key].start_voltage_change()
+                                            self.start_reader_thread(self.modules[module_key])
+                                        
+                else:
+                    this_channel.trip_detected = False
+                    if self.all_channels_auto_reramp_box[mod_key][channel_key].checkState():
+                        this_channel.auto_reramp_mode = "on"
+                    else:
+                        this_channel.auto_reramp_mode = "off"
+          
+        self.all_channels_time_between_trips_field[mod_key][channel_key].setPlaceholderText(str(this_channel.min_time_trips))        
         self.all_channels_set_voltage_field[mod_key][channel_key].setPlaceholderText(str(this_channel.set_voltage))
         self.all_channels_ramp_speed_field[mod_key][channel_key].setPlaceholderText(str(this_channel.ramp_speed))
-        
-        
         
         return
             
@@ -728,6 +762,7 @@ class MainWindow(_qw.QMainWindow):
         
         ramp_speed_text = self.all_channels_ramp_speed_field[module_key][channel_key].text().strip()
         set_voltage_text = self.all_channels_set_voltage_field[module_key][channel_key].text().strip()
+        min_trip_time_text = self.all_channels_time_between_trips_field[module_key][channel_key].text().strip()
 
         try:
             if not (ramp_speed_text == ""):
@@ -738,25 +773,39 @@ class MainWindow(_qw.QMainWindow):
             if not (set_voltage_text == ""):
                 set_voltage = abs(int(float(set_voltage_text)))
             else:
-                set_voltage = self.all_channels_set_voltage_field[module_key][channel_key].placeholderText()                
+                set_voltage = self.all_channels_set_voltage_field[module_key][channel_key].placeholderText()     
+                
+            if not (min_trip_time_text == ""):
+                set_min_trip_time = abs(int(float(min_trip_time_text)))
+            else:
+                set_min_trip_time = self.all_channels_time_between_trips_field[module_key][channel_key].placeholderText()     
                 
         except (ValueError, TypeError):
             self.err_msg_set_hv_values = _qw.QMessageBox.warning(self, "Values",
                                    	"Invalid input for the Board parameters!")
        	    self.start_reader_thread(self.modules[module_key])
             return False
+
         if not (channel.write_ramp_speed(ramp_speed) == ramp_speed):
             self.err_msg_set_hv_values_speed = _qw.QMessageBox.warning(self, "Set Ramp speed", 
-            "Invalid response from HV Channel. Check values!")
+            "Invalid response from HV Channel for set Ramp speed. Check values!")
             self.start_reader_thread(self.modules[module_key])
             return False
         if not (channel.write_set_voltage(set_voltage) == set_voltage):
             self.err_msg_set_hv_values_voltage = _qw.QMessageBox.warning(self, "Set Voltage",
-                           	"Invalid response from HV Channel. Check values!")
+                           	"Invalid response from HV Channel for set Voltage. Check values!")
             self.start_reader_thread(self.modules[module_key])
             return False
-        self.all_channels_ramp_speed_field[module_key][channel_key].text() = ""
-        self.all_channels_set_voltage_field[module_key][channel_key].text() = ""
+        channel.min_time_trips = set_min_trip_time
+        self.all_channels_ramp_speed_field[module_key][channel_key].setText("")
+        self.all_channels_set_voltage_field[module_key][channel_key].setText("")
+        self.all_channels_time_between_trips_field[module_key][channel_key].setText("")
+        # This is neccessary to delete the current saved value and make the change clear
+        channel.set_voltage = float('nan')
+        channel.ramp_speed = float('nan')
+        self.all_channels_ramp_speed_field[module_key][channel_key].setPlaceholderText("")
+        self.all_channels_set_voltage_field[module_key][channel_key].setPlaceholderText("")
+        self.all_channels_time_between_trips_field[module_key][channel_key].setPlaceholderText("")           
         self.start_reader_thread(self.modules[module_key])
         return True
         
@@ -770,15 +819,18 @@ class MainWindow(_qw.QMainWindow):
             self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Channel", 
                 "Channel shows invalid value!")        
             return False
-
-        print(str(self.channels[module_key][channel_key].ramp_speed))
+        if not self.interlock_value:
+            self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Interlock", 
+                "Interlock is locked! Abort Voltage change!")        
+            return False
 
         confirmation = _qw.QMessageBox.question(self, "Are you sure?", 
         "You are about to ramp channel: "+self.channels[module_key][channel_key].name+
         "\nSet Voltage: "+str(self.channels[module_key][channel_key].set_voltage)+
         "\nRamp Speed: "+str(self.channels[module_key][channel_key].ramp_speed)+
         "\nPlease Confirm!", _qw.QMessageBox.Yes, _qw.QMessageBox.No)
-
+        self.stop_reader_thread(self.modules[module_key])
+        
         if confirmation == _qw.QMessageBox.Yes:
             answer = self.channels[module_key][channel_key].start_voltage_change()
             if not ("H2L" in answer or "L2H" in answer):
@@ -787,7 +839,7 @@ class MainWindow(_qw.QMainWindow):
                	self.start_reader_thread(self.modules[module_key])
                	return False
             else:
-                self.err_msg_voltage_change_good = _qw.QMessageBox.info(self, "Voltage Change",
+                self.err_msg_voltage_change_good = _qw.QMessageBox.information(self, "Voltage Change",
                 "Voltage is changing!")
                 self.start_reader_thread(self.modules[module_key])
                 return True
@@ -912,10 +964,10 @@ class MainWindow(_qw.QMainWindow):
                 self.status_lights[i].setPixmap(_qg.QPixmap('hexesvm/hexe_circle_yellow.svg'))
             elif this_hv_channel.auto_reramp_mode == "off":
                 self.status_lights[i].setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray.svg'))
-                
-            # if Db is connected, run the database insertion of these values
-            if self.db_connection:
-                self.insert_values_in_database()
+             
+        # if Db is connected, run the database insertion of these values
+        if self.db_connection:
+            self.insert_values_in_database()
 
         return
 

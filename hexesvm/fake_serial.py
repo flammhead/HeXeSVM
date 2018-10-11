@@ -87,10 +87,10 @@ class Serial:
             answer = str(self.d2)+"\r"  
 
         if "D1=" in self.sum_receivedData:
-            self.d1 = self.sum_receivedData[3:7]
+            self.d1 = self.sum_receivedData.split('=')[1]
             answer = "D1="+self.d1+"\r"
         if "D2=" in self.sum_receivedData:
-            self.d2 = self.sum_receivedData[3:7]
+            self.d2 = self.sum_receivedData.split('=')[1]
             answer = "D2="+self.d2+"\r" 
      
         if self.sum_receivedData == "V1\r\n":
@@ -99,15 +99,15 @@ class Serial:
             answer = str(self.v2)+"\r"  
             
         if "V1=" in self.sum_receivedData:
-            self.v1 = self.sum_receivedData[3:6]
+            self.v1 = self.sum_receivedData.split('=')[1]
             answer = "V1="+self.v1+"\r"
         if "V2=" in self.sum_receivedData:
-            self.v2 = self.sum_receivedData[3:6]
+            self.v2 = self.sum_receivedData.split('=')[1]
             answer = "V2="+self.v2+"\r"    
-        if self.sum_receivedData == "G1\r\n":
+        if "G1" in self.sum_receivedData:
             answer = "S1=H2L\r"
             self.chan1_down = True
-        if self.sum_receivedData == "G2\r\n":
+        if "G2" in self.sum_receivedData:
             answer = "S2=H2L\r"
             self.chan2_down = True          
         if self.sum_receivedData == "L1\r\n":
