@@ -21,16 +21,16 @@ class MailNotifier():
         msg['To'] = self.recipients
         if alarm_priority == 1:
             msg['Subject'] = "HeXe SVM info: "+hv_channel.name
-        elif alarm_mode == 2:
+        elif alarm_priority == 2:
             msg['Subject'] = "HeXe SVM ALARM: "+hv_channel.name
-        elif alarm_mode == 0:
+        elif alarm_priority == 0:
             del msg
             return
             
         if alarm_kind == 1:
-            msg['Subject'] += " single trip"
+            msg['Subject'] = msg['Subject']+" single trip"
         elif alarm_kind == 2:
-            msg['Subject'] += " frequent trip"
+            msg['Subject'] = msg['Subject']+" frequent trip"
 
         message_string = "Possible HV trip detected.\n"
         message_string += "Name: "+hv_channel.name+"\n"

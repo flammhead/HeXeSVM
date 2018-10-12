@@ -22,12 +22,16 @@ class Serial:
         self.sum_receivedData = ""
         self._data = "It was the best of times.\nIt was the worst of times.\n"
         
+        self.u1 = 0
+        self.u2 = 0
         self.v1 = "002"
         self.v2 = "002"
         self.d1 = "0000"
         self.d2 = "0000"
-        self.chan1_down = False
-        self.chan2_down = False
+        self.ch1_ramping = False
+        self.chan1_g_time = 0
+        self.ch2_ramping = False
+        self.chan2_g_time = 0        
 
     ## isOpen()
     # returns True if the port to the Arduino is open.  False otherwise
@@ -53,7 +57,7 @@ class Serial:
     # reads n characters from the fake Arduino. Actually n characters
     # are read from the string _data and returned to the caller.
     def read( self, n=1 ):
-        time.sleep(0.2)
+        time.sleep(0.04)
         return self._receivedData.encode()
         
         
@@ -66,6 +70,8 @@ class Serial:
         if self.sum_receivedData == "#\r\n":
             answer = "123456;1.23;1000;2mA\r"
         if self.sum_receivedData == "U1\r\n":
+            if self.ch1_ramping:
+                self.u1
             answer = str(int(gauss(1111,1)))+"\r"
         if self.sum_receivedData == "U2\r\n":
             answer = str(int(gauss(-2222,1)))+"\r"
@@ -88,28 +94,30 @@ class Serial:
 
         if "D1=" in self.sum_receivedData:
             self.d1 = self.sum_receivedData.split('=')[1]
-            answer = "D1="+self.d1+"\r"
+            answer = "\r"
         if "D2=" in self.sum_receivedData:
             self.d2 = self.sum_receivedData.split('=')[1]
-            answer = "D2="+self.d2+"\r" 
+            answer = "\r" 
      
         if self.sum_receivedData == "V1\r\n":
-            answer = str(self.v1)+"\r"      
+            answer = str(self.v1)+"\r"          
         if self.sum_receivedData == "V2\r\n":
             answer = str(self.v2)+"\r"  
             
         if "V1=" in self.sum_receivedData:
             self.v1 = self.sum_receivedData.split('=')[1]
-            answer = "V1="+self.v1+"\r"
+            answer = "\r"
         if "V2=" in self.sum_receivedData:
             self.v2 = self.sum_receivedData.split('=')[1]
-            answer = "V2="+self.v2+"\r"    
+            answer = "\r"    
         if "G1" in self.sum_receivedData:
             answer = "S1=H2L\r"
-            self.chan1_down = True
+            self.chan1_g_time = time.time()
+            self.ch1_ramping = True
         if "G2" in self.sum_receivedData:
             answer = "S2=H2L\r"
-            self.chan2_down = True          
+            self.chan2_g_time = time.time()
+            self.ch2_ramping = True          
         if self.sum_receivedData == "L1\r\n":
             answer = "10\r"   
         if self.sum_receivedData == "L2\r\n":
@@ -119,13 +127,17 @@ class Serial:
         if self.sum_receivedData == "T2\r\n":
           answer = "128\r"         
         if self.sum_receivedData == "S1\r\n":
-          answer = "S1=ON\r"    
+          answer = "S1=ON\r" 
+          '''   
           if self.chan1_down:
           	answer = "S1=H2L"
+          '''          	
         if self.sum_receivedData == "S2\r\n":
           answer = "S2=ON\r" 
+          '''
           if self.chan2_down:
           	answer = "S2=H2L"                                     
+      	  '''
         if self.sum_receivedData == "A1\r\n":
           answer = "8\r"  
         if self.sum_receivedData == "A2\r\n":
@@ -133,5 +145,5 @@ class Serial:
                                                                                      
         
         self.sum_receivedData = ""
-        time.sleep(0.1)
+        time.sleep(0.05)
         return answer.encode()

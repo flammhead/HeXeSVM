@@ -9,7 +9,7 @@ class hv_module:
         self.name = name
         self.port = port
         self.sleep_time = 1
-        self.response_timeout = 0.2
+        self.response_timeout = 0.5
         self.is_high_precission = False
         self.is_connected = False
         self.child_channels = []
@@ -299,39 +299,24 @@ class hv_channel:
         
     def write_set_voltage(self, voltage):
         try: voltage_int = int(voltage)
-        except (ValueError, TypeError): return False
+        except (ValueError, TypeError): return "ERR"
         command = ("D%d=%d" % (self.channel, voltage_int))
         answer = self.module.send_long_command(command)
-        ramp_speed = answer.split('=')
-        if len(ramp_speed) < 2:
-            return False
-        try: value = int(ramp_speed[1])
-        except (ValueError, TypeError): return False
-        return value
+        return answer
         
     def write_ramp_speed(self, speed):
         try: speed_int = int(speed)
-        except (ValueError, TypeError): return False
+        except (ValueError, TypeError): return "ERR"
         command = ("V%d=%d" % (self.channel, speed_int))
         answer = self.module.send_long_command(command)
-        ramp_speed = answer.split('=')
-        if len(ramp_speed) < 2:
-            return False
-        try: value = int(ramp_speed[1])
-        except (ValueError, TypeError): return False
-        return value   
+        return answer  
              
     def write_trip_current(self, trip_current):
         try: trip_current_int = int(trip_current)
-        except (ValueError, TypeError): return False
+        except (ValueError, TypeError): return "ERR"
         command = ("L%d=%d" % (self.channel, trip_current_int))
         answer = self.module.send_long_command(command)
-        trip_current = answer.split('=')
-        if len(trip_current) < 2:
-            return False
-        try: value = int(trip_current[1])
-        except (ValueError, TypeError): return False
-        return value           
+        return answer        
         
     # Subsequent High level methods
             

@@ -7,6 +7,7 @@ class Interlock():
 
 	def __init__(self):
 		self.lock_state = False
+		self.is_running = False		
 		self.max_time_difference = 10
 		self.parameter_value = float('nan')
 		self.container = None
@@ -37,12 +38,13 @@ class Interlock():
                                             time_now))		
 		result = self.container.conn.execute(sel)
 		data = _np.array(result.fetchall())
+		self.is_running = True
 		if len(data) == 0:
 			self.lock_state = False
 			return False
 
 		try:
-			self.parameter_value = float(data[-1,0])
+			self.parameter_value = float(data[-2,0])
 		except TypeError:
 			return False
 

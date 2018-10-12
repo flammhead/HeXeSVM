@@ -26,45 +26,46 @@ class MonitorIsegModule(_qc.QThread):
                 # make the channel to update its voltage and current information
                 if self.module.stop_thread:
                     self.stop()
-                    
+                    break
                 channel.read_voltage()
                 if self.module.stop_thread:
                     self.stop()              
-                      
+                    break
                 channel.read_current()
                 # if this was the n_read_all th iteration read all other info
                 if i >= n_read_all:
                     print("READALL")
                     if self.module.stop_thread:
                         self.stop()         
-                               
+                        break  
                     channel.read_voltage_limit()
                     if self.module.stop_thread:
                         self.stop()         
-                                             
+                        break                
                     channel.read_current_limit()
                     if self.module.stop_thread:
                         self.stop()         
-                                             
+                        break                
                     channel.read_set_voltage()
                     if self.module.stop_thread:
                         self.stop()         
-                                             
+                        break                
                     channel.read_ramp_speed()
                     if self.module.stop_thread:
                         self.stop()         
-                                             
+                        break                
                     channel.read_trip_current()
                     if self.module.stop_thread:
                         self.stop()      
-                                                
+                        break
                     channel.read_device_status()
                     if self.module.stop_thread:
                         self.stop()   
-                        
+                        break
                     channel.read_status()
                     if self.module.stop_thread:
-                        self.stop()   
+                        self.stop()
+                        break
                     channel.read_auto_start()
             if i >= n_read_all:
                 i = 0
@@ -74,7 +75,7 @@ class MonitorIsegModule(_qc.QThread):
     def stop(self):
         self.module.board_occupied = False
         self.stop_looping = True
-        self.terminate()
+        #self.terminate()
         return
         
             

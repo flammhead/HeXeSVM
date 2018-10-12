@@ -41,6 +41,7 @@ class MainWindow(_qw.QMainWindow):
         self.email_sender = _mail.MailNotifier()
         # create interlocker
         self.locker = _interlock()
+        self.interlock_value = True
         # create database flag
         self.db_connection = False
         self.db_connection_write = False
@@ -123,9 +124,12 @@ class MainWindow(_qw.QMainWindow):
         
     def update_interlock(self):
         # if too slow, the interlocker must be outsourced to an own thread?
-        self.interlock_value = self.locker.check_interlock()
-        if not self.interlock_value and self.db_connection:
-            self.kill_all_hv()
+        response = self.locker.check_interlock()
+        if not response and self.locker.is_running:
+            if self.interlock_value:
+                self.kill_all_hv()
+                self.locker.lock_state = False
+                self.interlock_value = False
 
     def _init_geom(self):
         """Initializes the main window's geometry"""
@@ -639,7 +643,7 @@ class MainWindow(_qw.QMainWindow):
         this_channel.trip_rate = 0
         now = time.time()
         for trip_time in this_channel.trip_time_stamps:
-            if now - tip_time < 24*3600:
+            if now - trip_time < 24*3600:
                 this_channel.trip_rate += 1
         self.all_channels_trip_rate_field[mod_key][channel_key].setText(str(this_channel.trip_rate))
         
@@ -669,9 +673,12 @@ class MainWindow(_qw.QMainWindow):
                         single_priority = self.all_channels_single_button_group[mod_key, channel_key].checkedId()
                         self.send_mail(this_channel, single_priority, 1)            
                         this_channel.trip_time_stamps.append(time.time())
-                        dt_last_trip = time.time() - this_channel.trip_time_stamps[-2]
-                        if dt_last_trip < self.min_time_trips*60:
-                            freq_priority = self.all_channels_frequent_button_group[mod_key, channel_key].checkedId()
+                        if len(this_channel.trip_time_stamps) < 2:
+                            dt_last_trip = this_channel.min_time_trips*60
+                        else:
+                            dt_last_trip = time.time() - this_channel.trip_time_stamps[-2]    
+                        if dt_last_trip < this_channel.min_time_trips*60:
+                            freq_priority = self.all_channels_frequent_button_group[mod_key][channel_key].checkedId()
                             self.send_mail(this_channel, freq_priority, 2)         
                             this_channel.auto_reramp_mode = "freq_trip"
                         else:
@@ -786,12 +793,12 @@ class MainWindow(_qw.QMainWindow):
        	    self.start_reader_thread(self.modules[module_key])
             return False
 
-        if not (channel.write_ramp_speed(ramp_speed) == ramp_speed):
+        if channel.write_ramp_speed(ramp_speed):
             self.err_msg_set_hv_values_speed = _qw.QMessageBox.warning(self, "Set Ramp speed", 
             "Invalid response from HV Channel for set Ramp speed. Check values!")
             self.start_reader_thread(self.modules[module_key])
             return False
-        if not (channel.write_set_voltage(set_voltage) == set_voltage):
+        if channel.write_set_voltage(set_voltage):
             self.err_msg_set_hv_values_voltage = _qw.QMessageBox.warning(self, "Set Voltage",
                            	"Invalid response from HV Channel for set Voltage. Check values!")
             self.start_reader_thread(self.modules[module_key])
@@ -821,7 +828,7 @@ class MainWindow(_qw.QMainWindow):
             return False
         if not self.interlock_value:
             self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Interlock", 
-                "Interlock is locked! Abort Voltage change!")        
+                "Interlock is/was triggered! Abort Voltage change!")        
             return False
 
         confirmation = _qw.QMessageBox.question(self, "Are you sure?", 
@@ -1068,7 +1075,7 @@ class MainWindow(_qw.QMainWindow):
 
         self.sql_conn_button.setEnabled(False)
         self.locker.set_sql_container(self.sql_cont_interlock)
-        self.locker.set_interlock_parameter('p1', 0.010)
+        self.locker.set_interlock_parameter('p1', 0.052)
         
         
     def insert_values_in_database(self):
