@@ -786,7 +786,7 @@ class MainWindow(_qw.QMainWindow):
                 set_min_trip_time = abs(float(min_trip_time_text))
             else:
                 set_min_trip_time = float(self.all_channels_time_between_trips_field[module_key][channel_key].placeholderText())
-                
+            # just a comment
         except (ValueError, TypeError):
             self.err_msg_set_hv_values = _qw.QMessageBox.warning(self, "Values",
                                    	"Invalid input for the Board parameters!")
