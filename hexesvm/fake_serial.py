@@ -20,18 +20,54 @@ class Serial:
         self.is_open  = True
         self._receivedData = ''
         self.sum_receivedData = ""
-        self._data = "It was the best of times.\nIt was the worst of times.\n"
+
+        self.time_last_command = 0
         
-        self.u1 = 0
-        self.u2 = 0
-        self.v1 = "002"
-        self.v2 = "002"
-        self.d1 = "0000"
-        self.d2 = "0000"
-        self.ch1_ramping = False
-        self.chan1_g_time = 0
-        self.ch2_ramping = False
-        self.chan2_g_time = 0        
+        self.u = [0,0]
+        self.i = [0,0]
+        self.v = [2,2]
+        self.d = [0,0]
+        self.ch_ramping = [False,False]
+        self.chan_g_time = [0,0]
+
+        
+        self.ch_tripped = [False,False]
+        self.ch_tripping_active = [True,True]
+        self.ch_trip_interval = [60, 60]
+        self.ch_last_trip = [0, 0]
+        self.channel_state_bin = [256, 128] 
+        self.ch_state = ["ON","ON"]
+
+        
+    def refresh_board(self):
+    # this functino is activated when communication with board and refreshes all values
+    # this function simulates the Hardware
+        now_time = time.time()
+        for index in range(2):
+            t_delta = now_time - self.time_last_command
+            if self.ch_state[index] == "H2L":
+                if self.u[index] > self.d[index]:
+                    self.u[index] = self.u[index] - self.v[index]*t_delta
+                else:
+                    self.u[index] = self.d[index]
+                    self.ch_state[index] = "ON"
+            elif self.ch_state[index] == "L2H":
+                if self.u[index] < self.d[index]:
+                    self.u[index] = self.u[index] + self.v[index]*t_delta
+                else:
+                    self.u[index] = self.d[index]
+                    self.ch_state[index] = "ON"   
+            if self.ch_tripping_active[index]:
+                if self.ch_last_trip[index] == 0:
+                    self.ch_last_trip[index] == now_time
+                if now_time - self.ch_last_trip[index] > self.ch_trip_interval[index]:
+                    self.u[index] = 0
+                    self.ch_state[index] = "ERR"
+                    self.ch_last_trip[index] = now_time
+                
+                
+        self.time_last_command = now_time
+        return
 
     ## isOpen()
     # returns True if the port to the Arduino is open.  False otherwise
@@ -63,87 +99,103 @@ class Serial:
         
     def readline( self ):
         answer = "????"
-        
+        self.refresh_board()
         if not "\r\n" in self.sum_receivedData:
             return self.read()
         
         if self.sum_receivedData == "#\r\n":
-            answer = "123456;1.23;1000;2mA\r"
+            answer = "123456;1.23;1000;2mA"
         if self.sum_receivedData == "U1\r\n":
-            if self.ch1_ramping:
-                self.u1
-            answer = str(int(gauss(1111,1)))+"\r"
+            answer = str(self.u[0])
         if self.sum_receivedData == "U2\r\n":
-            answer = str(int(gauss(-2222,1)))+"\r"
+            answer = str(self.u[1])
         if self.sum_receivedData == "I1\r\n":
-            answer = str(int(gauss(23,1)))+"-06\r"
+            answer = str(self.i[0])+"-06"
         if self.sum_receivedData == "I2\r\n":
-            answer = str(int(gauss(23,1)))+"-06\r"          
+            answer = str(self.i[1])+"-06"          
         if self.sum_receivedData == "M1\r\n":
-            answer = "41\r"
+            answer = "41"
         if self.sum_receivedData == "M2\r\n":
-            answer = "42\r"  
+            answer = "42"  
         if self.sum_receivedData == "N1\r\n":
-            answer = "41\r"
+            answer = "41"
         if self.sum_receivedData == "N2\r\n":
-            answer = "42\r"      
+            answer = "42"      
         if self.sum_receivedData == "D1\r\n":
-            answer = str(self.d1)+"\r"  
+            answer = str(self.d[0])  
         if self.sum_receivedData == "D2\r\n":
-            answer = str(self.d2)+"\r"  
+            answer = str(self.d[1])
 
         if "D1=" in self.sum_receivedData:
-            self.d1 = self.sum_receivedData.split('=')[1]
-            answer = "\r"
+            self.d[0] = int(self.sum_receivedData.split('=')[1])
+            answer = ""
         if "D2=" in self.sum_receivedData:
-            self.d2 = self.sum_receivedData.split('=')[1]
-            answer = "\r" 
+            self.d[1] = int(self.sum_receivedData.split('=')[1])
+            answer = "" 
      
         if self.sum_receivedData == "V1\r\n":
-            answer = str(self.v1)+"\r"          
+            answer = str(self.v[0])         
         if self.sum_receivedData == "V2\r\n":
-            answer = str(self.v2)+"\r"  
+            answer = str(self.v[1])  
             
         if "V1=" in self.sum_receivedData:
-            self.v1 = self.sum_receivedData.split('=')[1]
-            answer = "\r"
+            self.v[0] = int(self.sum_receivedData.split('=')[1])
+            answer = ""
         if "V2=" in self.sum_receivedData:
-            self.v2 = self.sum_receivedData.split('=')[1]
-            answer = "\r"    
+            self.v[1] = int(self.sum_receivedData.split('=')[1])
+            answer = ""    
         if "G1" in self.sum_receivedData:
-            answer = "S1=H2L\r"
-            self.chan1_g_time = time.time()
-            self.ch1_ramping = True
+            if self.ch_state[0] == "ON":
+                if self.d[0] > self.u[0]:
+                    answer = "S1=L2H"
+                    self.ch_state[0] = "L2H"
+                else:
+                    answer = "S1=H2L"
+                    self.ch_state[0] = "H2L"
+                self.chan_g_time[0] = time.time()
+                self.ch_ramping[0] = True
+            else:
+                answer = "S1="+self.ch_state[0]
         if "G2" in self.sum_receivedData:
-            answer = "S2=H2L\r"
-            self.chan2_g_time = time.time()
-            self.ch2_ramping = True          
+            if self.ch_state[1] == "ON":
+                if self.d[1] > self.u[1]:
+                    answer = "S2=L2H"
+                    self.ch_state[1] = "L2H"
+                else:
+                    answer = "S2=H2L"
+                    self.ch_state[1] = "H2L"
+                self.chan_g_time[1] = time.time()
+                self.ch_ramping[1] = True
+            else:
+                answer = "S2="+self.ch_state[1]
         if self.sum_receivedData == "L1\r\n":
-            answer = "10\r"   
+            answer = "10"   
         if self.sum_receivedData == "L2\r\n":
-            answer = "10\r"                     
+            answer = "10"                  
+            
+               
         if self.sum_receivedData == "T1\r\n":
-          answer = "255\r"          
+          answer = self.channel_state_bin[0]          
         if self.sum_receivedData == "T2\r\n":
-          answer = "128\r"         
+          answer = self.channel_state_bin[1]           
+          
+          
         if self.sum_receivedData == "S1\r\n":
-          answer = "S1=ON\r" 
-          '''   
-          if self.chan1_down:
-          	answer = "S1=H2L"
-          '''          	
+          answer = "S1="+ self.ch_state[0]
+          if self.ch_state[0] == "ERR":
+              self.ch_state[0] = "ON"
+
         if self.sum_receivedData == "S2\r\n":
-          answer = "S2=ON\r" 
-          '''
-          if self.chan2_down:
-          	answer = "S2=H2L"                                     
-      	  '''
+          answer = "S2="+self.ch_state[1]
+          if self.ch_state[1] == "ERR":          
+              self.ch_state[1] = "ON"
+          
         if self.sum_receivedData == "A1\r\n":
-          answer = "8\r"  
+          answer = "8"  
         if self.sum_receivedData == "A2\r\n":
-          answer = "8\r"                                 
+          answer = "8"                                 
                                                                                      
-        
+        answer = str(answer) +"\r"
         self.sum_receivedData = ""
         time.sleep(0.05)
         return answer.encode()

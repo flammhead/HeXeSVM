@@ -130,7 +130,7 @@ class hv_channel:
         self.auto_reramp_mode = "off"
         self.min_time_trips = 10
         # Voltage below which channel is considered tripped
-        self.trip_voltage = 7
+        self.trip_voltage = 3
         self.trip_rate = 0
         self.trip_time_stamps = []
         self.trip_detected = False

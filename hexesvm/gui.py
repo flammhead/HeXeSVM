@@ -670,7 +670,7 @@ class MainWindow(_qw.QMainWindow):
                     if not this_channel.trip_detected:
                         # channel is probably tripped
                         this_channel.trip_detected = True
-                        single_priority = self.all_channels_single_button_group[mod_key, channel_key].checkedId()
+                        single_priority = self.all_channels_single_button_group[mod_key][channel_key].checkedId()
                         self.send_mail(this_channel, single_priority, 1)            
                         this_channel.trip_time_stamps.append(time.time())
                         if len(this_channel.trip_time_stamps) < 2:
@@ -685,11 +685,11 @@ class MainWindow(_qw.QMainWindow):
                             if not this_channel.manual_control:
                                 if self.all_channels_auto_reramp_box[mod_key][channel_key].checkState():
                                     if not (_np.isnan(self.channels[mod_key][channel_key].set_voltage) or _np.isnan(self.channels[mod_key][channel_key].ramp_speed)):
-                                        if not self.interlock_value:
+                                        if self.interlock_value:
                                             self.stop_reader_thread(self.modules[mod_key])
                                             self.channels[mod_key][channel_key].read_status()
                                             answer = self.channels[mod_key][channel_key].start_voltage_change()
-                                            self.start_reader_thread(self.modules[module_key])
+                                            self.start_reader_thread(self.modules[mod_key])
                                         
                 else:
                     this_channel.trip_detected = False
@@ -772,20 +772,20 @@ class MainWindow(_qw.QMainWindow):
         min_trip_time_text = self.all_channels_time_between_trips_field[module_key][channel_key].text().strip()
 
         try:
-            if not (ramp_speed_text == ""):
+            if ramp_speed_text:
                 ramp_speed = abs(int(float(ramp_speed_text)))
             else:
-                ramp_speed = self.all_channels_ramp_speed_field[module_key][channel_key].placeholderText()
+                ramp_speed = int(self.all_channels_ramp_speed_field[module_key][channel_key].placeholderText())
                 
-            if not (set_voltage_text == ""):
+            if set_voltage_text:
                 set_voltage = abs(int(float(set_voltage_text)))
             else:
-                set_voltage = self.all_channels_set_voltage_field[module_key][channel_key].placeholderText()     
+                set_voltage = int(self.all_channels_set_voltage_field[module_key][channel_key].placeholderText())
                 
-            if not (min_trip_time_text == ""):
-                set_min_trip_time = abs(int(float(min_trip_time_text)))
+            if min_trip_time_text:
+                set_min_trip_time = abs(float(min_trip_time_text))
             else:
-                set_min_trip_time = self.all_channels_time_between_trips_field[module_key][channel_key].placeholderText()     
+                set_min_trip_time = float(self.all_channels_time_between_trips_field[module_key][channel_key].placeholderText())
                 
         except (ValueError, TypeError):
             self.err_msg_set_hv_values = _qw.QMessageBox.warning(self, "Values",
