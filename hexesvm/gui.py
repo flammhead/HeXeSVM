@@ -399,31 +399,31 @@ class MainWindow(_qw.QMainWindow):
         this_channel_name_label = _qw.QLabel('<span style="font-size:large"><b>'+channel_key+"</b></span>")
         this_channel_error_label = _qw.QLabel("Error")
         this_channel_error_sign = _qw.QLabel()
-        this_channel_error_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
+        this_channel_error_sign.setPixmap(_qg.QPixmap('hexesvm/icons/hexe_circle_gray_small.svg'))
         self.all_channels_error_sign[mod_key].update({channel_key: this_channel_error_sign})
         this_channel_trip_label = _qw.QLabel("Trip")
         this_channel_trip_sign = _qw.QLabel()
-        this_channel_trip_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
+        this_channel_trip_sign.setPixmap(_qg.QPixmap('hexesvm/icons/hexe_circle_gray_small.svg'))
         self.all_channels_trip_sign[mod_key].update({channel_key: this_channel_trip_sign})
         this_channel_inhibit_label = _qw.QLabel("Inhibit")
         this_channel_inhibit_sign = _qw.QLabel()
-        this_channel_inhibit_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
+        this_channel_inhibit_sign.setPixmap(_qg.QPixmap('hexesvm/icons/hexe_circle_gray_small.svg'))
         self.all_channels_inhibit_sign[mod_key].update({channel_key: this_channel_inhibit_sign})
         this_channel_kill_label = _qw.QLabel("Kill")
         this_channel_kill_sign = _qw.QLabel()
-        this_channel_kill_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
+        this_channel_kill_sign.setPixmap(_qg.QPixmap('hexesvm/icons/hexe_circle_gray_small.svg'))
         self.all_channels_kill_sign[mod_key].update({channel_key: this_channel_kill_sign})
         this_channel_hv_on_label = _qw.QLabel("HV on")
         this_channel_hv_on_sign = _qw.QLabel()
-        this_channel_hv_on_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
+        this_channel_hv_on_sign.setPixmap(_qg.QPixmap('hexesvm/icons/hexe_circle_gray_small.svg'))
         self.all_channels_hv_on_sign[mod_key].update({channel_key: this_channel_hv_on_sign})
         this_channel_dac_on_label = _qw.QLabel("DAC on")
         this_channel_dac_on_sign = _qw.QLabel()
-        this_channel_dac_on_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray_small.svg'))
+        this_channel_dac_on_sign.setPixmap(_qg.QPixmap('hexesvm/icons/hexe_circle_gray_small.svg'))
         self.all_channels_dac_on_sign[mod_key].update({channel_key: this_channel_dac_on_sign})
         this_channel_hv_ramp_label = _qw.QLabel("HV ramp")
         this_channel_hv_ramp_sign = _qw.QLabel()
-        this_channel_hv_ramp_sign.setPixmap(_qg.QPixmap('hexesvm/hexe_bar.svg'))
+        this_channel_hv_ramp_sign.setPixmap(_qg.QPixmap('hexesvm/icons/hexe_bar.svg'))
         self.all_channels_hv_ramp_sign[mod_key].update({channel_key: this_channel_hv_ramp_sign})
         this_channel_trip_rate_label = _qw.QLabel("Trips (24hrs)")
         this_channel_trip_rate_field = _qw.QLineEdit(this_tab)
@@ -585,9 +585,9 @@ class MainWindow(_qw.QMainWindow):
         this_tab = self.mod_tabs[mod_key]
         this_channel = self.channels[mod_key][channel_key]
         
-        none_pix = _qg.QPixmap('hexesvm/hexe_circle_gray_small.svg')
-        ok_pix = _qg.QPixmap('hexesvm/hexe_circle_green_small.svg')
-        err_pix = _qg.QPixmap('hexesvm/hexe_circle_red_small.svg')
+        none_pix = _qg.QPixmap('hexesvm/icons/hexe_circle_gray_small.svg')
+        ok_pix = _qg.QPixmap('hexesvm/icons/hexe_circle_green_small.svg')
+        err_pix = _qg.QPixmap('hexesvm/icons/hexe_circle_red_small.svg')
         
         if this_channel.channel_in_error is None:
             self.all_channels_error_sign[mod_key][channel_key].setPixmap(none_pix)
@@ -634,11 +634,11 @@ class MainWindow(_qw.QMainWindow):
         if this_channel.status == "":
             self.all_channels_hv_ramp_sign[mod_key][channel_key].setPixmap(none_pix)
         elif this_channel.status == "ON":
-            self.all_channels_hv_ramp_sign[mod_key][channel_key].setPixmap(_qg.QPixmap('hexesvm/hexe_bar.svg'))
+            self.all_channels_hv_ramp_sign[mod_key][channel_key].setPixmap(_qg.QPixmap('hexesvm/icons/hexe_bar.svg'))
         elif this_channel.status == "H2L":
-            self.all_channels_hv_ramp_sign[mod_key][channel_key].setPixmap(_qg.QPixmap('hexesvm/hexe_arrow_down.svg'))        
+            self.all_channels_hv_ramp_sign[mod_key][channel_key].setPixmap(_qg.QPixmap('hexesvm/icons/hexe_arrow_down.svg'))        
         elif this_channel.status == "L2H":                
-            self.all_channels_hv_ramp_sign[mod_key][channel_key].setPixmap(_qg.QPixmap('hexesvm/hexe_arrow_up.svg'))
+            self.all_channels_hv_ramp_sign[mod_key][channel_key].setPixmap(_qg.QPixmap('hexesvm/icons/hexe_arrow_up.svg'))
 
         this_channel.trip_rate = 0
         now = time.time()
@@ -786,7 +786,7 @@ class MainWindow(_qw.QMainWindow):
                 set_min_trip_time = abs(float(min_trip_time_text))
             else:
                 set_min_trip_time = float(self.all_channels_time_between_trips_field[module_key][channel_key].placeholderText())
-            # just a comment
+
         except (ValueError, TypeError):
             self.err_msg_set_hv_values = _qw.QMessageBox.warning(self, "Values",
                                    	"Invalid input for the Board parameters!")
@@ -859,7 +859,7 @@ class MainWindow(_qw.QMainWindow):
     def _init_overview(self):
         MainWindow.log.debug("Called MainWindow._init_overview")
         self.hexe_drawing = _qw.QLabel()
-        self.hexe_drawing.setPixmap(_qg.QPixmap('hexesvm/hexe_sketch_hv.svg'))
+        self.hexe_drawing.setPixmap(_qg.QPixmap('hexesvm/icons/hexe_sketch_hv.svg'))
 
         self.channel_labels = []
         self.status_lights = []
@@ -874,7 +874,7 @@ class MainWindow(_qw.QMainWindow):
             self.channel_labels.append(_qw.QLabel(key))
 
             this_status_light = _qw.QLabel()
-            this_status_light.setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray.svg'))
+            this_status_light.setPixmap(_qg.QPixmap('hexesvm/icons/hexe_circle_gray.svg'))
             self.status_lights.append(this_status_light)
 
             #this_voltage_lcd = _qw.QLabel()
@@ -964,13 +964,13 @@ class MainWindow(_qw.QMainWindow):
             self.channel_current_lcds[i].setPalette(palette)
 
             if this_hv_channel.auto_reramp_mode == "on":
-                self.status_lights[i].setPixmap(_qg.QPixmap('hexesvm/hexe_circle_green.svg'))
+                self.status_lights[i].setPixmap(_qg.QPixmap('hexesvm/icons/hexe_circle_green.svg'))
             elif this_hv_channel.auto_reramp_mode == "freq_trip":
-                self.status_lights[i].setPixmap(_qg.QPixmap('hexesvm/hexe_circle_red.svg'))
+                self.status_lights[i].setPixmap(_qg.QPixmap('hexesvm/icons/hexe_circle_red.svg'))
             elif this_hv_channel.auto_reramp_mode == "no_dac":
-                self.status_lights[i].setPixmap(_qg.QPixmap('hexesvm/hexe_circle_yellow.svg'))
+                self.status_lights[i].setPixmap(_qg.QPixmap('hexesvm/icons/hexe_circle_yellow.svg'))
             elif this_hv_channel.auto_reramp_mode == "off":
-                self.status_lights[i].setPixmap(_qg.QPixmap('hexesvm/hexe_circle_gray.svg'))
+                self.status_lights[i].setPixmap(_qg.QPixmap('hexesvm/icons/hexe_circle_gray.svg'))
              
         # if Db is connected, run the database insertion of these values
         if self.db_connection:
