@@ -876,7 +876,7 @@ class MainWindow(_qw.QMainWindow):
 
             this_status_light = _qw.QLabel()
             gray_dot_pixmap = _qg.QPixmap('hexesvm/icons/hexe_circle_gray.svg')
-            this_status_light.setPixmap(gray_dot_pixmap.scaledToHeight(50))
+            this_status_light.setPixmap(gray_dot_pixmap.scaledToHeight(48))
             self.status_lights.append(this_status_light)
 
             #this_voltage_lcd = _qw.QLabel()
@@ -967,16 +967,16 @@ class MainWindow(_qw.QMainWindow):
 
             if this_hv_channel.auto_reramp_mode == "on":
                 green_dot_pixmap = _qg.QPixmap('hexesvm/icons/hexe_circle_green.svg')
-                self.status_lights[i].setPixmap(green_dot_pixmap.scaledToHeight(50))
+                self.status_lights[i].setPixmap(green_dot_pixmap.scaledToHeight(48))
             elif this_hv_channel.auto_reramp_mode == "freq_trip":
                 red_dot_pixmap = _qg.QPixmap('hexesvm/icons/hexe_circle_red.svg')
                 self.status_lights[i].setPixmap(red_dot_pixmap.scaledToHeight(50))
             elif this_hv_channel.auto_reramp_mode == "no_dac":
                 yellow_dot_pixmap = _qg.QPixmap('hexesvm/icons/hexe_circle_yellow.svg')
-                self.status_lights[i].setPixmap(yellow_dot_pixmap.scaledToHeight(50))
+                self.status_lights[i].setPixmap(yellow_dot_pixmap.scaledToHeight(48))
             elif this_hv_channel.auto_reramp_mode == "off":
                 gray_dot_pixmap = _qg.QPixmap('hexesvm/icons/hexe_circle_gray.svg')
-                self.status_lights[i].setPixmap(gray_dot_pixmap.scaledToHeight(50))
+                self.status_lights[i].setPixmap(gray_dot_pixmap.scaledToHeight(48))
 
              
         # if Db is connected, run the database insertion of these values
