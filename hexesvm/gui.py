@@ -457,8 +457,8 @@ class MainWindow(_qw.QMainWindow):
         self.all_channels_frequent_button_group[mod_key].update({channel_key: this_channel_frequent_button_group})
         this_channel_single_test_button = _qw.QPushButton("test")
         this_channel_frequent_test_button = _qw.QPushButton("test")
-        this_channel_single_test_button.clicked.connect(partial(self.send_mail, this_channel, this_channel_single_button_group.checkedId()))
-        this_channel_frequent_test_button.clicked.connect(partial(self.send_mail, this_channel, this_channel_frequent_button_group.checkedId()))
+        this_channel_single_test_button.clicked.connect(partial(self.send_mail, this_channel, this_channel_single_button_group.checkedId(),1))
+        this_channel_frequent_test_button.clicked.connect(partial(self.send_mail, this_channel, this_channel_frequent_button_group.checkedId(),2))
 
         # separator for controls
         this_channel_vertical_separator = _qw.QLabel("")
@@ -675,19 +675,21 @@ class MainWindow(_qw.QMainWindow):
                 if (abs(this_channel.voltage) < this_channel.trip_voltage):
                     if not this_channel.trip_detected:
                         # channel is probably tripped
-                        this_channel.trip_detected = True
-                        single_priority = self.all_channels_single_button_group[mod_key][channel_key].checkedId()
-                        self.send_mail(this_channel, single_priority, 1)            
+                        this_channel.trip_detected = True        
                         this_channel.trip_time_stamps.append(time.time())
                         if len(this_channel.trip_time_stamps) < 2:
                             dt_last_trip = this_channel.min_time_trips*60
                         else:
                             dt_last_trip = time.time() - this_channel.trip_time_stamps[-2]    
                         if dt_last_trip < this_channel.min_time_trips*60:
+                            # This was a frequent trip
                             freq_priority = self.all_channels_frequent_button_group[mod_key][channel_key].checkedId()
                             self.send_mail(this_channel, freq_priority, 2)         
                             this_channel.auto_reramp_mode = "freq_trip"
                         else:
+                            # This was a single trip
+                            single_priority = self.all_channels_single_button_group[mod_key][channel_key].checkedId()
+                            self.send_mail(this_channel, single_priority, 1)    
                             if not this_channel.manual_control:
                                 if self.all_channels_auto_reramp_box[mod_key][channel_key].checkState():
                                     if not (_np.isnan(self.channels[mod_key][channel_key].set_voltage) or _np.isnan(self.channels[mod_key][channel_key].ramp_speed)):
@@ -1137,7 +1139,6 @@ class MainWindow(_qw.QMainWindow):
             self.err_msg_mail = _qw.QMessageBox.warning(self, "Mail",
                                    "Set email recipient first!")
             return False
-        
         self.email_sender.send_alarm(hv_channel, priority, alarm_mode)
         self.info_msg_mail = _qw.QMessageBox()
         self.info_msg_mail.setIcon(_qw.QMessageBox.Information)

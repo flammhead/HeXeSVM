@@ -19,19 +19,20 @@ class MailNotifier():
         msg = MIMEMultipart()
         msg['From'] = self.from_address
         msg['To'] = self.recipients
+        mail_subject = ""
         if alarm_priority == 1:
-            msg['Subject'] = "HeXe SVM info: "+hv_channel.name
+            mail_subject = "HeXe SVM info: "+hv_channel.name
         elif alarm_priority == 2:
-            msg['Subject'] = "HeXe SVM ALARM: "+hv_channel.name
+            mail_subject = "HeXe SVM ALARM: "+hv_channel.name
         elif alarm_priority == 0:
             del msg
             return
-            
         if alarm_kind == 1:
-            msg['Subject'] = msg['Subject']+" single trip"
+            mail_subject += " single trip"
         elif alarm_kind == 2:
-            msg['Subject'] = msg['Subject']+" frequent trip"
+            mail_subject += " frequent trip"
 
+        msg['Subject'] = mail_subject
         message_string = "Possible HV trip detected.\n"
         message_string += "Name: "+hv_channel.name+"\n"
         message_string += "Voltage: "+str(hv_channel.voltage)+"\n"
