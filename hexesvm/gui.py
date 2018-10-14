@@ -705,6 +705,8 @@ class MainWindow(_qw.QMainWindow):
                         this_channel.auto_reramp_mode = "on"
                     else:
                         this_channel.auto_reramp_mode = "off"
+                    if this_channel.manual_control:
+                        this_channel.auto_reramp_mode = "no_dac"
           
         self.all_channels_time_between_trips_field[mod_key][channel_key].setPlaceholderText(str(this_channel.min_time_trips))        
         self.all_channels_set_voltage_field[mod_key][channel_key].setPlaceholderText(str(this_channel.set_voltage))
