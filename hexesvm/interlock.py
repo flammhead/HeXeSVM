@@ -8,7 +8,7 @@ class Interlock():
 	def __init__(self):
 		self.lock_state = False
 		self.is_running = False		
-		self.max_time_difference = 10
+		self.max_time_difference = 30
 		self.parameter_value = float('nan')
 		self.container = None
 
@@ -48,6 +48,7 @@ class Interlock():
 			self.parameter_value = (float(data[-1,0]))
 		except TypeError:
 			print("Interlock received wrong data (wrong type) from DB going to Lock!")
+			self.lock_state = False			
 			return False
 
 		self.lock_state = self.parameter_value > self.lock_value

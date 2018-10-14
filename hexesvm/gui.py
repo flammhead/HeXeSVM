@@ -504,6 +504,11 @@ class MainWindow(_qw.QMainWindow):
         this_channel_apply_button.setFixedWidth(70)
         this_channel_apply_button.clicked.connect(partial(self.apply_hv_settings, mod_key, channel_key))
         self.all_channels_apply_button[mod_key].update({channel_key: this_channel_apply_button})
+        # connect the return key to the apply action
+        this_channel_time_between_trips_field.returnPressed.connect(this_channel_apply_button.click)
+        this_channel_set_voltage_field.returnPressed.connect(this_channel_apply_button.click)
+        this_channel_ramp_speed_field.returnPressed.connect(this_channel_apply_button.click)                
+        
         this_channel_start_button = _qw.QPushButton("start")
         this_channel_start_button.setFixedWidth(70)
         this_channel_start_button.setStyleSheet("QPushButton {background-color: red;}");        
@@ -828,7 +833,7 @@ class MainWindow(_qw.QMainWindow):
             self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Channel", 
                 "Channel shows invalid value!")        
             return False
-        if not self.locker.lock_state:
+        if not (self.locker.lock_state and self.interlock_value):
             self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Interlock", 
                 "Interlock is/was triggered! Abort Voltage change!")        
             return False
@@ -861,7 +866,7 @@ class MainWindow(_qw.QMainWindow):
     def _init_overview(self):
         MainWindow.log.debug("Called MainWindow._init_overview")
         self.hexe_drawing = _qw.QLabel()
-        sketch_pixmap = _qg.QPixmap('hexesvm/icons/hexe_sketch_hv.svg.png')
+        sketch_pixmap = _qg.QPixmap('hexesvm/icons/hexe_sketch_hv.svg')
         self.hexe_drawing.setPixmap(sketch_pixmap.scaledToHeight(self.frameGeometry().height()))
 
         self.channel_labels = []
@@ -1083,7 +1088,7 @@ class MainWindow(_qw.QMainWindow):
 
         self.sql_conn_button.setEnabled(False)
         self.locker.set_sql_container(self.sql_cont_interlock)
-        self.locker.set_interlock_parameter('p1', 0.061)
+        self.locker.set_interlock_parameter('p1', 0.03)
         
         
     def insert_values_in_database(self):
