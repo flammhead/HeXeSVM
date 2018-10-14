@@ -289,10 +289,8 @@ class hv_channel:
     # iSeg Operation commands
     def start_voltage_change(self):
         command = ("G%d" % self.channel)
-        print(command)        
         answer = self.module.send_long_command(command)
         status = answer.split('=')
-        print(status)
         if len(status) < 2:
             return status
         return status[1]

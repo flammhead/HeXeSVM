@@ -25,7 +25,7 @@ class Interlock():
 	def check_interlock(self):
 
 		if self.container is None:
-			self.lock_stat = False
+			self.lock_state = False
 			return False
 
 		time_now = datetime.now()
@@ -40,12 +40,14 @@ class Interlock():
 		data = _np.array(result.fetchall())
 		self.is_running = True
 		if len(data) == 0:
+			print("Interlock received wrong data (too little data) from DB going to Lock!")
 			self.lock_state = False
 			return False
 
 		try:
-			self.parameter_value = float(data[-2,0])
+			self.parameter_value = (float(data[-1,0]))
 		except TypeError:
+			print("Interlock received wrong data (wrong type) from DB going to Lock!")
 			return False
 
 		self.lock_state = self.parameter_value > self.lock_value

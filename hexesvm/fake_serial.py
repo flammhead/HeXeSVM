@@ -93,7 +93,7 @@ class Serial:
     # reads n characters from the fake Arduino. Actually n characters
     # are read from the string _data and returned to the caller.
     def read( self, n=1 ):
-        time.sleep(0.04)
+        time.sleep(0.02)
         return self._receivedData.encode()
         
         
@@ -197,5 +197,5 @@ class Serial:
                                                                                      
         answer = str(answer) +"\r"
         self.sum_receivedData = ""
-        time.sleep(0.05)
+        time.sleep(0.03)
         return answer.encode()

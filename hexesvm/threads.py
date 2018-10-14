@@ -34,7 +34,6 @@ class MonitorIsegModule(_qc.QThread):
                 channel.read_current()
                 # if this was the n_read_all th iteration read all other info
                 if i >= n_read_all:
-                    print("READALL")
                     if self.module.stop_thread:
                         self.stop()         
                         break  

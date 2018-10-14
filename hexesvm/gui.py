@@ -127,6 +127,7 @@ class MainWindow(_qw.QMainWindow):
         response = self.locker.check_interlock()
         if not response and self.locker.is_running:
             if self.interlock_value:
+                MainWindow.log.debug("Interlock triggered: "+ str(self.locker.parameter_value))
                 self.kill_all_hv()
                 self.locker.lock_state = False
                 self.interlock_value = False
@@ -564,7 +565,7 @@ class MainWindow(_qw.QMainWindow):
         return grid
         
     def update_module_tabs(self):
-        MainWindow.log.debug("Called MainWindow.update_module_tabs")
+        #MainWindow.log.debug("Called MainWindow.update_module_tabs")
         for i, key in zip(range(len(self.modules)), self.modules.keys()):    
             this_tab = self.mod_tabs[key]
             this_module = self.modules[key]
@@ -748,6 +749,7 @@ class MainWindow(_qw.QMainWindow):
             module_thread = _thr.MonitorIsegModule(module)
             module.set_reader_thread(module_thread)
             module_thread.start()
+            MainWindow.log.debug("thread "+module.name+" started")                         
 
     def stop_reader_thread(self, module):
         if not module.is_connected:
@@ -775,12 +777,12 @@ class MainWindow(_qw.QMainWindow):
             if ramp_speed_text:
                 ramp_speed = abs(int(float(ramp_speed_text)))
             else:
-                ramp_speed = int(self.all_channels_ramp_speed_field[module_key][channel_key].placeholderText())
+                ramp_speed = int(float(self.all_channels_ramp_speed_field[module_key][channel_key].placeholderText()))
                 
             if set_voltage_text:
                 set_voltage = abs(int(float(set_voltage_text)))
             else:
-                set_voltage = int(self.all_channels_set_voltage_field[module_key][channel_key].placeholderText())
+                set_voltage = int(float(self.all_channels_set_voltage_field[module_key][channel_key].placeholderText()))
                 
             if min_trip_time_text:
                 set_min_trip_time = abs(float(min_trip_time_text))
@@ -826,7 +828,7 @@ class MainWindow(_qw.QMainWindow):
             self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Channel", 
                 "Channel shows invalid value!")        
             return False
-        if not self.interlock_value:
+        if not self.locker.lock_state:
             self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Interlock", 
                 "Interlock is/was triggered! Abort Voltage change!")        
             return False
@@ -859,7 +861,7 @@ class MainWindow(_qw.QMainWindow):
     def _init_overview(self):
         MainWindow.log.debug("Called MainWindow._init_overview")
         self.hexe_drawing = _qw.QLabel()
-        sketch_pixmap = _qg.QPixmap('hexesvm/icons/hexe_sketch_hv.svg')
+        sketch_pixmap = _qg.QPixmap('hexesvm/icons/hexe_sketch_hv.svg.png')
         self.hexe_drawing.setPixmap(sketch_pixmap.scaledToHeight(self.frameGeometry().height()))
 
         self.channel_labels = []
@@ -925,7 +927,7 @@ class MainWindow(_qw.QMainWindow):
         self.update_overview()
 
     def update_overview(self):
-        MainWindow.log.debug("Called MainWindow.update_overview")
+        #MainWindow.log.debug("Called MainWindow.update_overview")
         for i in range(len(self.channel_order_dict)):
         #for i, key in zip(range(len(self.channels)), self.channels.keys()):
             this_pair = self.channel_order_dict[i]
@@ -941,7 +943,6 @@ class MainWindow(_qw.QMainWindow):
                 #self.channel_voltage_lcds[i].setText(str(this_hv_channel.voltage))
 
             current_value = this_hv_channel.current
-            print(current_value)
             if this_hv_channel.module.is_high_precission:
                 self.current_units[i].setText("nA")
                 current_value = current_value*1E9
@@ -1082,12 +1083,12 @@ class MainWindow(_qw.QMainWindow):
 
         self.sql_conn_button.setEnabled(False)
         self.locker.set_sql_container(self.sql_cont_interlock)
-        self.locker.set_interlock_parameter('p1', 0.052)
+        self.locker.set_interlock_parameter('p1', 0.061)
         
         
     def insert_values_in_database(self):
 
-        MainWindow.log.debug("Called MainWindow.insert_values_in_database")
+        #MainWindow.log.debug("Called MainWindow.insert_values_in_database")
         cathode_voltage = self.channels["Drift module"]["Cathode"].voltage
         gate_voltage = self.channels["Drift module"]["Gate"].voltage
         anode_voltage = self.channels["Anode module"]["Anode"].voltage
@@ -1137,14 +1138,11 @@ class MainWindow(_qw.QMainWindow):
         self.info_msg_mail.setIcon(_qw.QMessageBox.Information)
         self.info_msg_mail.setText("Sent Email notification")
         self.info_msg_mail.setStandardButtons(_qw.QMessageBox.Ok)
-        self.info_msg_mail.button(_qw.QMessageBox.Ok).animateClick(5000)
+        self.info_msg_mail.button(_qw.QMessageBox.Ok).animateClick(2000)
         self.info_msg_mail.exec_()
         return True
 
-    def closeEvent(self, event):
-        if not self.file_quit():
-            event.ignore()
-
+    
     def file_quit(self):
         """Closes the application"""
         MainWindow.log.debug("Called MainWindow.file_quit")
@@ -1155,6 +1153,10 @@ class MainWindow(_qw.QMainWindow):
 	        _qw.QMessageBox.No | _qw.QMessageBox.Cancel, 				
 	        _qw.QMessageBox.Cancel)
         if reply == _qw.QMessageBox.Yes:
+            # Disconnect the modules
+            for i, key in zip(range(len(self.modules)), self.modules.keys()):
+                if self.modules[key].is_connected:
+                    self.disconnect_hv_module(key, i)
             self.close()
             return(True)
         else:
