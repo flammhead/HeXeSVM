@@ -1,5 +1,5 @@
-#import serial
-from hexesvm import fake_serial as serial
+import serial
+#from hexesvm import fake_serial as serial
 from hexesvm import threads as _thr
 import time
 

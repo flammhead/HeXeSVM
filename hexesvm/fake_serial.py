@@ -35,7 +35,7 @@ class Serial:
         self.ch_tripping_active = [True,True]
         self.ch_trip_interval = [60, 60]
         self.ch_last_trip = [0, 0]
-        self.channel_state_bin = [256, 130] 
+        self.channel_state_bin = [170, 85] 
         self.ch_state = ["ON","ON"]
 
         

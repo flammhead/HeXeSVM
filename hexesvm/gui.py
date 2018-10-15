@@ -41,7 +41,7 @@ class MainWindow(_qw.QMainWindow):
         self.email_sender = _mail.MailNotifier()
         # create interlocker
         self.locker = _interlock()
-        self.locker.set_interlock_parameter('p1', 1.2)        
+        self.locker.set_interlock_parameter('p1', 1.20)        
         self.interlock_value = True
         # create database flag
         self.db_connection = False
@@ -92,6 +92,7 @@ class MainWindow(_qw.QMainWindow):
         
     def kill_all_hv(self):
         MainWindow.log.debug("Called KILL ALL HV method!")
+        self.statusBar().showMessage("Called KILL ALL HV method!")
         response = []
         message = "High Voltage KILL was triggered and performed!\nModule responses:"        
         # Tell the threads of all modules to terminate
@@ -119,7 +120,9 @@ class MainWindow(_qw.QMainWindow):
             if not self.modules[key].is_connected:
                 continue        
             self.start_reader_thread(self.modules[key])               
-        
+
+        # This will prevent from ramping HV up again
+        self.interlock_value = False
         self.hv_kill_msg = _qw.QMessageBox.warning(self, "HV Kill", message)
         MainWindow.log.debug(response)
         
@@ -128,6 +131,7 @@ class MainWindow(_qw.QMainWindow):
         response = self.locker.check_interlock()
         if not response and self.locker.is_running:
             if self.interlock_value:
+                self.statusBar().showMessage("Interlock triggered: "+ str(self.locker.parameter_value))
                 MainWindow.log.debug("Interlock triggered: "+ str(self.locker.parameter_value))
                 self.kill_all_hv()
                 self.locker.lock_state = False
@@ -138,7 +142,7 @@ class MainWindow(_qw.QMainWindow):
         MainWindow.log.debug("Called MainWindow._init_geom")
         # set basic attributes
         self.setAttribute(_qc.Qt.WA_DeleteOnClose)
-        self.setWindowTitle("HeXeSVM (pre-alpha)")
+        self.setWindowTitle("HeXeSVM (alpha)")
         self.resize(640, 480)
 
         # center window
@@ -170,6 +174,8 @@ class MainWindow(_qw.QMainWindow):
         sep_middle.setFrameStyle(_qw.QFrame.VLine)
 
         self.interlock_widget = _qw.QLabel("Interlock: ")
+        self.interlock_widget.setToolTip("Kills all HV if cryostat pressure below "+str(self.locker.lock_value)+" bara\n(Restart software to ramp up again!)")
+        #self.interlock_widget.setToolTip("Will be triggered, if pressure inside Cryostat is too low.\nTrigger will cause all connected HV modules to ramp down (at 255 V/s).\nAfter trigger, it is not possible to ramp back up (restart of software required)")
         self.statusBar().addPermanentWidget(self.interlock_widget)
         self.statusBar().addPermanentWidget(sep_middle)
         self.database_widget = _qw.QLabel("Database: ")
@@ -196,11 +202,13 @@ class MainWindow(_qw.QMainWindow):
             new_palette.setColor(_qg.QPalette.WindowText, _qg.QColor(0,204,0))
             self.database_widget.setPalette(new_palette)
             self.database_widget.setText("Database: OK")
+            self.database_widget.setToolTip("HeXeSVM has write access to the dabase")
         else:
             new_palette = self.database_widget.palette()
             new_palette.setColor(_qg.QPalette.WindowText, _qg.QColor(255,0,0))
             self.database_widget.setPalette(new_palette)
             self.database_widget.setText("Database: ERROR")
+            self.database_widget.setToolTip("Please connect to the database!\n(use writer account)")
         return
 
 
@@ -303,6 +311,7 @@ class MainWindow(_qw.QMainWindow):
             this_module = self.modules[key]
     
             this_com_port_label = _qw.QLabel("Port:")
+            
             self.module_com_labels.append(this_com_port_label)
             this_com_port = _qw.QLineEdit(this_tab)
             this_com_port.setText(this_module.port)
@@ -312,6 +321,7 @@ class MainWindow(_qw.QMainWindow):
             this_high_precision_label = _qw.QLabel("High precision:")
             self.module_is_high_precission_labels.append(this_high_precision_label)
             this_high_precision_box = _qw.QCheckBox(this_tab)
+            this_high_precision_box.setToolTip("Check if this channel provides high-precision read out!")
             self.module_is_high_precission_boxes.append(this_high_precision_box)
             
             this_connect_button = _qw.QPushButton("connect")
@@ -324,14 +334,18 @@ class MainWindow(_qw.QMainWindow):
             this_disconnect_button.clicked.connect(partial(self.disconnect_hv_module, key, i))      
             
             this_u_max_label = _qw.QLabel("U(V):")
+            this_u_max_label.setToolTip("Maximum output voltage of the board")
             self.module_umax_labels.append(this_u_max_label)
             this_u_max_field = _qw.QLineEdit(this_tab)
+            this_u_max_field.setToolTip("Maximum output voltage of the board")
             this_u_max_field.setDisabled(True)
             self.module_umax_fields.append(this_u_max_field)
             
             this_i_max_label = _qw.QLabel("I(mA):")
+            this_i_max_label.setToolTip("Maximum output current of the board")
             self.module_imax_labels.append(this_i_max_label)
             this_i_max_field = _qw.QLineEdit(this_tab)
+            this_i_max_field.setToolTip("Maximum output current of the board")
             this_i_max_field.setDisabled(True)
             self.module_imax_fields.append(this_i_max_field)            
 
@@ -457,7 +471,9 @@ class MainWindow(_qw.QMainWindow):
         this_channel_frequent_button_group.addButton(this_channel_frequent_alarm_button, 2) 
         self.all_channels_frequent_button_group[mod_key].update({channel_key: this_channel_frequent_button_group})
         this_channel_single_test_button = _qw.QPushButton("test")
+        this_channel_single_test_button.setToolTip("Send a test email for this event with the current settings")
         this_channel_frequent_test_button = _qw.QPushButton("test")
+        this_channel_frequent_test_button.setToolTip("Send a test email for this event with the current settings")
         this_channel_single_test_button.clicked.connect(partial(self.send_mail, this_channel, this_channel_single_button_group.checkedId(),1))
         this_channel_frequent_test_button.clicked.connect(partial(self.send_mail, this_channel, this_channel_frequent_button_group.checkedId(),2))
 
@@ -494,6 +510,7 @@ class MainWindow(_qw.QMainWindow):
         
         this_channel_time_between_trips_label = _qw.QLabel("dT(frequent) (min)")
         this_channel_time_between_trips_field = _qw.QLineEdit(this_tab)
+        this_channel_time_between_trips_field.setToolTip("Minimum time between trips (minutes) for re-ramping.")
         self.all_channels_time_between_trips_field[mod_key].update({channel_key: this_channel_time_between_trips_field})
         this_channel_set_voltage_label = _qw.QLabel("Set voltage (V)")
         this_channel_set_voltage_field = _qw.QLineEdit(this_tab)
@@ -502,6 +519,7 @@ class MainWindow(_qw.QMainWindow):
         this_channel_ramp_speed_field = _qw.QLineEdit(this_tab)        
         self.all_channels_ramp_speed_field[mod_key].update({channel_key: this_channel_ramp_speed_field})
         this_channel_apply_button = _qw.QPushButton("apply")
+        this_channel_apply_button.setToolTip("Write Set voltage and Ramp speed to the board. Refresh dT setting.\n(no voltage change will be triggered)")
         this_channel_apply_button.setFixedWidth(70)
         this_channel_apply_button.clicked.connect(partial(self.apply_hv_settings, mod_key, channel_key))
         self.all_channels_apply_button[mod_key].update({channel_key: this_channel_apply_button})
@@ -511,6 +529,7 @@ class MainWindow(_qw.QMainWindow):
         this_channel_ramp_speed_field.returnPressed.connect(this_channel_apply_button.click)                
         
         this_channel_start_button = _qw.QPushButton("start")
+        this_channel_start_button.setToolTip("Start voltage change of the board \n(using the currently set values)")
         this_channel_start_button.setFixedWidth(70)
         this_channel_start_button.setStyleSheet("QPushButton {background-color: red;}");        
         this_channel_start_button.clicked.connect(partial(self.start_hv_change, mod_key, channel_key))    
@@ -598,45 +617,64 @@ class MainWindow(_qw.QMainWindow):
         
         if this_channel.channel_in_error is None:
             self.all_channels_error_sign[mod_key][channel_key].setPixmap(none_pix)
+            self.all_channels_error_sign[mod_key][channel_key].setToolTip("Status not read")
         elif this_channel.channel_in_error is True:
-            self.all_channels_error_sign[mod_key][channel_key].setPixmap(err_pix)        
+            self.all_channels_error_sign[mod_key][channel_key].setPixmap(err_pix)
+            self.all_channels_error_sign[mod_key][channel_key].setToolTip("HV quality not given")            
         elif this_channel.channel_in_error is False:
             self.all_channels_error_sign[mod_key][channel_key].setPixmap(ok_pix)
+            self.all_channels_error_sign[mod_key][channel_key].setToolTip("HV quality ok")                        
             
         if this_channel.channel_is_tripped is None:
             self.all_channels_trip_sign[mod_key][channel_key].setPixmap(none_pix)
+            self.all_channels_trip_sign[mod_key][channel_key].setToolTip("Status not read")            
         elif this_channel.channel_is_tripped is True:
-            self.all_channels_trip_sign[mod_key][channel_key].setPixmap(err_pix)        
+            self.all_channels_trip_sign[mod_key][channel_key].setPixmap(err_pix)
+            self.all_channels_trip_sign[mod_key][channel_key].setToolTip("Channel tripped!")                
         elif this_channel.channel_is_tripped is False:
-            self.all_channels_trip_sign[mod_key][channel_key].setPixmap(ok_pix)      
+            self.all_channels_trip_sign[mod_key][channel_key].setPixmap(ok_pix)
+            self.all_channels_trip_sign[mod_key][channel_key].setToolTip("Channel not tripped!")                
             
         if this_channel.hardware_inhibit is None:
             self.all_channels_inhibit_sign[mod_key][channel_key].setPixmap(none_pix)
+            self.all_channels_inhibit_sign[mod_key][channel_key].setToolTip("Status not read")            
         elif this_channel.hardware_inhibit is True:
-            self.all_channels_inhibit_sign[mod_key][channel_key].setPixmap(err_pix)        
+            self.all_channels_inhibit_sign[mod_key][channel_key].setPixmap(err_pix)
+            self.all_channels_inhibit_sign[mod_key][channel_key].setToolTip("Hardware inhibit is/was on!")
         elif this_channel.hardware_inhibit is False:
             self.all_channels_inhibit_sign[mod_key][channel_key].setPixmap(ok_pix)          
+            self.all_channels_inhibit_sign[mod_key][channel_key].setToolTip("Hardware inhibit is off")
             
         if this_channel.kill_enable_switch is None:
             self.all_channels_kill_sign[mod_key][channel_key].setPixmap(none_pix)
-        elif this_channel.kill_enable_switch is True:
-            self.all_channels_kill_sign[mod_key][channel_key].setPixmap(err_pix)     
+            self.all_channels_kill_sign[mod_key][channel_key].setToolTip("Status not read")            
         elif this_channel.kill_enable_switch is False:
-            self.all_channels_kill_sign[mod_key][channel_key].setPixmap(ok_pix)  
+            self.all_channels_kill_sign[mod_key][channel_key].setPixmap(err_pix)
+            self.all_channels_kill_sign[mod_key][channel_key].setToolTip("Kill switch disabled!")
+        elif this_channel.kill_enable_switch is True:
+            self.all_channels_kill_sign[mod_key][channel_key].setPixmap(ok_pix)
+            self.all_channels_kill_sign[mod_key][channel_key].setToolTip("Kill switch enabeled")
+            
             
         if this_channel.hv_switch_off is None:
             self.all_channels_hv_on_sign[mod_key][channel_key].setPixmap(none_pix)
+            self.all_channels_hv_on_sign[mod_key][channel_key].setToolTip("Status not read")            
         elif this_channel.hv_switch_off is True:
-            self.all_channels_hv_on_sign[mod_key][channel_key].setPixmap(err_pix)        
+            self.all_channels_hv_on_sign[mod_key][channel_key].setPixmap(err_pix)
+            self.all_channels_hv_on_sign[mod_key][channel_key].setToolTip("HV switch is off!")
         elif this_channel.hv_switch_off is False:
-            self.all_channels_hv_on_sign[mod_key][channel_key].setPixmap(ok_pix)   
+            self.all_channels_hv_on_sign[mod_key][channel_key].setPixmap(ok_pix)
+            self.all_channels_hv_on_sign[mod_key][channel_key].setToolTip("HV is on")
             
         if this_channel.manual_control is None:
             self.all_channels_dac_on_sign[mod_key][channel_key].setPixmap(none_pix)
+            self.all_channels_dac_on_sign[mod_key][channel_key].setToolTip("Status not read")            
         elif this_channel.manual_control is True:
             self.all_channels_dac_on_sign[mod_key][channel_key].setPixmap(err_pix)
+            self.all_channels_dac_on_sign[mod_key][channel_key].setToolTip("Board is in manual control mode!")            
         elif this_channel.manual_control is False:
             self.all_channels_dac_on_sign[mod_key][channel_key].setPixmap(ok_pix)
+            self.all_channels_dac_on_sign[mod_key][channel_key].setToolTip("Board is in remote control mode")                        
         
         if this_channel.status == "":
             self.all_channels_hv_ramp_sign[mod_key][channel_key].setPixmap(none_pix)
@@ -653,6 +691,7 @@ class MainWindow(_qw.QMainWindow):
             if now - trip_time < 24*3600:
                 this_channel.trip_rate += 1
         self.all_channels_trip_rate_field[mod_key][channel_key].setText(str(this_channel.trip_rate))
+        self.all_channels_trip_rate_field[mod_key][channel_key].setToolTip("Trips for this channel in the last 24 hours")
         
         this_channel_number_label = self.all_channels_number_label[mod_key][channel_key]
         if this_channel.channel == 1:
@@ -718,6 +757,7 @@ class MainWindow(_qw.QMainWindow):
         
     def connect_hv_module(self, key, index):
         MainWindow.log.debug("connecting "+key)  
+        self.statusBar().showMessage("connecting "+key)
         com_port = self.module_com_line_edits[index].text().strip()
         self.modules[key].set_comport(com_port)
         is_high_precission = self.module_is_high_precission_boxes[index].checkState()
@@ -729,6 +769,7 @@ class MainWindow(_qw.QMainWindow):
         except FileNotFoundError:
             MainWindow.log.warning("Could not connect to HV Module: "
                    			"Wrong COM Port")
+            self.statusBar().showMessage("Wrong COM Port")
             self.err_msg_module = _qw.QMessageBox.warning(self, "HV module",
                                    	"Connection Failed! "
                                    	"Wrong Com port!")
@@ -744,7 +785,8 @@ class MainWindow(_qw.QMainWindow):
         return
         
     def disconnect_hv_module(self, key, index):
-        MainWindow.log.debug("disconnecting "+key)  
+        MainWindow.log.debug("disconnecting "+key)
+        self.statusBar().showMessage("disconnecting "+key)
         self.stop_reader_thread(self.modules[key])
         
         self.modules[key].close_connection()
@@ -759,7 +801,8 @@ class MainWindow(_qw.QMainWindow):
             module_thread = _thr.MonitorIsegModule(module)
             module.set_reader_thread(module_thread)
             module_thread.start()
-            MainWindow.log.debug("thread "+module.name+" started")                         
+            MainWindow.log.debug("thread "+module.name+" started")
+            self.statusBar().showMessage("thread "+module.name+" started") 
 
     def stop_reader_thread(self, module):
         if not module.is_connected:
@@ -768,8 +811,10 @@ class MainWindow(_qw.QMainWindow):
 
         while module.board_occupied:
             MainWindow.log.debug("Waiting for thread "+module.name+" to stop")
+            self.statusBar().showMessage("Waiting for thread "+module.name+" to stop")
             time.sleep(0.2)
-        MainWindow.log.debug("thread "+module.name+" stopped")  
+        MainWindow.log.debug("thread "+module.name+" stopped")
+        self.statusBar().showMessage("thread "+module.name+" stopped")
         
     def apply_hv_settings(self, module_key, channel_key):
         channel = self.channels[module_key][channel_key]
@@ -912,6 +957,8 @@ class MainWindow(_qw.QMainWindow):
         status_label_text = _qw.QLabel('re-ramp')
         
         self.hv_kill_button = _qw.QPushButton('HV KILL')
+        self.hv_kill_button.setToolTip("Ramp down all channels (@255V/s)\n(Restart software to ramp up again!)")
+        #self.hv_kill_button.setToolTip("Clicking will trigger all connected modules to ramp to 0V (at 255 V/s).\nRamping back up requires restart of the software.")
         self.hv_kill_button.clicked.connect(self.kill_all_hv)
         self.hv_kill_button.setStyleSheet("QPushButton {background-color: red;}");
         
@@ -947,9 +994,11 @@ class MainWindow(_qw.QMainWindow):
             
             if _np.isnan(this_hv_channel.voltage):
                 self.channel_voltage_lcds[i].display("Error")
+                self.channel_voltage_lcds[i].setToolTip("Please connect the HV module!")
                 #self.channel_voltage_lcds[i].setText("Error")                
             else:
                 self.channel_voltage_lcds[i].display(this_hv_channel.voltage)
+                self.channel_voltage_lcds[i].setToolTip("Actual voltage of the channel")                
                 #self.channel_voltage_lcds[i].setText(str(this_hv_channel.voltage))
 
             current_value = this_hv_channel.current
@@ -962,9 +1011,11 @@ class MainWindow(_qw.QMainWindow):
                                
             if _np.isnan(this_hv_channel.current):
                 self.channel_current_lcds[i].display("Error")
+                self.channel_current_lcds[i].setToolTip("Please connect the HV module!")                
                 #self.channel_current_lcds[i].setText("Error")                
             else:
                 self.channel_current_lcds[i].display(current_value)
+                self.channel_current_lcds[i].setToolTip("Actual current of the channel")                                
                 #self.channel_current_lcds[i].setText(str(current_value))
                 
             palette = self.channel_voltage_lcds[i].palette()
@@ -978,15 +1029,19 @@ class MainWindow(_qw.QMainWindow):
 
             if this_hv_channel.auto_reramp_mode == "on":
                 green_dot_pixmap = _qg.QPixmap('hexesvm/icons/hexe_circle_green.svg')
+                self.status_lights[i].setToolTip("Re-ramp is running")                
                 self.status_lights[i].setPixmap(green_dot_pixmap.scaledToHeight(48))
             elif this_hv_channel.auto_reramp_mode == "freq_trip":
                 red_dot_pixmap = _qg.QPixmap('hexesvm/icons/hexe_circle_red.svg')
-                self.status_lights[i].setPixmap(red_dot_pixmap.scaledToHeight(50))
+                self.status_lights[i].setToolTip("Frequent tripping deteced.\nRe-ramp disabeled!")                
+                self.status_lights[i].setPixmap(red_dot_pixmap.scaledToHeight(48))
             elif this_hv_channel.auto_reramp_mode == "no_dac":
                 yellow_dot_pixmap = _qg.QPixmap('hexesvm/icons/hexe_circle_yellow.svg')
+                self.status_lights[i].setToolTip("DAC switch of channel is off!")                
                 self.status_lights[i].setPixmap(yellow_dot_pixmap.scaledToHeight(48))
             elif this_hv_channel.auto_reramp_mode == "off":
                 gray_dot_pixmap = _qg.QPixmap('hexesvm/icons/hexe_circle_gray.svg')
+                self.status_lights[i].setToolTip("Re-ramp is switched off!")                
                 self.status_lights[i].setPixmap(gray_dot_pixmap.scaledToHeight(48))
 
              
@@ -1065,6 +1120,7 @@ class MainWindow(_qw.QMainWindow):
 
         """Connects to an SQL database by creating an SqlContainer instance"""
         MainWindow.log.debug("Called MainWindow.sql_connect")
+        self.statusBar().showMessage("connecting sql")
         dialect = "postgresql"
         address = self.form_address.text().strip()
         dbname = self.form_db.text().strip()
@@ -1087,6 +1143,7 @@ class MainWindow(_qw.QMainWindow):
         except TypeError:
             MainWindow.log.warning("Could not connect to database: "
                    			"Missing parameters")
+            self.statusBar().showMessage("error while connecting slq")
             self.err_msg = _qw.QMessageBox.warning(self, "SQL",
                                    	"Connection parameters "
                                    	"missing or invalid!")
@@ -1095,13 +1152,14 @@ class MainWindow(_qw.QMainWindow):
             MainWindow.log.warning("Could not connect to database: "
                    	"Address, login credentials or"
                    	"database/table name invalid")
+            self.statusBar().showMessage("error while connecting slq")
             self.err_msg = _qw.QMessageBox.warning(self, "SQL",
                                    "Address, login credentials "
                                    "or database/table name "
                                    "invalid!")
             return
         self.db_connection = True
-
+        self.statusBar().showMessage("sql connection established")
         self.sql_conn_button.setEnabled(False)
         self.locker.set_sql_container(self.sql_cont_interlock)
         
@@ -1165,7 +1223,7 @@ class MainWindow(_qw.QMainWindow):
     def file_quit(self):
         """Closes the application"""
         MainWindow.log.debug("Called MainWindow.file_quit")
-
+        self.statusBar().showMessage("Quitting application")
 
         reply = _qw.QMessageBox.question(self, 'Confirm',
 	        'Are you sure to quit?', _qw.QMessageBox.Yes |
