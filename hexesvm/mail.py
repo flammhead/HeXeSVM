@@ -8,7 +8,7 @@ class MailNotifier():
     def __init__(self):
 
         self.from_address = "hexe@mpi-hd.mpg.de"
-        self.recipients = "florian.joerg@mpi-hd.mpg.de"
+        self.recipients = "hexe@mpi-hd.mpg.de"
 
     def set_mail_recipient(self, recipient):
     

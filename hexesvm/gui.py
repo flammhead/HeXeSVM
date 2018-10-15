@@ -41,6 +41,7 @@ class MainWindow(_qw.QMainWindow):
         self.email_sender = _mail.MailNotifier()
         # create interlocker
         self.locker = _interlock()
+        self.locker.set_interlock_parameter('p1', 1.2)        
         self.interlock_value = True
         # create database flag
         self.db_connection = False
@@ -1022,6 +1023,14 @@ class MainWindow(_qw.QMainWindow):
         self.form_password.returnPressed.connect(self.sql_conn_button.click)
         self.form_email = _qw.QLineEdit(self.settingsTab)
         self.form_email.returnPressed.connect(self.sql_conn_button.click)
+        
+        self.interlock_line_edit_par = _qw.QLineEdit(self.settingsTab)
+        self.interlock_line_edit_par.setText(str(self.locker.lock_param))
+        self.interlock_line_edit_par.setDisabled(True)
+        self.interlock_line_edit_val = _qw.QLineEdit(self.settingsTab)
+        self.interlock_line_edit_val.setText(str(self.locker.lock_value))
+        self.interlock_line_edit_val.setDisabled(True)
+
 
         form_layout.addRow("address", self.form_address)
         form_layout.addRow("database name", self.form_db)
@@ -1030,6 +1039,9 @@ class MainWindow(_qw.QMainWindow):
         form_layout.addRow("user", self.form_user)
         form_layout.addRow("password", self.form_password)
         form_layout.addRow("Email recipient", self.form_email)       
+        
+        form_layout.addRow("Interlock parameter", self.interlock_line_edit_par)
+        form_layout.addRow("Lock Value", self.interlock_line_edit_val)        
 
         # connect button and set layout
         self.sql_conn_button.clicked.connect(self.sql_connect)
@@ -1042,11 +1054,11 @@ class MainWindow(_qw.QMainWindow):
         self.set_hexe_defaults()
 
     def set_hexe_defaults(self):
-        self.form_address.setText("lin-lxe")
+        self.form_address.setText("localhost")
         self.form_db.setText("postgres")
         self.form_tablename_hv.setText("hexe_sc_hv")
         self.form_tablename_interlock.setText("hexe_sc")
-        self.form_user.setText("viewer")
+        self.form_user.setText("writer")
         self.form_email.setText(self.email_sender.recipients)
 
     def sql_connect(self):
@@ -1092,7 +1104,6 @@ class MainWindow(_qw.QMainWindow):
 
         self.sql_conn_button.setEnabled(False)
         self.locker.set_sql_container(self.sql_cont_interlock)
-        self.locker.set_interlock_parameter('p1', 0.03)
         
         
     def insert_values_in_database(self):
