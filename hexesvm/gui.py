@@ -269,9 +269,11 @@ class MainWindow(_qw.QMainWindow):
         self.all_channels_single_none_button = {}
         self.all_channels_single_info_button = {}
         self.all_channels_single_alarm_button = {}
+        self.all_channels_single_sms_box = {}
         self.all_channels_frequent_button_group = {}
         self.all_channels_frequent_info_button = {}
         self.all_channels_frequent_alarm_button = {}
+        self.all_channels_frequent_sms_box = {}
         self.all_channels_number_label = {}
         self.all_channels_polarity_label = {}
         self.all_channels_trip_detect_box = {}
@@ -297,9 +299,11 @@ class MainWindow(_qw.QMainWindow):
             self.all_channels_single_none_button.update({key: {}})
             self.all_channels_single_info_button.update({key: {}})
             self.all_channels_single_alarm_button.update({key: {}})
+            self.all_channels_single_sms_box.update({key: {}})
             self.all_channels_frequent_button_group.update({key: {}})
             self.all_channels_frequent_info_button.update({key: {}})
             self.all_channels_frequent_alarm_button.update({key: {}})
+            self.all_channels_frequent_sms_box.update({key: {}})
             self.all_channels_number_label.update({key: {}})
             self.all_channels_polarity_label.update({key: {}})
             self.all_channels_trip_detect_box.update({key: {}})
@@ -455,6 +459,7 @@ class MainWindow(_qw.QMainWindow):
         this_channel_none_settings_label = _qw.QLabel("none")
         this_channel_info_settings_label = _qw.QLabel("info")
         this_channel_alarm_settings_label = _qw.QLabel("alarm")
+        this_channel_sms_settings_label = _qw.QLabel("sms")
         this_channel_single_button_group = _qw.QButtonGroup(this_tab)
         this_channel_single_none_button = _qw.QRadioButton()
         this_channel_single_button_group.addButton(this_channel_single_none_button, 0)                        
@@ -463,6 +468,8 @@ class MainWindow(_qw.QMainWindow):
         this_channel_single_button_group.addButton(this_channel_single_info_button, 1)
         this_channel_single_alarm_button = _qw.QRadioButton()        
         this_channel_single_button_group.addButton(this_channel_single_alarm_button, 2)
+        this_channel_single_sms_box = _qw.QCheckBox("", this_tab)
+        self.all_channels_single_sms_box[mod_key].update({channel_key: this_channel_single_sms_box})
         self.all_channels_single_button_group[mod_key].update({channel_key: this_channel_single_button_group})
         this_channel_frequent_button_group = _qw.QButtonGroup(this_tab)               
         this_channel_frequent_none_button = _qw.QRadioButton()
@@ -472,13 +479,15 @@ class MainWindow(_qw.QMainWindow):
         this_channel_frequent_alarm_button = _qw.QRadioButton()
         this_channel_frequent_alarm_button.setChecked(True)        
         this_channel_frequent_button_group.addButton(this_channel_frequent_alarm_button, 2) 
+        this_channel_frequent_sms_box = _qw.QCheckBox("", this_tab)
+        self.all_channels_frequent_sms_box[mod_key].update({channel_key: this_channel_frequent_sms_box})
         self.all_channels_frequent_button_group[mod_key].update({channel_key: this_channel_frequent_button_group})
         this_channel_single_test_button = _qw.QPushButton("test")
         this_channel_single_test_button.setToolTip("Send a test email for this event with the current settings")
         this_channel_frequent_test_button = _qw.QPushButton("test")
         this_channel_frequent_test_button.setToolTip("Send a test email for this event with the current settings")
-        this_channel_single_test_button.clicked.connect(partial(self.send_mail, this_channel, this_channel_single_button_group.checkedId(),1))
-        this_channel_frequent_test_button.clicked.connect(partial(self.send_mail, this_channel, this_channel_frequent_button_group.checkedId(),2))
+        this_channel_single_test_button.clicked.connect(partial(self.send_mail, mod_key, channel_key, "single"))
+        this_channel_frequent_test_button.clicked.connect(partial(self.send_mail, mod_key, channel_key, "frequent"))
 
         # separator for controls
         this_channel_vertical_separator = _qw.QLabel("")
@@ -565,14 +574,17 @@ class MainWindow(_qw.QMainWindow):
         grid.addWidget(this_channel_none_settings_label, 10, 2, _qc.Qt.AlignHCenter)        
         grid.addWidget(this_channel_info_settings_label, 10, 3, _qc.Qt.AlignHCenter)
         grid.addWidget(this_channel_alarm_settings_label, 10, 4, _qc.Qt.AlignHCenter)
+        grid.addWidget(this_channel_sms_settings_label, 10, 5, _qc.Qt.AlignLeft)
         grid.addWidget(this_channel_single_none_button, 11 , 2, _qc.Qt.AlignHCenter)      
         grid.addWidget(this_channel_single_info_button, 11, 3,_qc.Qt.AlignHCenter)
         grid.addWidget(this_channel_single_alarm_button, 11, 4, _qc.Qt.AlignHCenter)
+        grid.addWidget(this_channel_single_sms_box, 11, 5, _qc.Qt.AlignLeft)
         grid.addWidget(this_channel_frequent_none_button, 12, 2, _qc.Qt.AlignHCenter)        
         grid.addWidget(this_channel_frequent_info_button, 12, 3, _qc.Qt.AlignHCenter)
         grid.addWidget(this_channel_frequent_alarm_button, 12, 4, _qc.Qt.AlignHCenter)
-        grid.addWidget(this_channel_single_test_button, 11, 5, _qc.Qt.AlignHCenter)
-        grid.addWidget(this_channel_frequent_test_button, 12, 5, _qc.Qt.AlignHCenter) 
+        grid.addWidget(this_channel_frequent_sms_box, 12, 5,  _qc.Qt.AlignLeft)
+        grid.addWidget(this_channel_single_test_button, 11, 6, _qc.Qt.AlignHCenter)
+        grid.addWidget(this_channel_frequent_test_button, 12, 6, _qc.Qt.AlignHCenter) 
 
         grid.addWidget(this_channel_vertical_separator, 1, 3, 9, 1)
         
@@ -726,13 +738,11 @@ class MainWindow(_qw.QMainWindow):
                             dt_last_trip = time.time() - this_channel.trip_time_stamps[-2]    
                         if dt_last_trip < this_channel.min_time_trips*60:
                             # This was a frequent trip
-                            freq_priority = self.all_channels_frequent_button_group[mod_key][channel_key].checkedId()
-                            self.send_mail(this_channel, freq_priority, 2)         
+                            self.send_mail(mod_key, channel_key, "frequent")   
                             this_channel.auto_reramp_mode = "freq_trip"
                         else:
                             # This was a single trip
-                            single_priority = self.all_channels_single_button_group[mod_key][channel_key].checkedId()
-                            self.send_mail(this_channel, single_priority, 1)    
+                            self.send_mail(mod_key, channel_key, "single")
                             if not this_channel.manual_control:
                                 if self.all_channels_auto_reramp_box[mod_key][channel_key].checkState():
                                     if not (_np.isnan(self.channels[mod_key][channel_key].set_voltage) or _np.isnan(self.channels[mod_key][channel_key].ramp_speed)):
@@ -1218,12 +1228,23 @@ class MainWindow(_qw.QMainWindow):
             return False
 
 
-    def send_mail(self, hv_channel, priority, alarm_mode):
+    def send_mail(self, mod_key, channel_key, alarm_mode):
+
         if self.email_sender.recipients_info == "" or self.email_sender.recipients_alarm == "":
             self.err_msg_mail = _qw.QMessageBox.warning(self, "Mail",
                                    "Set info& and alarm email recipients first!")
             return False
+        if alarm_mode == "single":
+            sms_flag = self.all_channels_single_sms_box[mod_key][channel_key].checkState()
+            priority = self.all_channels_single_button_group[mod_key][channel_key].checkedId()
+        elif alarm_mode == "frequent":
+            sms_flag = self.all_channels_frequent_sms_box[mod_key][channel_key].checkState()
+            priority = self.all_channels_frequent_button_group[mod_key][channel_key].checkedId()
+
+        hv_channel = self.channels[mod_key][channel_key]
         self.email_sender.send_alarm(hv_channel, priority, alarm_mode)
+        if sms_flag:
+            self.email_sender.send_sms(hv_channel, priority, alarm_mode)
         self.info_msg_mail = _qw.QMessageBox()
         self.info_msg_mail.setIcon(_qw.QMessageBox.Information)
         self.info_msg_mail.setText("Sent Email notification")
@@ -1231,7 +1252,7 @@ class MainWindow(_qw.QMainWindow):
         self.info_msg_mail.button(_qw.QMessageBox.Ok).animateClick(2000)
         self.info_msg_mail.exec_()
         return True
-
+	
     
     def file_quit(self):
         """Closes the application"""
