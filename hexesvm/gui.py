@@ -41,7 +41,7 @@ class MainWindow(_qw.QMainWindow):
         self.email_sender = _mail.MailNotifier()
         # create interlocker
         self.locker = _interlock()
-        self.locker.set_interlock_parameter('p1', 1.20)        
+        self.locker.set_interlock_parameter('mbot', 0.)        
         self.interlock_value = True
         # create database flag
         self.db_connection = False
@@ -76,7 +76,7 @@ class MainWindow(_qw.QMainWindow):
         self.modules = OrderedDict(
         {"PMT module": _iseg.hv_module("pmt module", "COM7"),
         "Anode module": _iseg.hv_module("anode module", "COM17"),
-        "Drift module": _iseg.hv_module("drift module", "COM18")})		        
+        "Drift module": _iseg.hv_module("drift module", "COM18")})
                 
         self.channel_order_dict = ((("PMT module", "Top PMT"), ("Anode module", "Anode"), 
                           ("Drift module", "Gate"), ("Drift module", "Cathode"),
@@ -123,7 +123,10 @@ class MainWindow(_qw.QMainWindow):
 
         # This will prevent from ramping HV up again
         self.interlock_value = False
-        self.hv_kill_msg = _qw.QMessageBox.warning(self, "HV Kill", message)
+        self.hv_kill_msg = _qw.QMessageBox()
+        self.hv_kill_msg.setText(message)
+        self.hv_kill_msg.exec_()
+        #self.hv_kill_msg = _qw.QMessageBox.warning(self, "HV Kill", message)
         MainWindow.log.debug(response)
         
     def update_interlock(self):
@@ -1076,8 +1079,12 @@ class MainWindow(_qw.QMainWindow):
         self.form_password = _qw.QLineEdit(self.settingsTab)
         self.form_password.setEchoMode(_qw.QLineEdit.Password)
         self.form_password.returnPressed.connect(self.sql_conn_button.click)
-        self.form_email = _qw.QLineEdit(self.settingsTab)
-        self.form_email.returnPressed.connect(self.sql_conn_button.click)
+        self.form_email_info = _qw.QLineEdit(self.settingsTab)
+        self.form_email_info.returnPressed.connect(self.sql_conn_button.click)
+        self.form_email_alarm = _qw.QLineEdit(self.settingsTab)
+        self.form_email_alarm.returnPressed.connect(self.sql_conn_button.click)
+        self.form_email_sms = _qw.QLineEdit(self.settingsTab)
+        self.form_email_sms.returnPressed.connect(self.sql_conn_button.click)
         
         self.interlock_line_edit_par = _qw.QLineEdit(self.settingsTab)
         self.interlock_line_edit_par.setText(str(self.locker.lock_param))
@@ -1093,7 +1100,9 @@ class MainWindow(_qw.QMainWindow):
         form_layout.addRow("table name (Interlock)", self.form_tablename_interlock)
         form_layout.addRow("user", self.form_user)
         form_layout.addRow("password", self.form_password)
-        form_layout.addRow("Email recipient", self.form_email)       
+        form_layout.addRow("Email recipient (info)", self.form_email_info)       
+        form_layout.addRow("Email recipient (alarm)", self.form_email_alarm)       
+        form_layout.addRow("SMS recipients", self.form_email_sms)
         
         form_layout.addRow("Interlock parameter", self.interlock_line_edit_par)
         form_layout.addRow("Lock Value", self.interlock_line_edit_val)        
@@ -1114,7 +1123,9 @@ class MainWindow(_qw.QMainWindow):
         self.form_tablename_hv.setText("hexe_sc_hv")
         self.form_tablename_interlock.setText("hexe_sc")
         self.form_user.setText("writer")
-        self.form_email.setText(self.email_sender.recipients)
+        self.form_email_info.setText(self.email_sender.recipients_info)
+        self.form_email_alarm.setText(self.email_sender.recipients_alarm)
+        self.form_email_sms.setText(self.email_sender.sms_numbers)
 
     def sql_connect(self):
 
@@ -1129,7 +1140,9 @@ class MainWindow(_qw.QMainWindow):
         username = self.form_user.text().strip()
         password = self.form_password.text().strip()
         # For now here....
-        self.email_sender.set_mail_recipient(self.form_email.text().strip())
+        self.email_sender.set_mail_recipient_info(self.form_email_info.text().strip())
+        self.email_sender.set_mail_recipient_alarm(self.form_email_alarm.text().strip())
+        self.email_sender.set_sms_recipient(self.form_email_sms.text().strip())
 
         try:
 
@@ -1206,9 +1219,9 @@ class MainWindow(_qw.QMainWindow):
 
 
     def send_mail(self, hv_channel, priority, alarm_mode):
-        if self.email_sender.recipients == "":
+        if self.email_sender.recipients_info == "" or self.email_sender.recipients_alarm == "":
             self.err_msg_mail = _qw.QMessageBox.warning(self, "Mail",
-                                   "Set email recipient first!")
+                                   "Set info& and alarm email recipients first!")
             return False
         self.email_sender.send_alarm(hv_channel, priority, alarm_mode)
         self.info_msg_mail = _qw.QMessageBox()
