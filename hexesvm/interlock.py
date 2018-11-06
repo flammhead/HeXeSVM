@@ -8,7 +8,7 @@ class Interlock():
 	def __init__(self):
 		self.lock_state = False
 		self.is_running = False		
-		self.max_time_difference = 30
+		self.max_time_difference = 120
 		self.parameter_value = float('nan')
 		self.container = None
 
