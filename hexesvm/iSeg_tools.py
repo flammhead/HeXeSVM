@@ -1,5 +1,5 @@
-#import serial
-from hexesvm import fake_serial as serial
+import serial
+#from hexesvm import fake_serial as serial
 from hexesvm import threads as _thr
 import time
 
@@ -298,6 +298,9 @@ class hv_channel:
     def write_set_voltage(self, voltage):
         try: voltage_int = int(voltage)
         except (ValueError, TypeError): return "ERR"
+        #This solution is meant to be temporary!...
+        if self.module.model_no == "487472" and voltage_int > 980:
+            voltage_int = 42
         command = ("D%d=%d" % (self.channel, voltage_int))
         answer = self.module.send_long_command(command)
         return answer

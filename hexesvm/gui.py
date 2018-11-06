@@ -41,7 +41,7 @@ class MainWindow(_qw.QMainWindow):
         self.email_sender = _mail.MailNotifier()
         # create interlocker
         self.locker = _interlock()
-        self.locker.set_interlock_parameter('mbot', 0.)        
+        self.locker.set_interlock_parameter('p1', 1.20)        
         self.interlock_value = True
         # create database flag
         self.db_connection = False

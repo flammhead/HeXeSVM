@@ -104,7 +104,7 @@ class Serial:
             return self.read()
         
         if self.sum_receivedData == "#\r\n":
-            answer = "123456;1.23;1000;2mA"
+            answer = "487472;1.23;1000;2mA"
         if self.sum_receivedData == "U1\r\n":
             answer = str(self.u[0])
         if self.sum_receivedData == "U2\r\n":
