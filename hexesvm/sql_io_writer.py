@@ -16,7 +16,7 @@ class SqlWriter():
         sqlalch_url = "{:s}://{:s}:{:s}@{:s}/{:s}".format(dialect, username,
                                                           password, address,
                                                           dbname)
-        self.engine = _sql.create_engine(sqlalch_url)
+        self.engine = _sql.create_engine(sqlalch_url, server_side_cursors=True)
 
         # infer table structure
         self.table_meta = _sql.MetaData()

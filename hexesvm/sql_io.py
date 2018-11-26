@@ -25,7 +25,7 @@ class SqlContainer():
                                                           dbname)
         SqlContainer.log.info("Connecting to {:s} at {:s} as {:s}".format(dbname, address,
                                                              username))
-        self.engine = _sql.create_engine(sqlalch_url)
+        self.engine = _sql.create_engine(sqlalch_url, server_side_cursors=True)
         SqlContainer.log.info("Connection established")
 
         # infer table structure

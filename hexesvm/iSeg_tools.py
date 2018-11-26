@@ -9,7 +9,7 @@ class hv_module:
         self.name = name
         self.port = port
         self.sleep_time = 1
-        self.response_timeout = 0.5
+        self.response_timeout = 5
         self.is_high_precission = False
         self.is_connected = False
         self.child_channels = []

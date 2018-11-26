@@ -1,16 +1,19 @@
+from PyQt5 import QtCore as _qc
 import sqlalchemy as _sql
 import time
 import numpy as _np
 from datetime import datetime, timedelta
 
-class Interlock():
+class Interlock(_qc.QThread):
 
 	def __init__(self):
+		_qc.QThread.__init__(self)
 		self.lock_state = False
 		self.is_running = False		
 		self.max_time_difference = 120
 		self.parameter_value = float('nan')
 		self.container = None
+		self.is_connected = False
 
 	def set_sql_container(self, sql_container):
 
@@ -20,13 +23,22 @@ class Interlock():
 		
 		self.lock_param = parameter
 		self.time_stamp = "time"
-		self.lock_value = min_value		
+		self.lock_value = min_value
+		
+	def run(self):
+		self.is_running = True
+		self.stop_looping = False
+		while not self.stop_looping:
+			self.check_interlock()
+			time.sleep(10)
+        	
 		
 	def check_interlock(self):
 
 		if self.container is None:
 			self.lock_state = False
 			return False
+		self.is_connected = True
 
 		time_now = datetime.now()
 		delta_time = timedelta(seconds=self.max_time_difference)
@@ -38,6 +50,7 @@ class Interlock():
                                             time_now))		
 		result = self.container.conn.execute(sel)
 		data = _np.array(result.fetchall())
+		result.close()
 		self.is_running = True
 		if len(data) == 0:
 			print("Interlock received wrong data (too little data) from DB going to Lock!")

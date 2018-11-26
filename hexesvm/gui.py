@@ -19,7 +19,7 @@ from hexesvm.interlock import Interlock as _interlock
 from hexesvm import threads as _thr 
 from hexesvm import mail as _mail
 
-
+from memory_profiler import profile
 
 # create module logger
 _gui_log = _lg.getLogger("hexesvm.gui")
@@ -63,7 +63,7 @@ class MainWindow(_qw.QMainWindow):
         self._init_subwindows()
         
                 
-        
+    @profile    
     def updateUI(self):
 
         self.update_status_bar()
@@ -131,8 +131,10 @@ class MainWindow(_qw.QMainWindow):
         
     def update_interlock(self):
         # if too slow, the interlocker must be outsourced to an own thread?
-        response = self.locker.check_interlock()
-        if not response and self.locker.is_running:
+        if not self.locker.is_running:
+            self.locker.start()
+        response = self.locker.lock_state
+        if not response and self.locker.is_connected:
             if self.interlock_value:
                 self.statusBar().showMessage("Interlock triggered: "+ str(self.locker.parameter_value))
                 MainWindow.log.debug("Interlock triggered: "+ str(self.locker.parameter_value))
