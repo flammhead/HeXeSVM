@@ -4,8 +4,8 @@ import smtplib as sm
 import time
 
 from_address = "hexe@mpi-hd.mpg.de"
-recipients_alarm = "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de, hexe.shifter1@gmail.com"
-#recipients_alarm = "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de, hexe.shifter1@gmail.com, cichon@mpi-hd.mpg.de, eurin@mpi-hd.mpg.de, natascha.rupp@hotmail.de, natascha.rupp@mpi-hd.mpg.de"
+#recipients_alarm = "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de, hexe.shifter1@gmail.com"
+recipients_alarm = "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de, hexe.shifter1@gmail.com, cichon@mpi-hd.mpg.de, eurin@mpi-hd.mpg.de, natascha.rupp@hotmail.de, natascha.rupp@mpi-hd.mpg.de"
 # sms alarms not used right now
 #sms_numbers = "+491774851456;+491748029906;+491637542725"
 alarm_sent = False
@@ -14,7 +14,7 @@ delta_t_max = 60
 
 while True:
 
-    time.sleep(10)
+    time.sleep(60)
     file_hrtbt = open(heartbeat_file_name, "r")
     unix_stamp_file = float(file_hrtbt.read())
     unix_stamp_now = time.time()
