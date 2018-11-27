@@ -1,8 +1,10 @@
 from PyQt5 import QtCore as _qc
-import sqlalchemy as _sql
+import psycopg2 as _psy
+import psycopg2.extras as _psyext
 import time
 import numpy as _np
 from datetime import datetime, timedelta
+
 
 class Interlock(_qc.QThread):
 
@@ -14,10 +16,18 @@ class Interlock(_qc.QThread):
 		self.parameter_value = float('nan')
 		self.container = None
 		self.is_connected = False
+		
+		self.connection = None
 
 	def set_sql_container(self, sql_container):
 
 		self.container = sql_container
+		
+	def set_psycopg_conn(self, host, db_name, user, pwd, tablename):
+
+		con_str = "host='"+host+"' dbname='"+db_name+"' user='"+user+"' password='"+pwd+"'"
+		self.table_name = tablename
+		self.connection = _psy.connect(con_str)
 
 	def set_interlock_parameter(self, parameter, min_value):
 		
@@ -30,12 +40,13 @@ class Interlock(_qc.QThread):
 		self.stop_looping = False
 		while not self.stop_looping:
 			self.check_interlock()
-			time.sleep(10)
+			time.sleep(1)
         	
 		
 	def check_interlock(self):
 
-		if self.container is None:
+
+		if self.connection is None:
 			self.lock_state = False
 			return False
 		self.is_connected = True
@@ -44,13 +55,14 @@ class Interlock(_qc.QThread):
 		delta_time = timedelta(seconds=self.max_time_difference)
 		time_max_past = time_now - delta_time
 
-		sel = _sql.sql.select((self.container.table.columns[self.lock_param], self.container.table.columns[self.time_stamp])).where((self.container.table.columns[self.time_stamp] >=
-                                            time_max_past) &
-                                            (self.container.table.columns[self.time_stamp] <=
-                                            time_now))		
-		result = self.container.conn.execute(sel)
-		data = _np.array(result.fetchall())
-		result.close()
+		cursor = self.connection.cursor('testName', cursor_factory=_psyext.DictCursor)
+		select = 'SELECT '+self.lock_param+' FROM '+self.table_name+' WHERE (time >= %s AND time <= %s)'
+		cursor.execute(select, (time_max_past, time_now))
+		result = cursor.fetchall()
+
+
+		data = _np.array(result)
+		cursor.close()
 		self.is_running = True
 		if len(data) == 0:
 			print("Interlock received wrong data (too little data) from DB going to Lock!")

@@ -48,9 +48,9 @@ class MainWindow(_qw.QMainWindow):
         self.db_connection_write = False
         self.output_buffer_file = open("tempdata_log.dat", 'a')
 
-        timer = _qc.QTimer(self)
-        timer.timeout.connect(self.updateUI)
-        timer.start(1000)
+        self.timer = _qc.QTimer(self)
+        self.timer.timeout.connect(self.updateUI)
+        self.timer.start(1000)
 
         self.startUI()
         self.updateUI()
@@ -1186,7 +1186,8 @@ class MainWindow(_qw.QMainWindow):
         self.db_connection = True
         self.statusBar().showMessage("sql connection established")
         self.sql_conn_button.setEnabled(False)
-        self.locker.set_sql_container(self.sql_cont_interlock)
+        #self.locker.set_sql_container(self.sql_cont_interlock)
+        self.locker.set_psycopg_conn(address, dbname, username, password, tablename_interlock)
         
         
     def insert_values_in_database(self):
@@ -1234,7 +1235,7 @@ class MainWindow(_qw.QMainWindow):
 
         if self.email_sender.recipients_info == "" or self.email_sender.recipients_alarm == "":
             self.err_msg_mail = _qw.QMessageBox.warning(self, "Mail",
-                                   "Set info& and alarm email recipients first!")
+                                   "Set info & and alarm email recipients first!")
             return False
         if alarm_mode == "single":
             sms_flag = self.all_channels_single_sms_box[mod_key][channel_key].checkState()
