@@ -19,8 +19,6 @@ from hexesvm.interlock import Interlock as _interlock
 from hexesvm import threads as _thr 
 from hexesvm import mail as _mail
 
-from memory_profiler import profile
-
 # create module logger
 _gui_log = _lg.getLogger("hexesvm.gui")
 _gui_log.setLevel(_lg.DEBUG)
@@ -63,12 +61,12 @@ class MainWindow(_qw.QMainWindow):
         self._init_subwindows()
         
                 
-    @profile    
     def updateUI(self):
 
         self.update_status_bar()
         self.update_overview()
         self.update_module_tabs()
+        self.set_heartbeat()
         
 
     def _initialize_hv_modules(self):		
@@ -1256,6 +1254,14 @@ class MainWindow(_qw.QMainWindow):
         self.info_msg_mail.exec_()
         return True
 	
+    def set_heartbeat(self):
+        """Writes the current UNIX time in a heartbeat file"""
+        hrtbt_file = open("heartbeat.dat", "w")
+        unix_time = time.time()
+        hrtbt_file.write(str(unix_time))
+        hrtbt_file.close()
+        
+
     
     def file_quit(self):
         """Closes the application"""
