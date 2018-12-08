@@ -1,67 +1,76 @@
 from PyQt5 import QtCore as _qc
-#from hexesvm import iSeg_tools as _iseg
 import time
-
-import socket
-import sys
-import os
-import time
-import datetime
-
-
-
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-# using localhost for now
-host = "127.0.0.1"
-port = 6667
-s.bind((host, port))
-
-allowed_clients = (("149.217.1.94", "149.217.9.245"))
-
-s.listen(5)
-w_log("start listening")
-clientsocket, address = s.accept()
-w_log("incomming connection found from" + str(address[0]))
-
-if address[0]  in allowed_clients:
-
-        data = ''
-        data = clientsocket.recv(1024).decode()
-        if data == "get_buffer_list":
-                file_folder_list = os.listdir(buffer_path)
-                folder_list = []
-                for entry in file_folder_list:
-                        if not os.path.isdir(buffer_path + "/" + entry):
-                                continue
-                        folder_list.append(entry)
-
-                clientsocket.send(str(len(folder_list)).encode())
-                w_log("sending " + str(len(folder_list)) + " folder names")
-                for folder in folder_list:
-                        w_log(folder)
-                        clientsocket.send(folder.encode())
-                        time.sleep(0.1)
-
-w_log("closing connection")
-s.close()
+import socket as _soc
 
 
 class HeartbeatSender(_qc.QThread):
 
     def __init__(self):
+
         _qc.QThread.__init__(self)
+        # using localhost for now
+        self.server_address = "127.0.0.1"
+        self.server_port = 6667
+        self.timeout_duration = 2
+        self.update_interval = 5
 
         self.stop_sending = False
+        self.connection_established = False
+        
+        
+    def __delete__(self):
+        self.socket.close()
+        self.connection_established = False
+        
+    def connect_socket(self):
+    
+        try:
+            self.socket = _soc.socket(_soc.AF_INET, _soc.SOCK_STREAM)
+            self.socket.settimeout(self.timeout_duration)
+            self.socket.connect((self.server_address, self.server_port))
+    
+        except(_soc.timeout):
+            print("SOCKET TIME OUT!")
+            self.connection_established = False
+            self.socket.close()
+            return False
+            
+        except(ConnectionRefusedError):
+            print("HEARTBEAT CONNECTION REFUSED!")
+            self.connection_established = False
+            self.socket.close()
+            return False
+            
+        self.connection_established = True
+        return True
+                
         
     def run(self):
         # This functino is meant to be run in a thread
 
         self.stop_sending = False
         while not self.stop_sending:
-
-
+            if not self.connection_established:
+                time.sleep(self.timeout_duration +1)
+                self.connect_socket()
+                continue
+            time_stamp = time.time()
+            time_stamp_str = str(time_stamp)
+            
+            try:
+                self.socket.sendall(time_stamp_str.encode())
+                return_data = (self.socket.recv(1024)).decode()
+            except(_soc.timeout, ConnectionError):
+                print("connection timeout!")
+                self.connection_established = False
+                continue
+                
+            if return_data != time_stamp_str:
+                print("Wrong data recceived: ", return_data)
+                self.connection_established = False
+            else:
+                self.connection_established = True
+            time.sleep(self.update_interval)
         return
             
     def stop(self):

@@ -18,6 +18,7 @@ from hexesvm.sql_io_writer import SqlWriter as _sql_writer
 from hexesvm.interlock import Interlock as _interlock
 from hexesvm import threads as _thr 
 from hexesvm import mail as _mail
+from hexesvm.heartbeat_thread import HeartbeatSender as _hrtbt
 
 # create module logger
 _gui_log = _lg.getLogger("hexesvm.gui")
@@ -45,6 +46,11 @@ class MainWindow(_qw.QMainWindow):
         self.db_connection = False
         self.db_connection_write = False
         self.output_buffer_file = open("tempdata_log.dat", 'a')
+        # create heartbeat sender
+        self.heartbeat = _hrtbt()
+        self.heartbeat.connect_socket()
+        self.heartbeat.start()
+        
 
         self.timer = _qc.QTimer(self)
         self.timer.timeout.connect(self.updateUI)
@@ -66,8 +72,7 @@ class MainWindow(_qw.QMainWindow):
         self.update_status_bar()
         self.update_overview()
         self.update_module_tabs()
-        self.set_heartbeat()
-        
+       
 
     def _initialize_hv_modules(self):		
 
@@ -173,19 +178,38 @@ class MainWindow(_qw.QMainWindow):
         MainWindow.log.debug("Called MainWindow._init_status_bar")
 
         self.statusBar().showMessage('Program started')
-        sep_middle = _qw.QLabel("")
-        sep_middle.setFrameStyle(_qw.QFrame.VLine)
+        sep_middle_1 = _qw.QLabel("")
+        sep_middle_2 = _qw.QLabel("")
+        sep_middle_1.setFrameStyle(_qw.QFrame.VLine)
+        sep_middle_2.setFrameStyle(_qw.QFrame.VLine)        
 
+        self.heartbeat_widget = _qw.QLabel("Heartbeat: ")
+        self.heartbeat_widget.setToolTip("Indicates that the connection to the Watchdog is working")
+        self.statusBar().addPermanentWidget(self.heartbeat_widget)
+        self.statusBar().addPermanentWidget(sep_middle_1)
         self.interlock_widget = _qw.QLabel("Interlock: ")
         self.interlock_widget.setToolTip("Kills all HV if cryostat pressure below "+str(self.locker.lock_value)+" bara\n(Restart software to ramp up again!)")
         #self.interlock_widget.setToolTip("Will be triggered, if pressure inside Cryostat is too low.\nTrigger will cause all connected HV modules to ramp down (at 255 V/s).\nAfter trigger, it is not possible to ramp back up (restart of software required)")
         self.statusBar().addPermanentWidget(self.interlock_widget)
-        self.statusBar().addPermanentWidget(sep_middle)
+        self.statusBar().addPermanentWidget(sep_middle_2)
         self.database_widget = _qw.QLabel("Database: ")
         self.statusBar().addPermanentWidget(self.database_widget)
         self.update_status_bar()
 
     def update_status_bar(self):
+    
+        if self.heartbeat.connection_established:
+            new_palette = self.heartbeat_widget.palette()
+            new_palette.setColor(_qg.QPalette.WindowText, _qg.QColor(0,204,0))
+            self.heartbeat_widget.setPalette(new_palette)
+            self.heartbeat_widget.setText("Heartbeat: OK")
+            
+        else:
+            new_palette = self.heartbeat_widget.palette()
+            new_palette.setColor(_qg.QPalette.WindowText, _qg.QColor(255,0,0))
+            self.heartbeat_widget.setPalette(new_palette)
+            self.heartbeat_widget.setText("Heartbeat: FAILED!")                
+        
         self.update_interlock()
         if self.locker.lock_state:
             new_palette = self.interlock_widget.palette()
@@ -1254,14 +1278,6 @@ class MainWindow(_qw.QMainWindow):
         self.info_msg_mail.exec_()
         return True
 	
-    def set_heartbeat(self):
-        """Writes the current UNIX time in a heartbeat file"""
-        hrtbt_file = open("heartbeat.dat", "w")
-        unix_time = time.time()
-        hrtbt_file.write(str(unix_time))
-        hrtbt_file.close()
-        
-
     
     def file_quit(self):
         """Closes the application"""

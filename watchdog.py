@@ -2,6 +2,9 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import smtplib as sm
 import time
+import socket as _soc
+import os
+
 
 from_address = "hexe@mpi-hd.mpg.de"
 #recipients_alarm = "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de, hexe.shifter1@gmail.com"
@@ -9,18 +12,66 @@ recipients_alarm = "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de, hexe.shifter1@gmai
 # sms alarms not used right now
 #sms_numbers = "+491774851456;+491748029906;+491637542725"
 alarm_sent = False
-heartbeat_file_name = "heartbeat.dat"
 delta_t_max = 60
+
+address = "127.0.0.1"
+port = 6667
+allowed_clients = (("127.0.0.1"))
+socket = _soc.socket(_soc.AF_INET, _soc.SOCK_STREAM)
+socket.bind((address, port))
+socket.settimeout(10)
+clientsocket = None
+last_received_time = 0
+
+#startup delay
+start_up_delay = 60
+print("watchdog start-up delay (seconds): ", start_up_delay)
+time.sleep(start_up_delay)
+
+
 
 while True:
 
-    time.sleep(60)
-    file_hrtbt = open(heartbeat_file_name, "r")
-    unix_stamp_file = float(file_hrtbt.read())
-    unix_stamp_now = time.time()
+    socket.listen(5)
     
-    #if _w32g.FindWindow(None, "HeXeSVM") == 0:
-    if unix_stamp_now - unix_stamp_file >= delta_t_max:
+    if clientsocket:
+    
+        data = ''
+        try: 
+            data = clientsocket.recv(1024).decode()
+            clientsocket.send(data.encode())
+            last_received_time = float(data)       
+           
+        except(ValueError):
+            print("WRONG DATA RECEIVED! ", data)
+            clientsocket.close()
+            clientsocket = None               
+            
+        except OSError as e:
+            print(e)
+            clientsocket.close()
+            clientsocket = None   
+    
+    else:
+        try:
+            clientsocket, address = socket.accept()
+            print("incomming connection found from" + str(address[0]))
+
+            if not (address[0] in allowed_clients):
+                print("Connection refused from: ", address[0])
+                clientsocket.close()
+                clientsocket = None
+                continue    
+            else:
+                continue        
+                    
+        except(_soc.timeout):
+            print("timed out")
+
+
+    unix_stamp_now = time.time()
+
+    if unix_stamp_now - last_received_time >= delta_t_max:
         if alarm_sent:
             continue
         msg = MIMEMultipart()
@@ -33,12 +84,12 @@ while True:
         recipients_clean = recipients_alarm.replace(" ", "")
         recipients_array = recipients_clean.split(",")
         mail_conn.sendmail(from_address, recipients_array, msg.as_string())
-        print("HeXeSVM not found! send alarm Email!")
+        print("HeXeSVM Heartbeat outdated! send alarm Email!")
         alarm_sent = True
     else:
-        print("HeXeSVM is running")
-        alarm_sent = False
-    file_hrtbt.close()
+        print("HeXeSVM Heartbeat, up to date")
+        alarm_sent = False                    
+        
 
 
 
