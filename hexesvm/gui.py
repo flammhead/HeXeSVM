@@ -189,7 +189,7 @@ class MainWindow(_qw.QMainWindow):
         self.statusBar().addPermanentWidget(sep_middle_1)
         self.interlock_widget = _qw.QLabel("Interlock: ")
         self.interlock_widget.setToolTip("Kills all HV if cryostat pressure below "+str(self.locker.lock_value)+" bara\n(Restart software to ramp up again!)")
-        #self.interlock_widget.setToolTip("Will be triggered, if pressure inside Cryostat is too low.\nTrigger will cause all connected HV modules to ramp down (at 255 V/s).\nAfter trigger, it is not possible to ramp back up (restart of software required)")
+
         self.statusBar().addPermanentWidget(self.interlock_widget)
         self.statusBar().addPermanentWidget(sep_middle_2)
         self.database_widget = _qw.QLabel("Database: ")
