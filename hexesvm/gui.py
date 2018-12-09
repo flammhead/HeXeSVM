@@ -246,6 +246,7 @@ class MainWindow(_qw.QMainWindow):
         self.setCentralWidget(self.main_widget)
         self.overviewTab = _qw.QWidget(self.main_widget)
         self.settingsTab = _qw.QWidget(self.main_widget)
+        self.rampScheduleTab = _qw.QWidget(self.main_widget)
         self.main_widget.addTab(self.overviewTab, "Overview")
         # create tabs for the HV modules here
         self.mod_tabs = {}
@@ -253,10 +254,12 @@ class MainWindow(_qw.QMainWindow):
             this_tab = _qw.QWidget(self.main_widget)
             self.mod_tabs.update({key: this_tab})
             self.main_widget.addTab(this_tab, key)
-
+            
+        self.main_widget.addTab(self.rampScheduleTab, "Schedule")
         self.main_widget.addTab(self.settingsTab, "Settings")
 		
         self._init_settings()
+        self._init_ramp_schedule_tab()
         self._init_module_tabs()
         self._init_overview()
 
@@ -910,7 +913,7 @@ class MainWindow(_qw.QMainWindow):
         self.start_reader_thread(self.modules[module_key])
         return True
         
-    def start_hv_change(self, module_key, channel_key):
+    def start_hv_change(self, module_key, channel_key, auto=False):
         if not self.modules[module_key].is_connected:
             self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Module", 
                 "Module is not connected!")
@@ -925,14 +928,17 @@ class MainWindow(_qw.QMainWindow):
                 "Interlock is/was triggered! Abort Voltage change!")        
             return False
 
-        confirmation = _qw.QMessageBox.question(self, "Are you sure?", 
-        "You are about to ramp channel: "+self.channels[module_key][channel_key].name+
-        "\nSet Voltage: "+str(self.channels[module_key][channel_key].set_voltage)+
-        "\nRamp Speed: "+str(self.channels[module_key][channel_key].ramp_speed)+
-        "\nPlease Confirm!", _qw.QMessageBox.Yes, _qw.QMessageBox.No)
+        confirmation = auto
+        if not auto:
+            answer = _qw.QMessageBox.question(self, "Are you sure?", 
+            "You are about to ramp channel: "+self.channels[module_key][channel_key].name+
+            "\nSet Voltage: "+str(self.channels[module_key][channel_key].set_voltage)+
+            "\nRamp Speed: "+str(self.channels[module_key][channel_key].ramp_speed)+
+            "\nPlease Confirm!", _qw.QMessageBox.Yes, _qw.QMessageBox.No)
+            confirmation = (answer == _qw.QMessageBox.Yes)
         self.stop_reader_thread(self.modules[module_key])
         
-        if confirmation == _qw.QMessageBox.Yes:
+        if confirmation:
             answer = self.channels[module_key][channel_key].start_voltage_change()
             if not ("H2L" in answer or "L2H" in answer):
                 self.err_msg_voltage_change = _qw.QMessageBox.warning(self, "Voltage Change",
@@ -1087,6 +1093,84 @@ class MainWindow(_qw.QMainWindow):
             self.insert_values_in_database()
 
         return
+        
+    def _init_ramp_schedule_tab(self):
+        """This section contains the tab in which the user can load and 
+        Manage a predifened ramping plan"""
+        MainWindow.log.debug("Called _init_ramp_schedule_tab")
+        grid = _qw.QGridLayout()
+        grid.setSpacing(10)
+        
+        self.rampTable_heading = _qw.QLabel("This table can be used to set up scheduled ramping procedure")
+        self.rampTable = _qw.QTableWidget(self.rampScheduleTab)
+        self.rampTable.setRowCount(1)
+        self.rampTable.setColumnCount(len(self.channel_order_dict)+1)
+        list_header = ([self.channel_order_dict[i][1] for i in range(len(self.channel_order_dict))])
+        
+        self.rampTable.setHorizontalHeaderLabels(["time"] + list_header)
+        self.rampTable.horizontalHeader().setStretchLastSection(True)
+        self.rampTable.verticalHeader().setVisible(False)
+        self.rampTable.resizeColumnsToContents()
+        
+        
+        self.rampTableLoadButton = _qw.QPushButton("&Load")
+        self.rampTableLoadButton.clicked.connect(self.load_ramp_schedule)
+        self.rampTableSaveButton = _qw.QPushButton("&Save")
+        self.rampTableRunButton = _qw.QPushButton("Run")
+        self.rampTableRunButton.clicked.connect(self.run_ramp_schedule)
+        self.rampTableRunButton.setStyleSheet("QPushButton {background-color: green;}")     
+        self.rampTableStopButton = _qw.QPushButton("Stop")
+        self.rampTableStopButton.setStyleSheet("QPushButton {background-color: red;}")      
+
+        #y,x (order for the grid)
+        grid.addWidget(self.rampTable_heading, 1,1, 1,6)
+        grid.addWidget(self.rampTable, 2,1,4,6)
+        grid.addWidget(self.rampTableLoadButton, 6,3)
+        grid.addWidget(self.rampTableSaveButton, 6,2)
+        grid.addWidget(self.rampTableRunButton, 6,4)
+        grid.addWidget(self.rampTableStopButton, 6,5)
+
+        self.rampScheduleTab.setLayout(grid)
+    
+    def load_ramp_schedule(self):
+        dialog = _qw.QFileDialog()
+        dialog.setFileMode(_qw.QFileDialog.ExistingFile)
+        dialog.setDirectory("hexesvm/etc")
+        filename = ""
+        data = []
+        if dialog.exec_():
+            filename = dialog.selectedFiles()
+            with open(filename[0]) as f_in:
+                lines = f_in.read()
+                lines = lines.split("\n")
+                for line in lines:
+                    line = line.replace('\n', '').replace('\r', '').replace(' ', '')
+                    if line:
+                        if line[0] == '#':
+                            continue
+                        this_elements = line.split(",")
+                        data.append(this_elements)
+                    
+            # Validate the data!
+            length = len(self.channel_order_dict)+1
+            for row in data:
+                if len(row) != length:
+                    print("Loaded Data has missing (too little) values!")
+                    return False
+            try:
+                data_np = _np.asarray(data, dtype=_np.float16)
+            except ValueError:
+                print("Loaded Data is not of correct type!")
+                return False
+            #clear previous data content
+            self.rampTable.setRowCount(0)
+            self.rampTable.setRowCount(data_np.shape[0])
+            for i in range(data_np.shape[0]):
+                for j in range(data_np.shape[1]):
+                    newTableItem = _qw.QTableWidgetItem(str(data_np[i,j]))
+                    self.rampTable.setItem(i,j, newTableItem)
+
+    def run_ramp_schedule(self):
 
     def _init_settings(self):
         MainWindow.log.debug("Called _init_settings")
