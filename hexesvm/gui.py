@@ -1116,6 +1116,7 @@ class MainWindow(_qw.QMainWindow):
         self.rampTableLoadButton = _qw.QPushButton("&Load")
         self.rampTableLoadButton.clicked.connect(self.load_ramp_schedule)
         self.rampTableSaveButton = _qw.QPushButton("&Save")
+        self.rampTableSaveButton.clicked.connect(self.save_ramp_schedule)        
         self.rampTableRunButton = _qw.QPushButton("Run")
         self.rampTableRunButton.clicked.connect(self.run_ramp_schedule)
         self.rampTableRunButton.setStyleSheet("QPushButton {background-color: green;}")     
@@ -1140,7 +1141,7 @@ class MainWindow(_qw.QMainWindow):
         data = []
         if dialog.exec_():
             filename = dialog.selectedFiles()
-            with open(filename[0]) as f_in:
+            with open(filename[0], "r") as f_in:
                 lines = f_in.read()
                 lines = lines.split("\n")
                 for line in lines:
@@ -1170,7 +1171,33 @@ class MainWindow(_qw.QMainWindow):
                     newTableItem = _qw.QTableWidgetItem(str(data_np[i,j]))
                     self.rampTable.setItem(i,j, newTableItem)
 
+    def save_ramp_schedule(self):
+        dialog = _qw.QFileDialog()
+        dialog.setFileMode(_qw.QFileDialog.AnyFile)
+        dialog.setAcceptMode(_qw.QFileDialog.AcceptSave)
+        dialog.setDirectory("hexesvm/etc")
+        filename = ""
+        if dialog.exec_():
+            filename = dialog.selectedFiles()
+            with open(filename[0], "w") as f_out:
+                f_out.write('#')
+                for j in range(self.rampTable.columnCount()):
+                    f_out.write(self.rampTable.horizontalHeaderItem(j).text())
+                    if j <= self.rampTable.columnCount():
+                        f_out.write(',')
+                f_out.write('\n')
+                for i in range(self.rampTable.rowCount()):
+                    for j in range(self.rampTable.columnCount()):
+                        this_item = self.rampTable.itemAt(i,j)
+                        f_out.write(str(self.rampTable.item(i,j).text()))
+                        if j <= self.rampTable.columnCount():
+                            f_out.write(',')
+                    f_out.write('\n')
+                        
+
     def run_ramp_schedule(self):
+    
+        return
 
     def _init_settings(self):
         MainWindow.log.debug("Called _init_settings")
