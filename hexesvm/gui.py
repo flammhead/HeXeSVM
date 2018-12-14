@@ -50,6 +50,8 @@ class MainWindow(_qw.QMainWindow):
         self.heartbeat = _hrtbt()
         self.heartbeat.connect_socket()
         self.heartbeat.start()
+
+        self.inAutoMode = False
         
 
         self.timer = _qc.QTimer(self)
@@ -1103,12 +1105,16 @@ class MainWindow(_qw.QMainWindow):
         
         self.rampTable_heading = _qw.QLabel("This table can be used to set up scheduled ramping procedure")
         self.rampTable = _qw.QTableWidget(self.rampScheduleTab)
-        self.rampTable.setRowCount(1)
-        self.rampTable.setColumnCount(len(self.channel_order_dict)+1)
-        list_header = ([self.channel_order_dict[i][1] for i in range(len(self.channel_order_dict))])
+        self.rampTable.setRowCount(0)
+        # For now, the table is not edit, to be safe... might be changed at some point
+        self.rampTable.setEditTriggers(_qw.QAbstractItemView.NoEditTriggers)
+        self.rampTable.setColumnCount(len(self.channel_order_dict*2)+1)
+        list_header = []
+        for i in range(len(self.channel_order_dict)):
+            list_header.append("U("+self.channel_order_dict[i][1]+")")
+            list_header.append("V("+self.channel_order_dict[i][1]+")")
         
         self.rampTable.setHorizontalHeaderLabels(["time"] + list_header)
-        self.rampTable.horizontalHeader().setStretchLastSection(True)
         self.rampTable.verticalHeader().setVisible(False)
         self.rampTable.resizeColumnsToContents()
         
@@ -1121,6 +1127,8 @@ class MainWindow(_qw.QMainWindow):
         self.rampTableRunButton.clicked.connect(self.run_ramp_schedule)
         self.rampTableRunButton.setStyleSheet("QPushButton {background-color: green;}")     
         self.rampTableStopButton = _qw.QPushButton("Stop")
+        self.rampTableStopButton.clicked.connect(self.stop_ramp_schedule)
+        self.rampTableStopButton.setEnabled(False)
         self.rampTableStopButton.setStyleSheet("QPushButton {background-color: red;}")      
 
         #y,x (order for the grid)
@@ -1153,7 +1161,7 @@ class MainWindow(_qw.QMainWindow):
                         data.append(this_elements)
                     
             # Validate the data!
-            length = len(self.channel_order_dict)+1
+            length = self.rampTable.columnCount()
             for row in data:
                 if len(row) != length:
                     print("Loaded Data has missing (too little) values!")
@@ -1163,6 +1171,12 @@ class MainWindow(_qw.QMainWindow):
             except ValueError:
                 print("Loaded Data is not of correct type!")
                 return False
+            # check if the table does not proceed too far in the future.
+            if _np.sum(data_np[:,0]) >= 24.*60.:
+                print("Loaded Data is going too far in the future!!")
+                return False
+            if _np.min(data_np[1:,0]) < 10. /60.:
+                print("Loaded Data contains a time intervall < 10 seconds!")
             #clear previous data content
             self.rampTable.setRowCount(0)
             self.rampTable.setRowCount(data_np.shape[0])
@@ -1170,6 +1184,7 @@ class MainWindow(_qw.QMainWindow):
                 for j in range(data_np.shape[1]):
                     newTableItem = _qw.QTableWidgetItem(str(data_np[i,j]))
                     self.rampTable.setItem(i,j, newTableItem)
+            self.rampTable.resizeColumnsToContents()
 
     def save_ramp_schedule(self):
         dialog = _qw.QFileDialog()
@@ -1196,7 +1211,30 @@ class MainWindow(_qw.QMainWindow):
                         
 
     def run_ramp_schedule(self):
-    
+
+        if self.rampTable.rowCount() < 1:
+            print("No data in the ramp schedule!")
+            return False
+        self.inAutoMode = True
+
+        for mod_key, channel_key in self.channel_order_dict:
+            self.all_channels_apply_button[mod_key][channel_key].setEnabled(False)
+            self.all_channels_start_button[mod_key][channel_key].setEnabled(False)
+
+        self.rampTableRunButton.setEnabled(False)        
+        self.rampTableStopButton.setEnabled(True)
+
+        return
+
+
+    def stop_ramp_schedule(self):
+
+        self.rampTableRunButton.setEnabled(True)        
+        self.rampTableStopButton.setEnabled(False)
+        for mod_key, channel_key in self.channel_order_dict:
+            self.all_channels_apply_button[mod_key][channel_key].setEnabled(True)
+            self.all_channels_start_button[mod_key][channel_key].setEnabled(True)
+        self.inAutoMode = False
         return
 
     def _init_settings(self):

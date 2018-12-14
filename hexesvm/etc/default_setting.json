@@ -107,6 +107,11 @@
         "refresh_intervall": 1
     },
     
+    "ramp_list":
+    {
+        "max_time": 24
+    },
+    
     "gui_setting":
     {
         "window_width": 640,

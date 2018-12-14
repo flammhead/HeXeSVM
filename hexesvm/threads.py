@@ -76,5 +76,6 @@ class MonitorIsegModule(_qc.QThread):
         self.stop_looping = True
         #self.terminate()
         return
-        
+
+class MonitorIsegModule(_qc.QThread):
             
