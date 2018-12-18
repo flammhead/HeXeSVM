@@ -45,7 +45,6 @@ class Interlock(_qc.QThread):
 		
 	def check_interlock(self):
 
-
 		if self.connection is None:
 			self.lock_state = False
 			return False

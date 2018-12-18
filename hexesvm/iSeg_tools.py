@@ -1,5 +1,5 @@
-#import serial
-from hexesvm import fake_serial as serial
+import serial
+#from hexesvm import fake_serial as serial
 from hexesvm import threads as _thr
 import time
 
@@ -251,6 +251,8 @@ class hv_channel:
     def read_status(self):
         command = ("S%d" % self.channel)
         answer = self.module.send_long_command(command)
+        if not answer:
+            return None
         answer_split = answer.split("=")
         if len(answer_split)<=1:
             return None

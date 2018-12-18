@@ -33,6 +33,7 @@ class MainWindow(_qw.QMainWindow):
     def __init__(self):
 
         super().__init__()
+        #_qw.QWidget.__init__(self)
         MainWindow.log.debug("Created MainWindow")
         # create the iSeg modules
         self._initialize_hv_modules()
@@ -52,7 +53,7 @@ class MainWindow(_qw.QMainWindow):
         self.heartbeat.start()
 
         self.inAutoMode = False
-        
+        self.auto_ramp_thread = None
 
         self.timer = _qc.QTimer(self)
         self.timer.timeout.connect(self.updateUI)
@@ -100,6 +101,8 @@ class MainWindow(_qw.QMainWindow):
         self.statusBar().showMessage("Called KILL ALL HV method!")
         response = []
         message = "High Voltage KILL was triggered and performed!\nModule responses:"        
+        # stop any ramp plan that is executed.
+        self.stop_ramp_schedule()
         # Tell the threads of all modules to terminate
         for key in self.modules.keys():
             if not self.modules[key].is_connected:
@@ -845,6 +848,7 @@ class MainWindow(_qw.QMainWindow):
             module_thread.start()
             MainWindow.log.debug("thread "+module.name+" started")
             self.statusBar().showMessage("thread "+module.name+" started") 
+        return
 
     def stop_reader_thread(self, module):
         if not module.is_connected:
@@ -857,7 +861,9 @@ class MainWindow(_qw.QMainWindow):
             time.sleep(0.2)
         MainWindow.log.debug("thread "+module.name+" stopped")
         self.statusBar().showMessage("thread "+module.name+" stopped")
-        
+        return True
+
+    @_qc.pyqtSlot(str, str)    
     def apply_hv_settings(self, module_key, channel_key):
         channel = self.channels[module_key][channel_key]
         if not self.modules[module_key].is_connected:
@@ -869,7 +875,7 @@ class MainWindow(_qw.QMainWindow):
         ramp_speed_text = self.all_channels_ramp_speed_field[module_key][channel_key].text().strip()
         set_voltage_text = self.all_channels_set_voltage_field[module_key][channel_key].text().strip()
         min_trip_time_text = self.all_channels_time_between_trips_field[module_key][channel_key].text().strip()
-
+        print("try")
         try:
             if ramp_speed_text:
                 ramp_speed = abs(int(float(ramp_speed_text)))
@@ -915,6 +921,7 @@ class MainWindow(_qw.QMainWindow):
         self.start_reader_thread(self.modules[module_key])
         return True
         
+    @_qc.pyqtSlot(str, str, bool)        
     def start_hv_change(self, module_key, channel_key, auto=False):
         if not self.modules[module_key].is_connected:
             self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Module", 
@@ -948,8 +955,9 @@ class MainWindow(_qw.QMainWindow):
                	self.start_reader_thread(self.modules[module_key])
                	return False
             else:
-                self.err_msg_voltage_change_good = _qw.QMessageBox.information(self, "Voltage Change",
-                "Voltage is changing!")
+                if not auto:
+                    self.err_msg_voltage_change_good = _qw.QMessageBox.information(self, "Voltage Change",
+                    "Voltage is changing!")
                 self.start_reader_thread(self.modules[module_key])
                 return True
         else:
@@ -1153,7 +1161,7 @@ class MainWindow(_qw.QMainWindow):
                 lines = f_in.read()
                 lines = lines.split("\n")
                 for line in lines:
-                    line = line.replace('\n', '').replace('\r', '').replace(' ', '')
+                    line = line.replace('\n', '').replace('\r', '').replace(' ', '').replace('\t','')
                     if line:
                         if line[0] == '#':
                             continue
@@ -1184,6 +1192,7 @@ class MainWindow(_qw.QMainWindow):
                 for j in range(data_np.shape[1]):
                     newTableItem = _qw.QTableWidgetItem(str(data_np[i,j]))
                     self.rampTable.setItem(i,j, newTableItem)
+            self.tampTableDataNp = data_np  
             self.rampTable.resizeColumnsToContents()
 
     def save_ramp_schedule(self):
@@ -1215,6 +1224,10 @@ class MainWindow(_qw.QMainWindow):
         if self.rampTable.rowCount() < 1:
             print("No data in the ramp schedule!")
             return False
+        #if not self.locker.lock_state:
+        if not self.locker.lock_state:        
+            print("Interlock is triggered!")
+            return False
         self.inAutoMode = True
 
         for mod_key, channel_key in self.channel_order_dict:
@@ -1223,18 +1236,42 @@ class MainWindow(_qw.QMainWindow):
 
         self.rampTableRunButton.setEnabled(False)        
         self.rampTableStopButton.setEnabled(True)
+        
+        #start the auto ramp thread
+        self.auto_ramp_thread = _thr.ScheduleRampIsegModule(self)
+        # connect thread's signals to the respective apply and ramp functions
+        self.auto_ramp_thread.apply_hv.connect(self.apply_hv_settings)
+        self.auto_ramp_thread.ramp_hv.connect(self.start_hv_change)
+        
+        self.auto_ramp_thread.start()        
 
+             
         return
-
 
     def stop_ramp_schedule(self):
 
+        if not self.inAutoMode:
+            return
+        # stop the auto ramp thread
+        self.auto_ramp_thread.stop()
+        # and wait until it is shut down
+        while self.auto_ramp_thread.is_running:
+            print("Waiting for ramp table thread to stop")
+            time.sleep(0.2)
+        self.auto_ramp_thread = None
+
+        for i in range(self.rampTable.rowCount()):
+            for j in range(self.rampTable.columnCount()):
+                self.rampTable.item(i, j).setBackground(_qg.QColor(255,255,255))       
+        self.rampTableCurrentIndex = 0
+        
         self.rampTableRunButton.setEnabled(True)        
         self.rampTableStopButton.setEnabled(False)
         for mod_key, channel_key in self.channel_order_dict:
             self.all_channels_apply_button[mod_key][channel_key].setEnabled(True)
             self.all_channels_start_button[mod_key][channel_key].setEnabled(True)
         self.inAutoMode = False
+
         return
 
     def _init_settings(self):
