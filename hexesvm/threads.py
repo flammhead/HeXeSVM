@@ -81,8 +81,10 @@ class MonitorIsegModule(_qc.QThread):
 
 class ScheduleRampIsegModule(_qc.QThread):
 
-    apply_hv = _qc.pyqtSignal(str, str)
-    ramp_hv = _qc.pyqtSignal(str, str, bool)
+    apply_hv = _qc.pyqtSignal('PyQt_PyObject', 'PyQt_PyObject')
+    ramp_hv = _qc.pyqtSignal('PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')
+    highlight_row = _qc.pyqtSignal('PyQt_PyObject')
+    change_hv_settings = _qc.pyqtSignal('PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')
 
     def __init__(self, gui):
         _qc.QThread.__init__(self)
@@ -103,7 +105,7 @@ class ScheduleRampIsegModule(_qc.QThread):
             for i in range(self.gui.rampTable.rowCount()):
                 time.sleep((float(self.gui.rampTable.item(self.rampTableCurrentIndex,0).text())*60.))
                 self.ramp_schedule_step()
-            self.gui.stop_ramp_schedule()
+            #self.gui.stop_ramp_schedule()
             
         return
 
@@ -111,7 +113,8 @@ class ScheduleRampIsegModule(_qc.QThread):
     
         if not self.gui.locker.lock_state:        
             print("Interlock is triggered!")
-            self.gui.stop_ramp_schedule()            
+            #self.gui.stop_ramp_schedule()            
+            self.stop()
             return
         if self.stop_signal:
             return
@@ -120,10 +123,9 @@ class ScheduleRampIsegModule(_qc.QThread):
         voltages = []
         speeds = []
         #extract the information
+        self.highlight_row.emit(self.rampTableCurrentIndex)
         for i in range(self.gui.rampTable.columnCount()):
-            if not (self.rampTableCurrentIndex == 0):
-                self.gui.rampTable.item(self.rampTableCurrentIndex-1, i).setBackground(_qg.QColor(255,255,255))             
-            self.gui.rampTable.item(self.rampTableCurrentIndex, i).setBackground(_qg.QColor(195, 247, 204))
+
             if i == 0:
                 continue
             if (i+1)%2 == 0:
@@ -148,8 +150,8 @@ class ScheduleRampIsegModule(_qc.QThread):
                 continue
                 
             print("setting fields connected")
-            self.gui.all_channels_ramp_speed_field[module_key][channel_key].setPlaceholderText(speeds[i])
-            self.gui.all_channels_set_voltage_field[module_key][channel_key].setPlaceholderText(voltages[i])
+            self.change_hv_settings.emit(module_key, channel_key, voltages[i], speeds[i])
+
             print("applying settings")
             self.apply_hv.emit(module_key, channel_key)
             idx = 0
@@ -157,10 +159,17 @@ class ScheduleRampIsegModule(_qc.QThread):
                 if self.stop_signal:
                     self.performing_step = False
                     return
+                if idx == 35:
+                    # Try to re-eimit the signal once
+                    print("re-applying settings")
+                    self.change_hv_settings.emit(module_key, channel_key, voltages[i], speeds[i])
+                    self.apply_hv.emit(module_key, channel_key)
+
                 if idx > 50:
                     # Channel was not able to accept the set values within 20 sec. Abort!
                     self.performing_step = False
                     self.gui.stop_ramp_schedule()
+                    return 
                 print(self.gui.channels[module_key][channel_key].set_voltage, float(voltages[i]))
                 print(self.gui.channels[module_key][channel_key].ramp_speed, float(speeds[i]))
                 print("Waiting for channel to change")

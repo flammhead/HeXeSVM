@@ -149,11 +149,16 @@ class Serial:
                 if self.d[0] > self.u[0]:
                     answer = "S1=L2H"
                     self.ch_state[0] = "L2H"
-                else:
+                    self.ch_ramping[0] = True
+                elif self.d[0] < self.u[0]:
                     answer = "S1=H2L"
                     self.ch_state[0] = "H2L"
+                    self.ch_ramping[0] = True
+                else:
+                    answer = "S1=ON"
+                    self.ch_state[0] = "ON"
                 self.chan_g_time[0] = time.time()
-                self.ch_ramping[0] = True
+                
             else:
                 answer = "S1="+self.ch_state[0]
         if "G2" in self.sum_receivedData:
@@ -161,11 +166,16 @@ class Serial:
                 if self.d[1] > self.u[1]:
                     answer = "S2=L2H"
                     self.ch_state[1] = "L2H"
-                else:
+                    self.ch_ramping[1] = True
+                elif self.d[1] < self.u[1]:
                     answer = "S2=H2L"
                     self.ch_state[1] = "H2L"
+                    self.ch_ramping[1] = True
+                else:
+                    answer = "S2=ON"
+                    self.ch_state[1] = "ON"
                 self.chan_g_time[1] = time.time()
-                self.ch_ramping[1] = True
+
             else:
                 answer = "S2="+self.ch_state[1]
         if self.sum_receivedData == "L1\r\n":

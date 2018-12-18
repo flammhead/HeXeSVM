@@ -864,7 +864,13 @@ class MainWindow(_qw.QMainWindow):
         self.statusBar().showMessage("thread "+module.name+" stopped")
         return True
 
-    @_qc.pyqtSlot(str, str)    
+    @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')      
+    def change_channel_hv_field(self, module_key, channel_key, set_voltage, ramp_speed):
+        self.all_channels_ramp_speed_field[module_key][channel_key].setPlaceholderText(ramp_speed)
+        self.all_channels_set_voltage_field[module_key][channel_key].setPlaceholderText(set_voltage)
+        return
+
+    @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject')    
     def apply_hv_settings(self, module_key, channel_key):
         channel = self.channels[module_key][channel_key]
         if not self.modules[module_key].is_connected:
@@ -922,7 +928,7 @@ class MainWindow(_qw.QMainWindow):
         self.start_reader_thread(self.modules[module_key])
         return True
         
-    @_qc.pyqtSlot(str, str, bool)        
+    @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')        
     def start_hv_change(self, module_key, channel_key, auto=False):
         if not self.modules[module_key].is_connected:
             self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Module", 
@@ -1241,9 +1247,13 @@ class MainWindow(_qw.QMainWindow):
         #start the auto ramp thread
         self.auto_ramp_thread = _thr.ScheduleRampIsegModule(self)
         # connect thread's signals to the respective apply and ramp functions
+
+        self.auto_ramp_thread.highlight_row.connect(self.highlight_ramp_table_row)
+        self.auto_ramp_thread.change_hv_settings.connect(self.change_channel_hv_field)
         self.auto_ramp_thread.apply_hv.connect(self.apply_hv_settings)
         self.auto_ramp_thread.ramp_hv.connect(self.start_hv_change)
-        
+        self.auto_ramp_thread.finished.connect(self.stop_ramp_schedule)
+
         self.auto_ramp_thread.start()        
 
              
@@ -1253,12 +1263,18 @@ class MainWindow(_qw.QMainWindow):
 
         if not self.inAutoMode:
             return
+	    #disconnect the threads signals
+        #self.auto_ramp_thread.apply_hv.disconnect()
+        #self.auto_ramp_thread.ramp_hv.disconnect()
+        #self.auto_ramp_thread.highlight_row.disconnect()
+        #self.auto_ramp_thread.change_hv_settings.disconnect()
+
         # stop the auto ramp thread
         self.auto_ramp_thread.stop()
         # and wait until it is shut down
-        while self.auto_ramp_thread.is_running:
-            print("Waiting for ramp table thread to stop")
-            time.sleep(0.2)
+        #while self.auto_ramp_thread.is_running:
+        #    print("Waiting for ramp table thread to stop")
+        #    time.sleep(0.2)
         self.auto_ramp_thread = None
 
         for i in range(self.rampTable.rowCount()):
@@ -1274,6 +1290,16 @@ class MainWindow(_qw.QMainWindow):
         self.inAutoMode = False
 
         return
+
+    @_qc.pyqtSlot('PyQt_PyObject')      
+    def highlight_ramp_table_row(self, idx):
+
+        for i in range(self.rampTable.columnCount()):
+            if not (idx == 0):
+                self.rampTable.item(idx-1, i).setBackground(_qg.QColor(255,255,255))             
+            self.rampTable.item(idx, i).setBackground(_qg.QColor(195, 247, 204))
+        return
+
 
     def _init_settings(self):
         MainWindow.log.debug("Called _init_settings")
