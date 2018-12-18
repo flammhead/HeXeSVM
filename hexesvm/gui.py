@@ -1,6 +1,7 @@
 """Contains the HeXeSVM User interface"""
 
 import sys
+import os
 import logging as _lg
 import sqlalchemy as _sql
 import numpy as _np
@@ -949,7 +950,7 @@ class MainWindow(_qw.QMainWindow):
         
         if confirmation:
             answer = self.channels[module_key][channel_key].start_voltage_change()
-            if not ("H2L" in answer or "L2H" in answer):
+            if not ("H2L" in answer or "L2H" in answer or "ON" in answer):
                 self.err_msg_voltage_change = _qw.QMessageBox.warning(self, "Voltage Change",
                	"Invalid response from HV Channel. Check values!")
                	self.start_reader_thread(self.modules[module_key])
@@ -1152,7 +1153,7 @@ class MainWindow(_qw.QMainWindow):
     def load_ramp_schedule(self):
         dialog = _qw.QFileDialog()
         dialog.setFileMode(_qw.QFileDialog.ExistingFile)
-        dialog.setDirectory("hexesvm/etc")
+        dialog.setDirectory(os.path.join("hexesvm","etc"))
         filename = ""
         data = []
         if dialog.exec_():
@@ -1199,7 +1200,7 @@ class MainWindow(_qw.QMainWindow):
         dialog = _qw.QFileDialog()
         dialog.setFileMode(_qw.QFileDialog.AnyFile)
         dialog.setAcceptMode(_qw.QFileDialog.AcceptSave)
-        dialog.setDirectory("hexesvm/etc")
+        dialog.setDirectory(os.path.join("hexesvm","etc"))
         filename = ""
         if dialog.exec_():
             filename = dialog.selectedFiles()
