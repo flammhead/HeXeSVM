@@ -1182,7 +1182,7 @@ class MainWindow(_qw.QMainWindow):
                     print("Loaded Data has missing (too little) values!")
                     return False
             try:
-                data_np = _np.asarray(data, dtype=_np.float16)
+                data_np = _np.asarray(data, dtype=_np.float32)
             except ValueError:
                 print("Loaded Data is not of correct type!")
                 return False
