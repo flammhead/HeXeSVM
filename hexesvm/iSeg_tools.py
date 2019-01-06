@@ -48,9 +48,14 @@ class hv_module:
         for i in range(len(command)):
             self.serial_conn.write(command[i].encode())
             #Test if this works better! should also be sufficient!
-            if self.serial_conn.read(1).decode() != command[i]:
+            answer_char = self.serial_conn.read(1).decode()
+            #print(command[i] + " -> " + answer_char)
+            if answer_char != command[i]:
+                print(command + "->" +answer_char+"("+str(i)+")")
             #if self.serial_conn.readline().decode() != command[i]:
                 print("inconsistent response from module!")
+                # To prevent faiulure of the HV, diconnect it immediatly, when this happens!
+                self.close_connection()
                 return None
         result_1 = self.serial_conn.readline()
         return result_1.decode().split('\r')[0]        

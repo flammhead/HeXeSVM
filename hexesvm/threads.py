@@ -10,13 +10,20 @@ class MonitorIsegModule(_qc.QThread):
         _qc.QThread.__init__(self)
         self.module = hv_module
         self.stop_looping = False
+        self.module.stop_thread = False
 
         
     def run(self):
         # This functino is meant to be run in a thread
-        self.module.stop_thread = False        
         n_read_all = 5
         i = n_read_all
+        
+        while self.module.board_occupied:
+            if self.module.stop_thread:
+                self.stop()
+                break
+            time.sleep(0.2)
+          
         self.module.board_occupied = True
         self.stop_looping = False
         while not self.stop_looping:
@@ -76,6 +83,7 @@ class MonitorIsegModule(_qc.QThread):
     def stop(self):
         self.module.board_occupied = False
         self.stop_looping = True
+        self.module.reader_thread = None
         #self.terminate()
         return
 
@@ -122,6 +130,7 @@ class ScheduleRampIsegModule(_qc.QThread):
         # we now need to proceed changing/ramping a new row from the table!
         voltages = []
         speeds = []
+        channels_needing_change = []
         #extract the information
         self.highlight_row.emit(self.rampTableCurrentIndex)
         for i in range(self.gui.rampTable.columnCount()):
@@ -146,14 +155,22 @@ class ScheduleRampIsegModule(_qc.QThread):
                 continue
             print("module connected")
             this_channel = self.gui.channels[module_key][channel_key]        
-            if (str(this_channel.set_voltage) == voltages[i]) and (str(this_channel.ramp_speed) == speeds[i]):
+
+            if (self.gui.channels[module_key][channel_key].set_voltage == float(voltages[i])) and (self.gui.channels[module_key][channel_key].ramp_speed == float(speeds[i])):
                 continue
                 
+            channels_needing_change.append(i)
             print("setting fields connected")
             self.change_hv_settings.emit(module_key, channel_key, voltages[i], speeds[i])
-
+            '''
+            wait until the settings are applied in the HV board
+            while not((self.gui.all_channels_ramp_speed_field[module_key][channel_key].placeholderText() == speeds[i]) and                    (self.gui.all_channels_set_voltage_field[module_key][channel_key].placeholderText() == voltages[i])):
+                print(self.gui.all_channels_ramp_speed_field[module_key][channel_key].placeholderText())
+                print(self.gui.all_channels_set_voltage_field[module_key][channel_key].placeholderText())
+                time.sleep(0.2)
+            '''
             print("applying settings")
-            self.apply_hv.emit(module_key, channel_key)
+            #self.apply_hv.emit(module_key, channel_key)
             idx = 0
             while not ((self.gui.channels[module_key][channel_key].set_voltage == float(voltages[i])) and (self.gui.channels[module_key][channel_key].ramp_speed == float(speeds[i]))):
                 if self.stop_signal:
@@ -176,9 +193,9 @@ class ScheduleRampIsegModule(_qc.QThread):
                 time.sleep(0.2)
                 idx += 1 
             print("settings applied")              
-            #time.sleep(4)
+            #time.sleep(2)
 
-        for i in range(len(self.gui.channel_order_dict)):
+        for i in channels_needing_change:
             if self.stop_signal:
                 self.performing_step = False
                 return
@@ -190,8 +207,9 @@ class ScheduleRampIsegModule(_qc.QThread):
             print("changing voltage")
             self.ramp_hv.emit(module_key, channel_key, True)
             #self.gui.start_hv_change(module_key, channel_key, True)
-            print("voltage changed")            
-            time.sleep(4)
+            print("voltage changed")  
+            #time.sleep(10)
+
         # post ramp actions
         self.rampTableCurrentIndex += 1
         self.performing_step = False

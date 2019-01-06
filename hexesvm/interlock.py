@@ -45,6 +45,13 @@ class Interlock(_qc.QThread):
 		
 	def check_interlock(self):
 
+        '''
+		# THESE LINES BYPASS THE LOCK!
+		self.is_conected = True
+		self.lock_state = True
+		return
+        '''
+        
 		if self.connection is None:
 			self.lock_state = False
 			return False
