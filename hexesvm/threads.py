@@ -190,7 +190,7 @@ class ScheduleRampIsegModule(_qc.QThread):
                 print(self.gui.channels[module_key][channel_key].set_voltage, float(voltages[i]))
                 print(self.gui.channels[module_key][channel_key].ramp_speed, float(speeds[i]))
                 print("Waiting for channel to change")
-                time.sleep(0.2)
+                time.sleep(0.75757575757575)
                 idx += 1 
             print("settings applied")              
             #time.sleep(2)
