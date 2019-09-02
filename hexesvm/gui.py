@@ -1,4 +1,4 @@
-"""Contains the HeXeSVM User interface"""
+﻿"""Contains the HeXeSVM User interface"""
 
 import sys
 import os
@@ -81,9 +81,9 @@ class MainWindow(_qw.QMainWindow):
     def _initialize_hv_modules(self):		
 
         self.modules = OrderedDict(
-        {"PMT module": _iseg.hv_module("pmt module", "COM7"),
-        "Anode module": _iseg.hv_module("anode module", "COM17"),
-        "Drift module": _iseg.hv_module("drift module", "COM18")})
+        {"PMT module": _iseg.hv_module("pmt module", "COM10"),
+        "Anode module": _iseg.hv_module("anode module", "COM1"),
+        "Drift module": _iseg.hv_module("drift module", "COM2")})
                 
         self.channel_order_dict = ((("PMT module", "Top PMT"), ("Anode module", "Anode"), 
                           ("Drift module", "Gate"), ("Drift module", "Cathode"),
@@ -1251,7 +1251,7 @@ class MainWindow(_qw.QMainWindow):
                 print("Loaded Data is not of correct type!")
                 return False
             # check if the table does not proceed too far in the future.
-            if _np.sum(data_np[:,0]) >= 24.*60.:
+            if _np.sum(data_np[:,0]) >= 96.*60.:
                 print("Loaded Data is going too far in the future!!")
                 return False
             if _np.min(data_np[1:,0]) < 1.:
