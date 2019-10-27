@@ -9,7 +9,7 @@ class MailNotifier():
 
         self.from_address = "hexe@mpi-hd.mpg.de"
         self.recipients_info = "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de"
-        self.recipients_alarm = "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de, cichon@mpi-hd.mpg.de, eurin@mpi-hd.mpg.de, natascha.rupp@hotmail.de, natascha.rupp@mpi-hd.mpg.de"
+        self.recipients_alarm = "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de, cichon@mpi-hd.mpg.de, natascha.rupp@hotmail.de, natascha.rupp@mpi-hd.mpg.de"
         self.sms_numbers = "+491774851456;+491748029906;+491637542725"
 
     def set_mail_recipient_info(self, recipient):

@@ -5,10 +5,11 @@ import socket as _soc
 
 class HeartbeatSender(_qc.QThread):
 
-    def __init__(self):
+    def __init__(self, mother_ui):
 
         _qc.QThread.__init__(self)
         # using localhost for now
+        self.motherUI = mother_ui
         self.server_address = "127.0.0.1"
         self.server_port = 6667
         self.timeout_duration = 2
@@ -54,8 +55,13 @@ class HeartbeatSender(_qc.QThread):
                 time.sleep(self.timeout_duration +1)
                 self.connect_socket()
                 continue
-            time_stamp = time.time()
-            time_stamp_str = str(time_stamp)
+            # The current timestamp needs to be read from the main thread in order
+            # to detect, if it froze to death!
+            time_stamp = self.motherUI.time_stamp
+            if time_stamp:
+                time_stamp_str = str(time_stamp)
+            else:
+                continue
             
             try:
                 self.socket.sendall(time_stamp_str.encode())

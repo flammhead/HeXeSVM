@@ -49,9 +49,10 @@ class MainWindow(_qw.QMainWindow):
         self.db_connection_write = False
         self.output_buffer_file = open("tempdata_log.dat", 'a')
         # create heartbeat sender
-        self.heartbeat = _hrtbt()
+        self.heartbeat = _hrtbt(self)
         self.heartbeat.connect_socket()
         self.heartbeat.start()
+        self.time_stamp = time.time()
 
         self.inAutoMode = False
         self.auto_ramp_thread = None
@@ -76,7 +77,8 @@ class MainWindow(_qw.QMainWindow):
         self.update_status_bar()
         self.update_overview()
         self.update_module_tabs()
-       
+        # The current time stamp needs to be updated for the hearbeat detection
+        self.time_stamp = time.time()
 
     def _initialize_hv_modules(self):		
 
@@ -134,7 +136,9 @@ class MainWindow(_qw.QMainWindow):
         self.interlock_value = False
         self.hv_kill_msg = _qw.QMessageBox()
         self.hv_kill_msg.setText(message)
-        self.hv_kill_msg.exec_()
+        # window modality = 0 prevents the kill window to block the rest of the UI
+        self.hv_kill_msg.setWindowModality(0);
+        self.hv_kill_msg.show()
         #self.hv_kill_msg = _qw.QMessageBox.warning(self, "HV Kill", message)
         MainWindow.log.debug(response)
         
