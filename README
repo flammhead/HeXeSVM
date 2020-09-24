@@ -17,5 +17,11 @@ Heidelberg Xenon secure voltage management
 Dependencies
 ------------
 
+- pyQt5
+- pyserial
+- psycopg2
+
+Installation
+------------
 
 [more details coming later]

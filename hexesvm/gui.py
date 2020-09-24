@@ -7,6 +7,7 @@ import sqlalchemy as _sql
 import numpy as _np
 from datetime import datetime as _dt
 import time
+import json
 from collections import OrderedDict
 from PyQt5 import QtCore as _qc
 from PyQt5 import QtGui as _qg
@@ -36,18 +37,26 @@ class MainWindow(_qw.QMainWindow):
         super().__init__()
         #_qw.QWidget.__init__(self)
         MainWindow.log.debug("Created MainWindow")
+
+        # Loading the file with the default values
+        with open("hexesvm/default_settings.json") as default_file:
+                self.defaults = json.load(default_file)
+        if not self.defaults:
+                MainWindow.log.debug("Default value file not found!")
+
         # create the iSeg modules
         self._initialize_hv_modules()
         # create email notifier 
-        self.email_sender = _mail.MailNotifier()
+        self.email_sender = _mail.MailNotifier(self)
         # create interlocker
         self.locker = _interlock()
-        self.locker.set_interlock_parameter('p1', 1.2)        
+        self.locker.set_interlock_parameter(self.defaults['interlock_parameter'], 
+                                            self.defaults['interlock_value'])        
         self.interlock_value = True
         # create database flag
         self.db_connection = False
         self.db_connection_write = False
-        self.output_buffer_file = open("tempdata_log.dat", 'a')
+        self.output_buffer_file = open(self.defaults['temp_data_filename'], 'a')
         # create heartbeat sender
         self.heartbeat = _hrtbt(self)
         self.heartbeat.connect_socket()
@@ -70,6 +79,7 @@ class MainWindow(_qw.QMainWindow):
         self._init_menu()
         self._init_status_bar()
         self._init_subwindows()
+
         
                 
     def updateUI(self):
@@ -1439,11 +1449,11 @@ class MainWindow(_qw.QMainWindow):
         self.set_hexe_defaults()
 
     def set_hexe_defaults(self):
-        self.form_address.setText("localhost")
-        self.form_db.setText("postgres")
-        self.form_tablename_hv.setText("hexe_sc_hv")
-        self.form_tablename_interlock.setText("hexe_sc")
-        self.form_user.setText("writer")
+        self.form_address.setText(self.defaults['db_address'])
+        self.form_db.setText(self.defaults['db_type'])
+        self.form_tablename_hv.setText(self.defaults['table_name'])
+        self.form_tablename_interlock.setText(self.defaults['interlock_table_name'])
+        self.form_user.setText(self.defaults['db_user_name'])
         self.form_email_info.setText(self.email_sender.recipients_info)
         self.form_email_alarm.setText(self.email_sender.recipients_alarm)
         self.form_email_sms.setText(self.email_sender.sms_numbers)

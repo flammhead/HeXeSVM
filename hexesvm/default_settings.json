@@ -1,0 +1,87 @@
+{
+	"title": "HeXeSVM default values",
+	"date": "2020-09-23",
+	"version": "Alpha",
+
+	"db_address": "localhost",
+	"db_type": "postgres",
+	"table_name": "hexe_sc_hv",
+	"interlock_table_name": "hexe_sc",
+	"db_time_variable": "time",
+	"db_user_name": "hexewriter",
+
+	"temp_data_filename": "tempdata_log.dat", 
+
+	"email_from_address": "hexe@mpi-hd.mpg.de",
+	"email_recipients_info": "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de",
+	"email_recipients_alarm": "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de, cichon@mpi-hd.mpg.de, natascha.rupp@hotmail.de, natascha.rupp@mpi-hd.mpg.de",
+	"email_smtp_server": "imap.mpi-hd.mpg.de",
+	"sms_recipients": "+491774851456;+491748029906;+491637542725",
+	"sms_from_address": "hexe@sms.mpi-hd.mpg.de",
+
+	"interlock_parameter": "p1",
+	"interlock_value": 1.2,
+
+	"modules": [
+	{
+		"name": "PMT module",
+		"port": "COM1",
+		"type": "NHQ",
+
+		"channels": [
+		{
+			"index": "0",
+			"name": "Top PMT",
+			"db_u_name": "u_pmt_1",
+			"db_i_name": "i_pmt_1",
+			"img_pos": 0
+		},
+		{
+			"index": "1",
+			"name": "Bottom PMT",
+			"db_u_name": "u_pmt_2",
+			"db_i_name": "i_pmt_2",
+			"img_pos": 4
+		}
+		]
+	},
+	{
+		"name": "Drift module",
+		"port": "COM2",
+		"type": "NHQ high precision",
+
+		"channels": [
+		{
+			"index": "0",
+			"name": "Cathode",
+			"db_u_name": "u_cathode",
+			"db_i_name": "i_cathode",
+			"img_pos": 3
+		},
+		{
+			"index": "1",
+			"name": "Gate",
+			"db_u_name": "u_gate",
+			"db_i_name": "i_gate",
+			"img_pos": 2
+		}
+		]
+	},
+	{
+		"name": "Anode module",
+		"port": "COM3",
+		"type": "NHQ",
+
+		"channels": [
+		{
+			"index": "0",
+			"name": "Anode",
+			"db_u_name": "u_anode",
+			"db_i_name": "i_anode",
+			"img_pos": 1
+		}
+		]
+	}
+	]
+
+}
