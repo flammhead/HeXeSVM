@@ -153,6 +153,8 @@ class MainWindow(_qw.QMainWindow):
         MainWindow.log.debug(response)
         
     def update_interlock(self):
+        if not self.defaults['interlock_enabled']:
+            return
         # if too slow, the interlocker must be outsourced to an own thread?
         if not self.locker.is_running:
             self.locker.start()
@@ -231,18 +233,24 @@ class MainWindow(_qw.QMainWindow):
             self.heartbeat_widget.setText("Heartbeat: FAILED!")                
         
         self.update_interlock()
-        if self.locker.lock_state:
-            new_palette = self.interlock_widget.palette()
-            new_palette.setColor(_qg.QPalette.WindowText, _qg.QColor(0,204,0))
-            self.interlock_widget.setPalette(new_palette)
-            self.interlock_widget.setText("Interlock: OK ("
-                                            +str(self.locker.parameter_value)+" bar)")
+        if self.defaults['interlock_enabled']:
+            if self.locker.lock_state:
+                new_palette = self.interlock_widget.palette()
+                new_palette.setColor(_qg.QPalette.WindowText, _qg.QColor(0,204,0))
+                self.interlock_widget.setPalette(new_palette)
+                self.interlock_widget.setText("Interlock: OK ("
+                            +str(self.locker.parameter_value)+" bar)")
+            else:
+                new_palette = self.interlock_widget.palette()
+                new_palette.setColor(_qg.QPalette.WindowText, _qg.QColor(255,0,0))
+                self.interlock_widget.setPalette(new_palette)
+                self.interlock_widget.setText("Interlock: ERROR ("
+                        +str(self.locker.parameter_value)+")")
         else:
             new_palette = self.interlock_widget.palette()
             new_palette.setColor(_qg.QPalette.WindowText, _qg.QColor(255,0,0))
             self.interlock_widget.setPalette(new_palette)
-            self.interlock_widget.setText("Interlock: ERROR ("
-                                        +str(self.locker.parameter_value)+")")
+            self.interlock_widget.setText("Interlock: DISABLED!")
 
         if self.db_connection_write:
             new_palette = self.database_widget.palette()

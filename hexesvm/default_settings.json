@@ -19,7 +19,8 @@
 	"sms_recipients": "+491774851456;+491748029906;+491637542725",
 	"sms_from_address": "hexe@sms.mpi-hd.mpg.de",
 
-	"interlock_parameter": "p1",
+	"interlock_enabled": false,
+        "interlock_parameter": "p1",
 	"interlock_value": 1.2,
 
 	"modules": [
