@@ -154,6 +154,7 @@ class MainWindow(_qw.QMainWindow):
         
     def update_interlock(self):
         if not self.defaults['interlock_enabled']:
+            self.locker.lock_state = True
             return
         # if too slow, the interlocker must be outsourced to an own thread?
         if not self.locker.is_running:
