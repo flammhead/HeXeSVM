@@ -14,6 +14,8 @@ class MailNotifier():
         self.recipients_info = ui.defaults['email_recipients_info']
         self.recipients_alarm = ui.defaults['email_recipients_alarm'] 
         self.sms_numbers = ui.defaults['sms_recipients']
+        self.sms_from_address = ui.defaults['sms_from_address']
+        self.smtp_server = ui.defaults['email_smtp_server']
 
 
     def set_mail_recipient_info(self, recipient):
@@ -56,7 +58,7 @@ class MailNotifier():
         message_string += "Voltage: "+str(hv_channel.voltage)+"\n"
         message_string += "Current: "+str(hv_channel.current)+"\n"
         msg.attach(MIMEText(message_string,'plain'))
-        mail_conn = sm.SMTP(ui.defaults['email_smtp_server'])
+        mail_conn = sm.SMTP(self.smtp_server)
         recipients_array = recipients_clean.split(",")
         mail_conn.sendmail(self.from_address, recipients_array, msg.as_string())
         return
@@ -87,7 +89,7 @@ class MailNotifier():
 
 
         msg.attach(MIMEText(message_string,'plain'))
-        mail_conn = sm.SMTP(ui.defaults['email_smtp_server'])
-        mail_conn.sendmail(self.from_address, ui.defaults['sms_from_address'], msg.as_string())
+        mail_conn = sm.SMTP(self.smtp_server)
+        mail_conn.sendmail(self.from_address, self.sms_from_address, msg.as_string())
 
         return
