@@ -92,21 +92,28 @@ class MainWindow(_qw.QMainWindow):
 
     def _initialize_hv_modules(self):		
 
-        self.modules = OrderedDict(
-        {"PMT module": _iseg.hv_module("pmt module", "COM10"),
-        "Anode module": _iseg.hv_module("anode module", "COM1"),
-        "Drift module": _iseg.hv_module("drift module", "COM2")})
-                
-        self.channel_order_dict = ((("PMT module", "Top PMT"), ("Anode module", "Anode"), 
-                          ("Drift module", "Gate"), ("Drift module", "Cathode"),
-                          ("PMT module", "Bottom PMT")))
-                          
-        self.channels = OrderedDict(
-        {"PMT module": {"Top PMT": self.modules["PMT module"].add_channel(1, "top pmt"),
-                        "Bottom PMT": self.modules["PMT module"].add_channel(2, "bottom pmt")},
-         "Anode module": {"Anode": self.modules["Anode module"].add_channel(2, "anode")},
-         "Drift module": {"Gate": self.modules["Drift module"].add_channel(2, "gate"),
-                          "Cathode": self.modules["Drift module"].add_channel(1, "cathode")}})
+        n_modules = len(self.defaults['modules'])
+
+        self.modules = OrderedDict()
+        self.channels = OrderedDict()
+        index_list = [] # Helper dict for sorting later on
+        for idx, this_module in enumerate(self.defaults['modules']):
+           self.modules.update({this_module['name']: _iseg.hv_module(this_module['name'], this_module['port'])})
+           this_mod_chan = OrderedDict()
+           for jdx, this_channel in enumerate(this_module['channels']):
+               this_mod_chan.update({this_channel['name']: self.modules[this_module['name']].add_channel(this_channel['index'], this_channel['name'])})
+               index_list.append([this_channel['img_pos'], this_module['name'], this_channel['name']])
+           self.channels.update({this_module['name']: this_mod_chan})
+
+        # Also construct one dict which holds the module/channel combination in the order
+        # they should appear on the overview page
+        self.channel_order_dict = []
+        for i in range(len(index_list)):
+           pos = -1
+           for j in range(len(index_list)):
+               if index_list[j][0] == i:
+                   pos = j
+           self.channel_order_dict.append((index_list[pos][1], index_list[pos][2]))
 
         
     def kill_all_hv(self):
@@ -173,8 +180,8 @@ class MainWindow(_qw.QMainWindow):
         MainWindow.log.debug("Called MainWindow._init_geom")
         # set basic attributes
         self.setAttribute(_qc.Qt.WA_DeleteOnClose)
-        self.setWindowTitle("HeXeSVM (alpha)")
-        self.resize(640, 480)
+        self.setWindowTitle("HeXeSVM ("+str(self.defaults['version'])+")")
+        self.resize(800, 400)
 
         # center window
         win_geom = self.frameGeometry()
@@ -308,8 +315,9 @@ class MainWindow(_qw.QMainWindow):
         self.module_serial_fields = []        
         self.module_firmware_labels = []
         self.module_firmware_fields = []
+        self.module_svgs = []
         self.module_hsep = []              
-        self.module_vsep = []                            
+        self.module_vsep = [] 
         self.module_grid_layouts = []
 
         # create these as nested dictionaries
@@ -423,45 +431,70 @@ class MainWindow(_qw.QMainWindow):
             this_firmware_field = _qw.QLineEdit(this_tab)
             this_firmware_field.setDisabled(True)
             self.module_firmware_fields.append(this_firmware_field)    
+
+            this_mod_type = self.defaults['modules'][i]['type']
+            if this_mod_type == "NHQ":
+                this_module_svg  = _qs.QSvgWidget('hexesvm/icons/iseg_nhq_front_1.svg', this_tab)
+            elif this_mod_type == "NHR":
+                this_module_svg  = _qs.QSvgWidget('hexesvm/icons/iseg_nhr_front_3.svg', this_tab)
+
+            self.module_svgs.append(this_module_svg) 
+            svg_min_size = _qc.QSize(82,538)
+            svg_max_size = _qc.QSize(82,538)
+            this_module_svg.setMinimumSize(svg_min_size)
+            this_module_svg.setMaximumSize(svg_max_size)
             
+            # TESTING
+            img2 = _qg.QImage('hexesvm/icons/hexe_bar.svg')
+            painter = _qg.QPainter()
+            painter.begin(this_tab)
+            painter.drawText(0,0,"Test")
+            painter.end()
+
             horizontal_separator = _qw.QLabel("")
             self.module_hsep.append(horizontal_separator)
             horizontal_separator.setFrameStyle(_qw.QFrame.HLine)
             horizontal_separator.setLineWidth(2)
-            vertical_separator = _qw.QLabel("")
-            vertical_separator.setFrameStyle(_qw.QFrame.VLine)
-            vertical_separator.setLineWidth(2)
         
             grid = _qw.QGridLayout()
             grid.setSpacing(10)
             # Row 1 widgetd
             grid.addWidget(this_com_port_label, 1,2)
-            grid.addWidget(this_com_port, 1,3,1,2)
-            grid.addWidget(this_high_precision_label, 1, 7)
-            grid.addWidget(this_high_precision_box, 1,8)
-            # Row 2 widgets
-            grid.addWidget(this_connect_button, 2,2, 1,4, _qc.Qt.AlignHCenter)
-            grid.addWidget(this_disconnect_button, 2,7, 1,4, _qc.Qt.AlignHCenter)            
-            # Row 3 widgets
-            grid.addWidget(this_u_max_label, 3,1)
-            grid.addWidget(this_u_max_field, 3,2)
-            grid.addWidget(this_i_max_label, 3,3)
-            grid.addWidget(this_i_max_field, 3,4)
-            grid.addWidget(this_serial_number_label, 3,6)
-            grid.addWidget(this_serial_number_field, 3,7)  
-            grid.addWidget(this_firmware_label, 3,8)
-            grid.addWidget(this_firmware_field, 3,9)
-            # Row 4 widget (horizontal separator)
-            grid.addWidget(horizontal_separator, 4,1,1,9)
-            
-            if len(self.channels[key].keys()) > 0:
-                channel_grid_1 = self._init_channel_section(key, list(self.channels[key].keys())[0])
-                grid.addLayout(channel_grid_1, 5,1, 8,4)
-            if len(self.channels[key].keys()) > 1:
-                channel_grid_2 = self._init_channel_section(key, list(self.channels[key].keys())[1])
-                grid.addLayout(channel_grid_2, 5,6, 8,4)            
-            
-            grid.addWidget(vertical_separator, 5, 5, 8, 1)
+            grid.addWidget(this_com_port, 1,3,1,1)
+            grid.addWidget(this_connect_button, 1,4, 1,1, _qc.Qt.AlignHCenter)
+            grid.addWidget(this_disconnect_button, 1,5, 1,1, _qc.Qt.AlignHCenter)            
+            # Row 2 and 3 widgets
+            grid.addWidget(this_u_max_label, 2,2)
+            grid.addWidget(this_u_max_field, 2,3)
+            grid.addWidget(this_i_max_label, 2,4)
+            grid.addWidget(this_i_max_field, 2,5)
+            grid.addWidget(this_serial_number_label, 3,2)
+            grid.addWidget(this_serial_number_field, 3,3)  
+            grid.addWidget(this_firmware_label, 3,4)
+            grid.addWidget(this_firmware_field, 3,5)
+            grid.addWidget(this_high_precision_label, 1, 6, 2,1)
+            grid.addWidget(this_high_precision_box, 3,6)
+
+            grid.addWidget(this_module_svg, 1,7,12,2)
+            grid.addWidget(horizontal_separator, 4,1,1,6)
+           
+
+            # Create a tab for each channel in this moduel
+            this_module_ch_tabs = _qw.QTabWidget(this_tab)
+            this_module_ch_tabs.setTabPosition(_qw.QTabWidget.West)
+            self.channel_tabs = {}
+            self.channel_grids = []
+            for idx in range(len(self.channels[key].keys())):
+                this_channel_tab = _qw.QWidget(this_tab)
+                # ADD to some list
+                this_module_ch_tabs.addTab(this_channel_tab, key)
+                # DO SOMETHING
+                this_channel_grid = self._init_channel_section(key, list(self.channels[key].keys())[idx])
+                self.channel_grids.append(this_channel_grid)
+                this_channel_tab.setLayout(this_channel_grid)
+                this_module_ch_tabs.addTab(this_channel_tab, list(self.channels[key].keys())[idx])
+
+            grid.addWidget(this_module_ch_tabs, 5,1,8,6)
             this_tab.setLayout(grid)
             
             self.module_grid_layouts.append(grid)
@@ -550,12 +583,7 @@ class MainWindow(_qw.QMainWindow):
         this_channel_vertical_separator.setFrameStyle(_qw.QFrame.VLine)
               
         # controls of the channel (right)
-        if this_channel.channel == 1:
-            this_channel_number_label = _qw.QLabel('<span style="font-size:xx-large"><b>A</b></span>')
-        elif this_channel.channel == 2:
-            this_channel_number_label = _qw.QLabel('<span style="font-size:xx-large"><b>B</b></span>')
-        else:
-            this_channel_number_label = _qw.QLabel('<span style="font-size:xx-large"><b>?</b></span>')
+        this_channel_number_label =  _qw.QLabel('<span style="font-size:xx-large"><b>'+str(this_channel.channel)+'</b></span>')
         self.all_channels_number_label[mod_key].update({channel_key: this_channel_number_label})
         
         if this_channel.polarity_positive == True:
