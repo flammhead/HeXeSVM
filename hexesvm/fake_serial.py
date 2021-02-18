@@ -22,28 +22,34 @@ class Serial:
         self.sum_receivedData = ""
 
         self.time_last_command = 0
-        
-        self.u = [0,0]
-        self.i = [0,0]
-        self.v = [2,2]
-        self.d = [0,0]
-        self.ch_ramping = [False,False]
-        self.chan_g_time = [0,0]
 
-        
-        self.ch_tripped = [False,False]
-        self.ch_tripping_active = [True,True]
-        self.ch_trip_interval = [60, 60]
-        self.ch_last_trip = [0, 0]
-        self.channel_state_bin = [170, 85] 
-        self.ch_state = ["ON","ON"]
-
+        n_channels = 0
+        # Simulate a NHQ module at COM1
+        if port=="COM1":
+            self.n_channels = 2
+        # For COM2 lets take an NHR module
+        elif port=="COM2":
+            self.n_channels = 4
+ 
+        self.u = self.n_channels*[0]
+        self.i = self.n_channels*[0]
+        self.v = self.n_channels*[2]
+        self.d = self.n_channels*[0]
+        self.ch_ramping = self.n_channels*[False]
+        self.chan_g_time = self.n_channels*[0]
+        self.ch_tripped = self.n_channels*[False]
+        self.ch_tripping_active = self.n_channels*[True]
+        self.ch_trip_interval = self.n_channels*[60]
+        self.ch_last_trip = self.n_channels*[0]
+        self.channel_state_bin = self.n_channels*[170] 
+        self.ch_state = self.n_channels*["ON"]
+            
         
     def refresh_board(self):
     # this functino is activated when communication with board and refreshes all values
     # this function simulates the Hardware
         now_time = time.time()
-        for index in range(2):
+        for index in range(self.n_channels):
             t_delta = now_time - self.time_last_command
             if self.ch_state[index] == "H2L":
                 if self.u[index] > self.d[index]:
@@ -64,7 +70,6 @@ class Serial:
                     self.u[index] = 0
                     self.ch_state[index] = "ERR"
                     self.ch_last_trip[index] = now_time
-                
                 
         self.time_last_command = now_time
         return
@@ -102,108 +107,248 @@ class Serial:
         self.refresh_board()
         if not "\r\n" in self.sum_receivedData:
             return self.read()
-        
-        if self.sum_receivedData == "#\r\n":
-            answer = "487472;1.23;1000;2mA"
-        if self.sum_receivedData == "U1\r\n":
-            answer = str(self.u[0])
-        if self.sum_receivedData == "U2\r\n":
-            answer = str(self.u[1])
-        if self.sum_receivedData == "I1\r\n":
-            answer = str(self.i[0])+"-06"
-        if self.sum_receivedData == "I2\r\n":
-            answer = str(self.i[1])+"-06"          
-        if self.sum_receivedData == "M1\r\n":
-            answer = "41"
-        if self.sum_receivedData == "M2\r\n":
-            answer = "42"  
-        if self.sum_receivedData == "N1\r\n":
-            answer = "41"
-        if self.sum_receivedData == "N2\r\n":
-            answer = "42"      
-        if self.sum_receivedData == "D1\r\n":
-            answer = str(self.d[0])  
-        if self.sum_receivedData == "D2\r\n":
-            answer = str(self.d[1])
 
-        if "D1=" in self.sum_receivedData:
-            self.d[0] = int(self.sum_receivedData.split('=')[1])
-            answer = ""
-        if "D2=" in self.sum_receivedData:
-            self.d[1] = int(self.sum_receivedData.split('=')[1])
-            answer = "" 
-     
-        if self.sum_receivedData == "V1\r\n":
-            answer = str(self.v[0])         
-        if self.sum_receivedData == "V2\r\n":
-            answer = str(self.v[1])  
-            
-        if "V1=" in self.sum_receivedData:
-            self.v[0] = int(self.sum_receivedData.split('=')[1])
-            answer = ""
-        if "V2=" in self.sum_receivedData:
-            self.v[1] = int(self.sum_receivedData.split('=')[1])
-            answer = ""    
-        if "G1" in self.sum_receivedData:
-            if self.ch_state[0] == "ON":
-                if self.d[0] > self.u[0]:
-                    answer = "S1=L2H"
-                    self.ch_state[0] = "L2H"
-                    self.ch_ramping[0] = True
-                elif self.d[0] < self.u[0]:
-                    answer = "S1=H2L"
-                    self.ch_state[0] = "H2L"
-                    self.ch_ramping[0] = True
-                else:
-                    answer = "S1=ON"
-                    self.ch_state[0] = "ON"
-                self.chan_g_time[0] = time.time()
+        if self.port == "COM1":
+
+            ######################
+            # NHQ virtualization #
+            ######################
+    
+            if self.sum_receivedData == "#\r\n":
+                answer = "487472;1.23;1000;2mA"
+            if self.sum_receivedData == "U1\r\n":
+                answer = str(self.u[0])
+            if self.sum_receivedData == "U2\r\n":
+                answer = str(self.u[1])
+            if self.sum_receivedData == "I1\r\n":
+                answer = str(self.i[0])+"-06"
+            if self.sum_receivedData == "I2\r\n":
+                answer = str(self.i[1])+"-06"          
+            if self.sum_receivedData == "M1\r\n":
+                answer = "41"
+            if self.sum_receivedData == "M2\r\n":
+                answer = "42"  
+            if self.sum_receivedData == "N1\r\n":
+                answer = "41"
+            if self.sum_receivedData == "N2\r\n":
+                answer = "42"      
+            if self.sum_receivedData == "D1\r\n":
+                answer = str(self.d[0])  
+            if self.sum_receivedData == "D2\r\n":
+                answer = str(self.d[1])
+    
+            if "D1=" in self.sum_receivedData:
+                self.d[0] = int(self.sum_receivedData.split('=')[1])
+                answer = ""
+            if "D2=" in self.sum_receivedData:
+                self.d[1] = int(self.sum_receivedData.split('=')[1])
+                answer = "" 
+         
+            if self.sum_receivedData == "V1\r\n":
+                answer = str(self.v[0])         
+            if self.sum_receivedData == "V2\r\n":
+                answer = str(self.v[1])  
                 
-            else:
-                answer = "S1="+self.ch_state[0]
-        if "G2" in self.sum_receivedData:
-            if self.ch_state[1] == "ON":
-                if self.d[1] > self.u[1]:
-                    answer = "S2=L2H"
-                    self.ch_state[1] = "L2H"
-                    self.ch_ramping[1] = True
-                elif self.d[1] < self.u[1]:
-                    answer = "S2=H2L"
-                    self.ch_state[1] = "H2L"
-                    self.ch_ramping[1] = True
+            if "V1=" in self.sum_receivedData:
+                self.v[0] = int(self.sum_receivedData.split('=')[1])
+                answer = ""
+            if "V2=" in self.sum_receivedData:
+                self.v[1] = int(self.sum_receivedData.split('=')[1])
+                answer = ""    
+            if "G1" in self.sum_receivedData:
+                if self.ch_state[0] == "ON":
+                    if self.d[0] > self.u[0]:
+                        answer = "S1=L2H"
+                        self.ch_state[0] = "L2H"
+                        self.ch_ramping[0] = True
+                    elif self.d[0] < self.u[0]:
+                        answer = "S1=H2L"
+                        self.ch_state[0] = "H2L"
+                        self.ch_ramping[0] = True
+                    else:
+                        answer = "S1=ON"
+                        self.ch_state[0] = "ON"
+                    self.chan_g_time[0] = time.time()
+                    
                 else:
-                    answer = "S2=ON"
-                    self.ch_state[1] = "ON"
-                self.chan_g_time[1] = time.time()
+                    answer = "S1="+self.ch_state[0]
+            if "G2" in self.sum_receivedData:
+                if self.ch_state[1] == "ON":
+                    if self.d[1] > self.u[1]:
+                        answer = "S2=L2H"
+                        self.ch_state[1] = "L2H"
+                        self.ch_ramping[1] = True
+                    elif self.d[1] < self.u[1]:
+                        answer = "S2=H2L"
+                        self.ch_state[1] = "H2L"
+                        self.ch_ramping[1] = True
+                    else:
+                        answer = "S2=ON"
+                        self.ch_state[1] = "ON"
+                    self.chan_g_time[1] = time.time()
+    
+                else:
+                    answer = "S2="+self.ch_state[1]
+            if self.sum_receivedData == "L1\r\n":
+                answer = "10"   
+            if self.sum_receivedData == "L2\r\n":
+                answer = "10"                  
+                
+                   
+            if self.sum_receivedData == "T1\r\n":
+              answer = self.channel_state_bin[0]          
+            if self.sum_receivedData == "T2\r\n":
+              answer = self.channel_state_bin[1]           
+              
+              
+            if self.sum_receivedData == "S1\r\n":
+              answer = "S1="+ self.ch_state[0]
+              if self.ch_state[0] == "ERR":
+                  self.ch_state[0] = "ON"
+    
+            if self.sum_receivedData == "S2\r\n":
+              answer = "S2="+self.ch_state[1]
+              if self.ch_state[1] == "ERR":          
+                  self.ch_state[1] = "ON"
+              
+            if self.sum_receivedData == "A1\r\n":
+              answer = "8"  
+            if self.sum_receivedData == "A2\r\n":
+              answer = "8"                                 
 
-            else:
-                answer = "S2="+self.ch_state[1]
-        if self.sum_receivedData == "L1\r\n":
-            answer = "10"   
-        if self.sum_receivedData == "L2\r\n":
-            answer = "10"                  
-            
-               
-        if self.sum_receivedData == "T1\r\n":
-          answer = self.channel_state_bin[0]          
-        if self.sum_receivedData == "T2\r\n":
-          answer = self.channel_state_bin[1]           
-          
-          
-        if self.sum_receivedData == "S1\r\n":
-          answer = "S1="+ self.ch_state[0]
-          if self.ch_state[0] == "ERR":
-              self.ch_state[0] = "ON"
+        elif self.port == "COM2":
 
-        if self.sum_receivedData == "S2\r\n":
-          answer = "S2="+self.ch_state[1]
-          if self.ch_state[1] == "ERR":          
-              self.ch_state[1] = "ON"
-          
-        if self.sum_receivedData == "A1\r\n":
-          answer = "8"  
-        if self.sum_receivedData == "A2\r\n":
-          answer = "8"                                 
+            ######################
+            # NHR virtualization #
+            ######################
+    
+            if self.sum_receivedData == "*IDN?\r\n":
+                answer = "iseg Spezialelektronik GmbH,NR042060r4050000200,8200002,1.12"
+            if self.sum_receivedData == ":MEAS:VOLT? (@0)\r\n":
+                answer = str(self.u[0])
+            if self.sum_receivedData == ":MEAS:VOLT? (@1)\r\n":
+                answer = str(self.u[1])
+            if self.sum_receivedData == ":MEAS:VOLT? (@2)\r\n":
+                answer = str(self.u[2])
+            if self.sum_receivedData == ":MEAS:VOLT? (@3)\r\n":
+                answer = str(self.u[3])
+            if self.sum_receivedData == ":MEAS:CURR? (@0)\r\n":
+                answer = str(self.i[0])
+            if self.sum_receivedData == ":MEAS:CURR? (@1)\r\n":
+                answer = str(self.i[1])
+            if self.sum_receivedData == ":MEAS:CURR? (@2)\r\n":
+                answer = str(self.i[2])
+            if self.sum_receivedData == ":MEAS:CURR? (@3)\r\n":
+                answer = str(self.i[3])
+
+            if self.sum_receivedData == ":READ:VOLT:LIM? (@0)\r\n":
+                answer = "41"
+            if self.sum_receivedData == ":READ:VOLT:LIM? (@1)\r\n":
+                answer = "42"  
+            if self.sum_receivedData == ":READ:VOLT:LIM? (@2)\r\n":
+                answer = "43"
+            if self.sum_receivedData == ":READ:VOLT:LIM? (@3)\r\n":
+                answer = "44"  
+            if self.sum_receivedData == ":READ:CURR:LIM? (@0)\r\n":
+                answer = "41"
+            if self.sum_receivedData == ":READ:CURR:LIM? (@1)\r\n":
+                answer = "42"      
+            if self.sum_receivedData == ":READ:CURR:LIM? (@2)\r\n":
+                answer = "43"
+            if self.sum_receivedData == ":READ:CURR:LIM? (@3)\r\n":
+                answer = "44"      
+
+            if self.sum_receivedData == ":READ:VOLT? (@0)\r\n":
+                answer = str(self.d[0])  
+            if self.sum_receivedData == ":READ:VOLT? (@1)\r\n":
+                answer = str(self.d[1])
+            if self.sum_receivedData == ":READ:VOLT? (@2)\r\n":
+                answer = str(self.d[2])  
+            if self.sum_receivedData == ":READ:VOLT? (@3)\r\n":
+                answer = str(self.d[3])  
+
+#TODO
+ 
+            if "D1=" in self.sum_receivedData:
+                self.d[0] = int(self.sum_receivedData.split('=')[1])
+                answer = ""
+            if "D2=" in self.sum_receivedData:
+                self.d[1] = int(self.sum_receivedData.split('=')[1])
+                answer = "" 
+         
+            if self.sum_receivedData == "V1\r\n":
+                answer = str(self.v[0])         
+            if self.sum_receivedData == "V2\r\n":
+                answer = str(self.v[1])  
+                
+            if "V1=" in self.sum_receivedData:
+                self.v[0] = int(self.sum_receivedData.split('=')[1])
+                answer = ""
+            if "V2=" in self.sum_receivedData:
+                self.v[1] = int(self.sum_receivedData.split('=')[1])
+                answer = ""    
+            if "G1" in self.sum_receivedData:
+                if self.ch_state[0] == "ON":
+                    if self.d[0] > self.u[0]:
+                        answer = "S1=L2H"
+                        self.ch_state[0] = "L2H"
+                        self.ch_ramping[0] = True
+                    elif self.d[0] < self.u[0]:
+                        answer = "S1=H2L"
+                        self.ch_state[0] = "H2L"
+                        self.ch_ramping[0] = True
+                    else:
+                        answer = "S1=ON"
+                        self.ch_state[0] = "ON"
+                    self.chan_g_time[0] = time.time()
+                    
+                else:
+                    answer = "S1="+self.ch_state[0]
+            if "G2" in self.sum_receivedData:
+                if self.ch_state[1] == "ON":
+                    if self.d[1] > self.u[1]:
+                        answer = "S2=L2H"
+                        self.ch_state[1] = "L2H"
+                        self.ch_ramping[1] = True
+                    elif self.d[1] < self.u[1]:
+                        answer = "S2=H2L"
+                        self.ch_state[1] = "H2L"
+                        self.ch_ramping[1] = True
+                    else:
+                        answer = "S2=ON"
+                        self.ch_state[1] = "ON"
+                    self.chan_g_time[1] = time.time()
+    
+                else:
+                    answer = "S2="+self.ch_state[1]
+            if self.sum_receivedData == "L1\r\n":
+                answer = "10"   
+            if self.sum_receivedData == "L2\r\n":
+                answer = "10"                  
+                
+                   
+            if self.sum_receivedData == "T1\r\n":
+              answer = self.channel_state_bin[0]          
+            if self.sum_receivedData == "T2\r\n":
+              answer = self.channel_state_bin[1]           
+              
+              
+            if self.sum_receivedData == "S1\r\n":
+              answer = "S1="+ self.ch_state[0]
+              if self.ch_state[0] == "ERR":
+                  self.ch_state[0] = "ON"
+    
+            if self.sum_receivedData == "S2\r\n":
+              answer = "S2="+self.ch_state[1]
+              if self.ch_state[1] == "ERR":          
+                  self.ch_state[1] = "ON"
+              
+            if self.sum_receivedData == "A1\r\n":
+              answer = "8"  
+            if self.sum_receivedData == "A2\r\n":
+              answer = "8"                                 
+
+
                                                                                      
         answer = str(answer) +"\r"
         self.sum_receivedData = ""

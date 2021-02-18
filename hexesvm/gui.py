@@ -98,7 +98,13 @@ class MainWindow(_qw.QMainWindow):
         self.channels = OrderedDict()
         index_list = [] # Helper dict for sorting later on
         for idx, this_module in enumerate(self.defaults['modules']):
-           self.modules.update({this_module['name']: _iseg.hv_module(this_module['name'], this_module['port'])})
+           if this_module['type'] == "NHQ":
+               self.modules.update({this_module['name']: _iseg.nhq_hv_module(this_module['name'], this_module['port'])})
+           elif this_module['type'] == "NHR":
+               self.modules.update({this_module['name']: _iseg.nhr_hv_module(this_module['name'], this_module['port'])})
+           else:
+              print("MODULE OF TYPE:", this_module['type'], " is not supported!!")
+              continue
            this_mod_chan = OrderedDict()
            for jdx, this_channel in enumerate(this_module['channels']):
                this_mod_chan.update({this_channel['name']: self.modules[this_module['name']].add_channel(this_channel['index'], this_channel['name'])})
@@ -434,9 +440,9 @@ class MainWindow(_qw.QMainWindow):
 
             this_mod_type = self.defaults['modules'][i]['type']
             if this_mod_type == "NHQ":
-                this_module_svg  = _qs.QSvgWidget('hexesvm/icons/iseg_nhq_front_1.svg', this_tab)
+                this_module_svg  = _qs.QSvgWidget('hexesvm/icons/iseg_nhq_front_1_discon.svg', this_tab)
             elif this_mod_type == "NHR":
-                this_module_svg  = _qs.QSvgWidget('hexesvm/icons/iseg_nhr_front_3.svg', this_tab)
+                this_module_svg  = _qs.QSvgWidget('hexesvm/icons/iseg_nhr_front_3_discon.svg', this_tab)
 
             self.module_svgs.append(this_module_svg) 
             svg_min_size = _qc.QSize(82,538)
@@ -444,13 +450,6 @@ class MainWindow(_qw.QMainWindow):
             this_module_svg.setMinimumSize(svg_min_size)
             this_module_svg.setMaximumSize(svg_max_size)
             
-            # TESTING
-            img2 = _qg.QImage('hexesvm/icons/hexe_bar.svg')
-            painter = _qg.QPainter()
-            painter.begin(this_tab)
-            painter.drawText(0,0,"Test")
-            painter.end()
-
             horizontal_separator = _qw.QLabel("")
             self.module_hsep.append(horizontal_separator)
             horizontal_separator.setFrameStyle(_qw.QFrame.HLine)
@@ -698,12 +697,14 @@ class MainWindow(_qw.QMainWindow):
             self.module_imax_fields[i].setText(this_module.i_max)
             self.module_serial_fields[i].setText(this_module.model_no)
             self.module_firmware_fields[i].setText(this_module.firmware_vers)
-            
-            if len(self.channels[key].keys()) > 0:
-                self.update_channel_section(key, list(self.channels[key].keys())[0])
-            if len(self.channels[key].keys()) > 1:
-                self.update_channel_section(key, list(self.channels[key].keys())[1])
-                
+
+            # update the "virtual" module
+            # DO SOME MAGIC HERE
+
+            # Trigger update of the channel sections
+            for idx in range(len(self.channels[key].keys())):
+                 self.update_channel_section(key, list(self.channels[key].keys())[idx])
+
         return
         
     def update_channel_section(self, mod_key, channel_key):

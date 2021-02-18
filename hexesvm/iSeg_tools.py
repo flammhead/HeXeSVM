@@ -1,9 +1,17 @@
-import serial
-#from hexesvm import fake_serial as serial
 from hexesvm import threads as _thr
 import time
+import json
 
-class hv_module:
+with open("hexesvm/default_settings.json") as settings:
+    defs = json.load(settings)
+    if defs['use_virtual_hardware']:
+        from hexesvm import fake_serial as serial
+    else:
+        import serial
+
+# Abstract classes representig general HV Modul and HV channel
+
+class gen_hv_module:
 
     def __init__(self, name, port):
         self.name = name
@@ -20,13 +28,7 @@ class hv_module:
         self.stop_thread = False
         self.board_occupied = False
         self.reader_thread = None
-        
-    def add_channel(self, number, name):
-        new_child_hv_channel = hv_channel(name, self, number)
-        self.child_channels.append(new_child_hv_channel)
-        
-        return new_child_hv_channel
-
+       
     def set_comport(self, port):
         self.port = port
         
@@ -59,37 +61,14 @@ class hv_module:
                 return None
         result_1 = self.serial_conn.readline()
         return result_1.decode().split('\r')[0]        
-        
-    def sync_module(self):
 
-        answer = self.send_long_command("")
-        if answer is not None:
-            self.is_connected = True
-            return True
-        else:
-            self.is_connected = False
-            return False
-
-    def read_module_info(self):
-        answer = self.send_long_command("#")
-        if answer is None:
-            return False
-        parts = answer.split(';')
-        if len(parts) < 4:
-            return False
-        self.u_max = parts[2]
-        self.i_max = parts[3]
-        self.model_no = parts[0]
-        self.firmware_vers = parts[1]
-        return True
-        
     def kill_hv(self):
         result = []
         for channel in self.child_channels:
             outcome = channel.kill_hv()
             result.append(outcome)
         return result
-        
+
     def close_connection(self):
         self.serial_conn.close()
         self.is_connected = False
@@ -104,7 +83,8 @@ class hv_module:
         self.board_occupied = False
         self.reader_thread = None
 
-class hv_channel:
+
+class gen_hv_channel:
 
     def __init__(self, name, host_module, this_hv_channel):
         self.name = name
@@ -139,7 +119,240 @@ class hv_channel:
         self.trip_rate = 0
         self.trip_time_stamps = []
         self.trip_detected = False
-	
+
+
+class nhr_hv_module(gen_hv_module):
+
+     def add_channel(self, number, name):
+        new_child_hv_channel = nhr_hv_channel(name, self, number)
+        self.child_channels.append(new_child_hv_channel)
+        
+        return new_child_hv_channel
+
+     def sync_module(self):
+         if self.read_module_info():
+             self.is_connected = True
+         else:
+             self.is_connected = False
+         return self.is_connected
+
+     def read_module_info(self):
+        answer = self.send_long_command("*IDN?")
+        if answer is None:
+            return False
+        parts = answer.split(',')
+        if len(parts) < 4:
+            return False
+        self.u_max = 0
+        self.i_max = 0
+        self.model_no = parts[1]
+        self.firmware_vers = parts[3]
+        return True
+
+class nhr_hv_channel(gen_hv_channel):
+
+    # iSeg read commands
+    def read_voltage(self):
+        command = (":MEAS:VOLT? (@%d)" % self.channel)
+        answer = self.module.send_long_command(command)
+        try: value = float(answer)
+        except (ValueError, TypeError): 
+            self.voltage = float('nan')
+            return float('nan')
+        self.voltage = value
+        return value
+
+    def read_current(self):
+        command = (":MEAS:CURR? (@%d)" % self.channel)
+        answer = self.module.send_long_command(command)
+        if answer is None:
+            self.current = float('nan')
+            return float('nan')        
+        parts = answer.split('-')
+        if len(parts) != 2:
+            self.current = float('nan')
+            return float('nan')
+        try: value = float(parts[0])*10**(-int(parts[1]))
+        except (ValueError, TypeError): 
+            self.current = float('nan')
+            return float('nan')
+        self.current = value
+        return value    
+
+    def read_voltage_limit(self):
+        command = (":READ:VOLT:LIM? (@%d)" % self.channel)
+        answer = self.module.send_long_command(command)
+        try: value = int(answer)
+        except (ValueError, TypeError): 
+            self.voltage_limit = float('nan')
+            return float('nan')
+        self.voltage_limit = value
+        return value
+        
+    def read_current_limit(self):
+        command = (":READ:CURR:LIM? (@%d)" % self.channel)
+        answer = self.module.send_long_command(command)
+        try: value = int(answer)
+        except (ValueError, TypeError): 
+            self.current_limit = float('nan')
+            return float('nan')
+        self.current_limit = value        
+        return value        
+        
+    def read_set_voltage(self):
+        command = (":READ:VOLT? (@%d)" % self.channel)
+        answer = self.module.send_long_command(command)
+        try: value = float(answer)
+        except (ValueError, TypeError): 
+            self.set_voltage = float('nan')
+            return float('nan')
+        self.set_voltage = value
+        return value        
+
+        
+#TODO            
+    def read_ramp_speed(self):
+        command = ("V%d" % self.channel)
+        answer = self.module.send_long_command(command)
+        try: value = int(answer)
+        except (ValueError, TypeError): 
+            self.ramp_speed = float('nan')
+            return float('nan')
+        self.ramp_speed = value      
+        return value  
+              
+    def read_trip_current(self):
+        command = ("L%d" % self.channel)
+        answer = self.module.send_long_command(command)
+        if answer is None:
+            self.trip_current = float('nan')
+            return float('nan')                        
+        parts = answer.split('-')
+        if len(parts) != 2:
+            self.trip_current = float('nan')
+            return float('nan')
+        try: value = float(parts[0])*10**(-int(parts[1]))
+        except (ValueError, TypeError): 
+            self.trip_current = float('nan')
+            return float('nan')
+        self.trip_current = value        
+        return value        
+        
+    def read_status(self):
+        command = ("S%d" % self.channel)
+        answer = self.module.send_long_command(command)
+        if not answer:
+            return None
+        answer_split = answer.split("=")
+        if len(answer_split)<=1:
+            return None
+        self.status = answer_split[1]
+        return self.status
+        
+    def read_device_status(self):
+        command = ("T%d" % self.channel)
+        answer = self.module.send_long_command(command)
+        try: value = int(answer)
+        except (ValueError, TypeError): return False
+        #Convert to binary and reverse to have same numbering as in manual
+        binary = '{0:08b}'.format(value)[::-1]
+        self.channel_in_error = (binary[7] == '1')
+        self.channel_is_tripped = (binary[6] == '1')   
+        self.hardware_inhibit = (binary[5] == '1')                
+        self.kill_enable_switch = (binary[4] == '1')
+        self.hv_switch_off = (binary[3] == '1')
+        self.polarity_positive = (binary[2] == '1')
+        self.manual_control = (binary[1] == '1')
+        return True
+        
+    def read_auto_start(self):
+        command = ("A%d" % self.channel)
+        answer = self.module.send_long_command(command)
+        try: value = int(answer)
+        except (ValueError, TypeError): return False
+        #Convert to binary and reverse to have same numbering as in manual
+        binary = '{0:08b}'.format(value)[::-1]
+        self.autostart_on = (binary[3] == '1')
+        self.trip_current_in_memory = (binary[2] == '1')
+        self.set_voltage_in_memory = (binary[1] == '1')
+        self.ramp_speed_in_memory = (binary[0] == '1')        
+        return True
+        
+    # iSeg Operation commands
+    def start_voltage_change(self):
+        command = ("G%d" % self.channel)
+        answer = self.module.send_long_command(command)
+        status = answer.split('=')
+        if len(status) < 2:
+            return status
+        return status[1]
+        
+    def write_set_voltage(self, voltage):
+        try: voltage_int = int(voltage)
+        except (ValueError, TypeError): return "ERR"
+        #This solution is meant to be temporary!...
+        if self.module.model_no == "487472" and voltage_int > 980:
+            voltage_int = 42
+        command = ("D%d=%d" % (self.channel, voltage_int))
+        answer = self.module.send_long_command(command)
+        return answer
+        
+    def write_ramp_speed(self, speed):
+        try: speed_int = int(speed)
+        except (ValueError, TypeError): return "ERR"
+        command = ("V%d=%d" % (self.channel, speed_int))
+        answer = self.module.send_long_command(command)
+        return answer  
+             
+    def write_trip_current(self, trip_current):
+        try: trip_current_int = int(trip_current)
+        except (ValueError, TypeError): return "ERR"
+        command = ("L%d=%d" % (self.channel, trip_current_int))
+        answer = self.module.send_long_command(command)
+        return answer        
+
+
+
+class nhq_hv_module(gen_hv_module):
+
+    def __init__(self, name, port):
+        super().__init__(name, port)
+
+    def add_channel(self, number, name):
+        new_child_hv_channel = nhq_hv_channel(name, self, number)
+        self.child_channels.append(new_child_hv_channel)
+        
+        return new_child_hv_channel
+        
+    def sync_module(self):
+
+        answer = self.send_long_command("")
+        if answer is not None:
+            self.is_connected = True
+            return True
+        else:
+            self.is_connected = False
+            return False
+
+    def read_module_info(self):
+        answer = self.send_long_command("#")
+        if answer is None:
+            return False
+        parts = answer.split(';')
+        if len(parts) < 4:
+            return False
+        self.u_max = parts[2]
+        self.i_max = parts[3]
+        self.model_no = parts[0]
+        self.firmware_vers = parts[1]
+        return True
+        
+        
+
+class nhq_hv_channel(gen_hv_channel):
+
+    def __init__(self, name, host_module, this_hv_channel):
+        super().__init__(name, host_module, this_hv_channel)
     
     # iSeg read commands
     def read_voltage(self):
