@@ -143,8 +143,8 @@ class nhr_hv_module(gen_hv_module):
         parts = answer.split(',')
         if len(parts) < 4:
             return False
-        self.u_max = 0
-        self.i_max = 0
+        self.u_max = '0'
+        self.i_max = '0'
         self.model_no = parts[1]
         self.firmware_vers = parts[3]
         return True
@@ -210,9 +210,9 @@ class nhr_hv_channel(gen_hv_channel):
         return value        
 
         
-#TODO            
+#TODO
     def read_ramp_speed(self):
-        command = ("V%d" % self.channel)
+        command = (":READ:RAMP:VOLT? (@%d)" % self.channel)
         answer = self.module.send_long_command(command)
         try: value = int(answer)
         except (ValueError, TypeError): 
@@ -237,9 +237,10 @@ class nhr_hv_channel(gen_hv_channel):
             return float('nan')
         self.trip_current = value        
         return value        
-        
+
+# Not correct        
     def read_status(self):
-        command = ("S%d" % self.channel)
+        command = (":READ:CHAN:STATUS? (@%d)" % self.channel)
         answer = self.module.send_long_command(command)
         if not answer:
             return None

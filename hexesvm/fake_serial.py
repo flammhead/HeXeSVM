@@ -268,7 +268,7 @@ class Serial:
                 answer = str(self.d[3])  
 
 #TODO
- 
+	    # :VOLT1234,(@0)
             if "D1=" in self.sum_receivedData:
                 self.d[0] = int(self.sum_receivedData.split('=')[1])
                 answer = ""
@@ -276,10 +276,14 @@ class Serial:
                 self.d[1] = int(self.sum_receivedData.split('=')[1])
                 answer = "" 
          
-            if self.sum_receivedData == "V1\r\n":
-                answer = str(self.v[0])         
-            if self.sum_receivedData == "V2\r\n":
-                answer = str(self.v[1])  
+            if self.sum_receivedData == ":READ:RAMP:VOLT? (@0)\r\n":
+                answer = str(self.v[0])
+            if self.sum_receivedData == ":READ:RAMP:VOLT? (@1)\r\n":
+                answer = str(self.v[1])        
+            if self.sum_receivedData == ":READ:RAMP:VOLT? (@2)\r\n":
+                answer = str(self.v[2])        
+            if self.sum_receivedData == ":READ:RAMP:VOLT? (@3)\r\n":
+                answer = str(self.v[3])          
                 
             if "V1=" in self.sum_receivedData:
                 self.v[0] = int(self.sum_receivedData.split('=')[1])
@@ -333,7 +337,12 @@ class Serial:
               answer = self.channel_state_bin[1]           
               
               
-            if self.sum_receivedData == "S1\r\n":
+            if self.sum_receivedData == ":READ:CHAN:STATUS? (@0)\r\n":
+              answer = "S1="+ self.ch_state[0]
+              if self.ch_state[0] == "ERR":
+                  self.ch_state[0] = "ON"
+
+            if self.sum_receivedData == ":READ:CHAN:STATUS? (@1)\r\n":
               answer = "S1="+ self.ch_state[0]
               if self.ch_state[0] == "ERR":
                   self.ch_state[0] = "ON"
