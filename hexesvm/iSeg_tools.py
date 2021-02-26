@@ -179,6 +179,26 @@ class nhr_hv_channel(gen_hv_channel):
         self.current = value
         return value    
 
+    def read_voltage_nominal(self):
+        command = (":READ:VOLT:NOM? (@%d)" % self.channel)
+        answer = self.module.send_long_command(command)
+        try: value = int(answer)
+        except (ValueError, TypeError): 
+            self.voltage_limit = float('nan')
+            return float('nan')
+        self.voltage_limit = value
+        return value
+        
+    def read_current_nominal(self):
+        command = (":READ:CURR:NOM? (@%d)" % self.channel)
+        answer = self.module.send_long_command(command)
+        try: value = int(answer)
+        except (ValueError, TypeError): 
+            self.current_limit = float('nan')
+            return float('nan')
+        self.current_limit = value        
+        return value        
+
     def read_voltage_limit(self):
         command = (":READ:VOLT:LIM? (@%d)" % self.channel)
         answer = self.module.send_long_command(command)

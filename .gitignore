@@ -1,0 +1,4 @@
+__pycache__
+/hexesvm/__pycache__
+*.swp
+tempdata_log.dat

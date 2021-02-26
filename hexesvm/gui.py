@@ -1,5 +1,3 @@
-﻿"""Contains the HeXeSVM User interface"""
-
 import sys
 import os
 import logging as _lg
@@ -1549,6 +1547,23 @@ class MainWindow(_qw.QMainWindow):
         
     def insert_values_in_database(self):
 
+        current_datetime = _dt.now()
+
+        # inizialize empty dict, which will hold the pairs of SQL field names
+        # and respective values
+        insert_array = {}
+        # now loop over all channels and fill the dictionary
+        for this_channel in channel_order_dict:
+            # see if this channel has a db tag in the settings file
+            try:
+                this_db_tag_voltage = self.defaults['modules'][this_channel[1]
+                this_db_tag_current
+            except KeyError:
+                # This channel does not have a db identifier, so we can't add it
+                # to the insertion array
+                print("No Database identifier for:", this_channel)
+            this_channel
+
         #MainWindow.log.debug("Called MainWindow.insert_values_in_database")
         cathode_voltage = self.channels["Drift module"]["Cathode"].voltage
         gate_voltage = self.channels["Drift module"]["Gate"].voltage
@@ -1562,7 +1577,6 @@ class MainWindow(_qw.QMainWindow):
         pmt_top_current = self.channels["PMT module"]["Top PMT"].current
         pmt_bot_current = self.channels["PMT module"]["Bottom PMT"].current 
 
-        current_datetime = _dt.now()
 
         insert_array = ([{"time": current_datetime, 
                           "u_anode": anode_voltage, 
