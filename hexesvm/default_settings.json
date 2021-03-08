@@ -20,7 +20,7 @@
 	"sms_from_address": "hexe@sms.mpi-hd.mpg.de",
 
 	"interlock_enabled": true,
-        "interlock_parameter": "p1",
+    "interlock_parameter": "p1",
 	"interlock_value": 1.2,
 	
 	"use_virtual_hardware": true,
@@ -34,7 +34,7 @@
 		{
 			"index": "1",
 			"name": "Top PMT",
-                        "board_name": "A",
+            "board_name": "A",
 			"db_u_name": "u_pmt_1",
 			"db_i_name": "i_pmt_1",
 			"img_pos": 0
@@ -42,7 +42,7 @@
 		{
 			"index": "2",
 			"name": "Bottom PMT",
-                        "board_name": "B",
+            "board_name": "B",
 			"db_u_name": "u_pmt_2",
 			"db_i_name": "i_pmt_2",
 			"img_pos": 4

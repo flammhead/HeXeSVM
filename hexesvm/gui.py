@@ -52,6 +52,7 @@ class MainWindow(_qw.QMainWindow):
                                             self.defaults['interlock_value'])        
         self.interlock_value = True
         # create database flag
+        self.db_insertion_names = []
         self.db_connection = False
         self.db_connection_write = False
         self.output_buffer_file = open(self.defaults['temp_data_filename'], 'a')
@@ -1544,6 +1545,19 @@ class MainWindow(_qw.QMainWindow):
         #self.locker.set_sql_container(self.sql_cont_interlock)
         self.locker.set_psycopg_conn(address, dbname, username, password, tablename_interlock)
         
+        # Also read from the settings file the db_insertion names for the moduels
+        for idx, this_module in enumerate(self.defaults['modules']):
+           for jdx, this_channel in enumerate(this_module['channels']):
+                # see if this channel has a db tag in the settings file
+                try:
+                    this_db_tag_voltage = this_channel['db_u_name']
+                    this_db_tag_current = this_channel['db_i_name']
+                    self.db_insertion_names.append([this_module['name'], this_channel['name'], this_db_tag_voltage, this_db_tag_current])
+                except KeyError:
+                    # This channel does not have a db identifier, so we can't add it
+                    # to the insertion array
+                    print("No Database identifier for:", this_channel)        
+        
         
     def insert_values_in_database(self):
 
@@ -1552,43 +1566,13 @@ class MainWindow(_qw.QMainWindow):
         # inizialize empty dict, which will hold the pairs of SQL field names
         # and respective values
         insert_array = {}
-        # now loop over all channels and fill the dictionary
-        for this_channel in channel_order_dict:
-            # see if this channel has a db tag in the settings file
-            try:
-                this_db_tag_voltage = self.defaults['modules'][this_channel[1]
-                this_db_tag_current
-            except KeyError:
-                # This channel does not have a db identifier, so we can't add it
-                # to the insertion array
-                print("No Database identifier for:", this_channel)
-            this_channel
+        insert_array["time"] = current_datetime
 
-        #MainWindow.log.debug("Called MainWindow.insert_values_in_database")
-        cathode_voltage = self.channels["Drift module"]["Cathode"].voltage
-        gate_voltage = self.channels["Drift module"]["Gate"].voltage
-        anode_voltage = self.channels["Anode module"]["Anode"].voltage
-        pmt_top_voltage = self.channels["PMT module"]["Top PMT"].voltage
-        pmt_bot_voltage = self.channels["PMT module"]["Bottom PMT"].voltage        
-        
-        cathode_current = self.channels["Drift module"]["Cathode"].current
-        gate_current = self.channels["Drift module"]["Gate"].current
-        anode_current = self.channels["Anode module"]["Anode"].current
-        pmt_top_current = self.channels["PMT module"]["Top PMT"].current
-        pmt_bot_current = self.channels["PMT module"]["Bottom PMT"].current 
-
-
-        insert_array = ([{"time": current_datetime, 
-                          "u_anode": anode_voltage, 
-                          "i_anode": anode_current, 
-                          "u_gate": gate_voltage, 
-                          "i_gate": gate_current, 
-                          "u_cathode": cathode_voltage, 
-                          "i_cathode": cathode_current,
-                          "u_pmt_1": pmt_top_voltage,
-                          "i_pmt_1": pmt_top_current,
-                          "u_pmt_2": pmt_bot_voltage,
-                          "i_pmt_2": pmt_bot_current},])
+        for this_insertion in self.db_insertion_names:
+            this_voltage = self.channels[this_insertion[0]][this_insertion[1]].voltage
+            this_current = self.channels[this_insertion[0]][this_insertion[1]].current
+            insert_array[this_insertion[2]] = this_voltage
+            insert_array[this_insertion[3]] = this_current
         
         try:
             self.sql_cont.write_values(insert_array)
