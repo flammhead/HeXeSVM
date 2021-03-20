@@ -1,5 +1,6 @@
 import time
 from random import gauss
+import numpy as _np
 
 class Serial:
 
@@ -33,12 +34,16 @@ class Serial:
  
         self.u = self.n_channels*[0]
         self.i = self.n_channels*[0]
+        if port=="COM1":
+            self.r = self.n_channels*[40.5e6]
+        if port=="COM2":
+            self.r = [40e9, 40e9, _np.inf, _np.inf]
         self.v = self.n_channels*[2]
         self.d = self.n_channels*[0]
         self.ch_ramping = self.n_channels*[False]
         self.chan_g_time = self.n_channels*[0]
         self.ch_tripped = self.n_channels*[False]
-        self.ch_tripping_active = self.n_channels*[True]
+        self.ch_tripping_active = self.n_channels*[False]
         self.ch_trip_interval = self.n_channels*[60]
         self.ch_last_trip = self.n_channels*[0]
         self.channel_state_bin = self.n_channels*[170] 
@@ -70,6 +75,8 @@ class Serial:
                     self.u[index] = 0
                     self.ch_state[index] = "ERR"
                     self.ch_last_trip[index] = now_time
+            # Set the current according to the resistance
+            self.i[index] = self.u[index] / self.r[index]
                 
         self.time_last_command = now_time
         return
@@ -108,6 +115,7 @@ class Serial:
         if not "\r\n" in self.sum_receivedData:
             return self.read()
 
+       
         if self.port == "COM1":
 
             ######################
@@ -121,9 +129,9 @@ class Serial:
             if self.sum_receivedData == "U2\r\n":
                 answer = str(self.u[1])
             if self.sum_receivedData == "I1\r\n":
-                answer = str(self.i[0])+"-06"
+                answer = str(int(self.i[0]*1e6))+"-06"
             if self.sum_receivedData == "I2\r\n":
-                answer = str(self.i[1])+"-06"          
+                answer = str(int(self.i[1]*1e6))+"-06"          
             if self.sum_receivedData == "M1\r\n":
                 answer = "41"
             if self.sum_receivedData == "M2\r\n":
@@ -221,10 +229,10 @@ class Serial:
             ######################
             # NHR virtualization #
             ######################
-    
+            
             if self.sum_receivedData == "*IDN?\r\n":
                 answer = "iseg Spezialelektronik GmbH,NR042060r4050000200,8200002,1.12"
-            if self.sum_receivedData == "*IDN?\r\n":
+            if self.sum_receivedData == "*OPC?\r\n":
                 answer = "1"
             if self.sum_receivedData == ":MEAS:VOLT? (@0)\r\n":
                 answer = str(self.u[0]/1e3) + "E3V"
@@ -235,13 +243,13 @@ class Serial:
             if self.sum_receivedData == ":MEAS:VOLT? (@3)\r\n":
                 answer = str(self.u[3]/1e3) + "E3V"
             if self.sum_receivedData == ":MEAS:CURR? (@0)\r\n":
-                answer = str(self.i[0]/1e3) + "E-3V"
+                answer = str(self.i[0]/1e3) + "E-3A"
             if self.sum_receivedData == ":MEAS:CURR? (@1)\r\n":
-                answer = str(self.i[1]) + "E-3V"
+                answer = str(self.i[1]/1e3) + "E-3A"
             if self.sum_receivedData == ":MEAS:CURR? (@2)\r\n":
-                answer = str(self.i[2]) + "E-3V"
+                answer = str(self.i[2]/1e3) + "E-3A"
             if self.sum_receivedData == ":MEAS:CURR? (@3)\r\n":
-                answer = str(self.i[3]) + "E-3V"
+                answer = str(self.i[3]/1e3) + "E-3A"
 
             if self.sum_receivedData == ":READ:VOLT:LIM? (@0)\r\n":
                 answer = "41"
@@ -261,90 +269,54 @@ class Serial:
                 answer = "44"      
 
             if self.sum_receivedData == ":READ:VOLT? (@0)\r\n":
-                answer = str(self.d[0])  
+                answer = str(self.d[0]/1e3)+"E3V"  
             if self.sum_receivedData == ":READ:VOLT? (@1)\r\n":
-                answer = str(self.d[1])
+                answer = str(self.d[1]/1e3)+"E3V"
             if self.sum_receivedData == ":READ:VOLT? (@2)\r\n":
-                answer = str(self.d[2])  
+                answer = str(self.d[2]/1e3)+"E3V"  
             if self.sum_receivedData == ":READ:VOLT? (@3)\r\n":
-                answer = str(self.d[3])  
+                answer = str(self.d[3]/1e3)+"E3V"  
 
-#TODO
-	    # :VOLT1234,(@0)
-            if "D1=" in self.sum_receivedData:
-                self.d[0] = int(self.sum_receivedData.split('=')[1])
-                answer = ""
-            if "D2=" in self.sum_receivedData:
-                self.d[1] = int(self.sum_receivedData.split('=')[1])
-                answer = "" 
+            if ":VOLT " in self.sum_receivedData and not ("ON" in self.sum_receivedData or "OFF" in self.sum_receivedData):
+                channel_trail = self.sum_receivedData.split('(@')[1]
+                channel = int(channel_trail.split(')')[0])
+                value_trail = self.sum_receivedData.split('VOLT ')[1]
+                value = int(value_trail.split(',(')[0])
+                self.d[channel] = value
+                answer = "1"
          
             if self.sum_receivedData == ":READ:RAMP:VOLT? (@0)\r\n":
-                answer = str(self.v[0])
+                answer = str(self.v[0])+"V/s"
             if self.sum_receivedData == ":READ:RAMP:VOLT? (@1)\r\n":
-                answer = str(self.v[1])        
+                answer = str(self.v[1])+"V/s"        
             if self.sum_receivedData == ":READ:RAMP:VOLT? (@2)\r\n":
-                answer = str(self.v[2])        
+                answer = str(self.v[2])+"V/s"       
             if self.sum_receivedData == ":READ:RAMP:VOLT? (@3)\r\n":
-                answer = str(self.v[3])          
-                
-            if "V1=" in self.sum_receivedData:
-                self.v[0] = int(self.sum_receivedData.split('=')[1])
-                answer = ""
-            if "V2=" in self.sum_receivedData:
-                self.v[1] = int(self.sum_receivedData.split('=')[1])
-                answer = ""    
-            if "G1" in self.sum_receivedData:
-                if self.ch_state[0] == "ON":
-                    if self.d[0] > self.u[0]:
-                        answer = "S1=L2H"
-                        self.ch_state[0] = "L2H"
-                        self.ch_ramping[0] = True
-                    elif self.d[0] < self.u[0]:
-                        answer = "S1=H2L"
-                        self.ch_state[0] = "H2L"
-                        self.ch_ramping[0] = True
-                    else:
-                        answer = "S1=ON"
-                        self.ch_state[0] = "ON"
-                    self.chan_g_time[0] = time.time()
-                    
-                else:
-                    answer = "S1="+self.ch_state[0]
-            if "G2" in self.sum_receivedData:
-                if self.ch_state[1] == "ON":
-                    if self.d[1] > self.u[1]:
-                        answer = "S2=L2H"
-                        self.ch_state[1] = "L2H"
-                        self.ch_ramping[1] = True
-                    elif self.d[1] < self.u[1]:
-                        answer = "S2=H2L"
-                        self.ch_state[1] = "H2L"
-                        self.ch_ramping[1] = True
-                    else:
-                        answer = "S2=ON"
-                        self.ch_state[1] = "ON"
-                    self.chan_g_time[1] = time.time()
-    
-                else:
-                    answer = "S2="+self.ch_state[1]
-            if self.sum_receivedData == "L1\r\n":
-                answer = "10"   
-            if self.sum_receivedData == "L2\r\n":
-                answer = "10"                  
-                
-                   
-            if self.sum_receivedData == "T1\r\n":
-              answer = self.channel_state_bin[0]          
-            if self.sum_receivedData == "T2\r\n":
-              answer = self.channel_state_bin[1]           
+                answer = str(self.v[3])+"V/s"          
+
+            if ":CONF:RAMP:VOLT:UP " in self.sum_receivedData:
+                channel_trail = self.sum_receivedData.split('(@')[1]
+                channel = int(channel_trail.split(')')[0])
+                value_trail = self.sum_receivedData.split(':CONF:RAMP:VOLT:UP ')[1]
+                value = int(value_trail.split(',(')[0])
+                self.v[channel] = value
+                answer = "1"                
+
+            if ":VOLT ON,(@" in self.sum_receivedData:
+                channel = int(self.sum_receivedData[11])
+                self.ch_state[channel] = "ON"
+                if self.d[channel] != self.u[channel]:
+                    self.ch_ramping[0] = True
+                self.chan_g_time[0] = time.time()
+                answer = "1"
+
               
-              
-            if self.sum_receivedData == ":READ:CHAN:STATUS? (@0)\r\n":
+            if self.sum_receivedData == ":READ:CHAN:STAT? (@0)\r\n":
               answer = "S1="+ self.ch_state[0]
               if self.ch_state[0] == "ERR":
                   self.ch_state[0] = "ON"
 
-            if self.sum_receivedData == ":READ:CHAN:STATUS? (@1)\r\n":
+            if self.sum_receivedData == ":READ:CHAN:STAT? (@1)\r\n":
               answer = "S1="+ self.ch_state[0]
               if self.ch_state[0] == "ERR":
                   self.ch_state[0] = "ON"
@@ -353,11 +325,6 @@ class Serial:
               answer = "S2="+self.ch_state[1]
               if self.ch_state[1] == "ERR":          
                   self.ch_state[1] = "ON"
-              
-            if self.sum_receivedData == "A1\r\n":
-              answer = "8"  
-            if self.sum_receivedData == "A2\r\n":
-              answer = "8"                                 
 
 
                                                                                      

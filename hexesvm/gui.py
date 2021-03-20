@@ -106,7 +106,7 @@ class MainWindow(_qw.QMainWindow):
               continue
            this_mod_chan = OrderedDict()
            for jdx, this_channel in enumerate(this_module['channels']):
-               this_mod_chan.update({this_channel['name']: self.modules[this_module['name']].add_channel(this_channel['index'], this_channel['name'])})
+               this_mod_chan.update({this_channel['name']: self.modules[this_module['name']].add_channel(this_channel['index'], this_channel['name'], this_channel)})
                index_list.append([this_channel['img_pos'], this_module['name'], this_channel['name']])
            self.channels.update({this_module['name']: this_mod_chan})
 
