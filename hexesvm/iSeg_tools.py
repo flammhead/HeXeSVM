@@ -149,13 +149,37 @@ class nhr_hv_module(gen_hv_module):
         self.firmware_vers = parts[3]
         return True
 
+    def check_last_command(self)
+        command = ("*OPC?")
+        answer = self.module.send_long_command(command)
+        if answer is not '1':
+            print("LAST COMMAND ERROR!")
+            return False
+        return True        
+        
+    def set_safe_values(self):
+        # turn off HV (with ramp, all channels), set voltage and current to zero
+        answer = self.send_long_command("*RST;*OPC?")
+        if answer is not '1':
+            print("SETTING SAFE VALUES FAILED!")
+            return False
+        return True
+
 class nhr_hv_channel(gen_hv_channel):
 
-    # iSeg read commands
+    def convert_answer_volt(answer):
+        if answer in None:
+            return float('nan')
+        try value = float(answer.split('V')[0])
+        except (ValueError, TypeError):
+            return float('nan')
+        return value
+                
+    # iSeg read commands        
     def read_voltage(self):
         command = (":MEAS:VOLT? (@%d)" % self.channel)
         answer = self.module.send_long_command(command)
-        try: value = float(answer)
+        try: value = float(answer.split('V')[0])
         except (ValueError, TypeError): 
             self.voltage = float('nan')
             return float('nan')
@@ -300,6 +324,15 @@ class nhr_hv_channel(gen_hv_channel):
         return True
         
     # iSeg Operation commands
+    def emergency_off(self):
+        # shut down (w/o ramp), will stay off, until reset  
+        command = (":VOLT EMCY OFF,(@%d);*OPC?" % self.channel)
+        answer = self.module.send_long_command(command)
+        if answer is not '1':
+            print("EMERGENCY OFF ERROR!")
+            return False
+        return True      
+    
     def start_voltage_change(self):
         command = ("G%d" % self.channel)
         answer = self.module.send_long_command(command)

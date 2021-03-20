@@ -224,22 +224,24 @@ class Serial:
     
             if self.sum_receivedData == "*IDN?\r\n":
                 answer = "iseg Spezialelektronik GmbH,NR042060r4050000200,8200002,1.12"
+            if self.sum_receivedData == "*IDN?\r\n":
+                answer = "1"
             if self.sum_receivedData == ":MEAS:VOLT? (@0)\r\n":
-                answer = str(self.u[0])
+                answer = str(self.u[0]/1e3) + "E3V"
             if self.sum_receivedData == ":MEAS:VOLT? (@1)\r\n":
-                answer = str(self.u[1])
+                answer = str(self.u[1]/1e3) + "E3V"
             if self.sum_receivedData == ":MEAS:VOLT? (@2)\r\n":
-                answer = str(self.u[2])
+                answer = str(self.u[2]/1e3) + "E3V"
             if self.sum_receivedData == ":MEAS:VOLT? (@3)\r\n":
-                answer = str(self.u[3])
+                answer = str(self.u[3]/1e3) + "E3V"
             if self.sum_receivedData == ":MEAS:CURR? (@0)\r\n":
-                answer = str(self.i[0])
+                answer = str(self.i[0]/1e3) + "E-3V"
             if self.sum_receivedData == ":MEAS:CURR? (@1)\r\n":
-                answer = str(self.i[1])
+                answer = str(self.i[1]) + "E-3V"
             if self.sum_receivedData == ":MEAS:CURR? (@2)\r\n":
-                answer = str(self.i[2])
+                answer = str(self.i[2]) + "E-3V"
             if self.sum_receivedData == ":MEAS:CURR? (@3)\r\n":
-                answer = str(self.i[3])
+                answer = str(self.i[3]) + "E-3V"
 
             if self.sum_receivedData == ":READ:VOLT:LIM? (@0)\r\n":
                 answer = "41"
