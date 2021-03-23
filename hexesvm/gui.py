@@ -1177,7 +1177,7 @@ class MainWindow(_qw.QMainWindow):
                 #self.channel_voltage_lcds[i].setText(str(this_hv_channel.voltage))
 
             current_value = this_hv_channel.current
-            if this_hv_channel.module.is_high_precission:
+            if this_hv_channel.module.is_high_precission or this_hv_channel.module.type == "NHR":
                 self.current_units[i].setText("nA")
                 current_value = current_value*1E9
             else:

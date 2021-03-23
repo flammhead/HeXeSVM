@@ -19,6 +19,7 @@ class gen_hv_module:
         self.sleep_time = 1
         self.response_timeout = 5
         self.is_high_precission = False
+        self.type = None
         self.is_connected = False
         self.child_channels = []
         self.u_max = ""
@@ -72,9 +73,6 @@ class gen_hv_module:
     def close_connection(self):
         self.serial_conn.close()
         self.is_connected = False
-        for channel in self.child_channels:
-            channel.__init__(channel.name, self, channel.channel)
-
         self.u_max = ""
         self.i_max = ""
         self.model_no = ""
@@ -141,11 +139,34 @@ class gen_hv_channel:
 
 class nhr_hv_module(gen_hv_module):
 
+     def __init__(self, name, port):
+        super().__init__(name, port)
+        self.type = "NHR"
+
      def add_channel(self, number, name, defaults):
         new_child_hv_channel = nhr_hv_channel(name, self, number, defaults)
         self.child_channels.append(new_child_hv_channel)
         
         return new_child_hv_channel
+		
+     def send_long_command(self, command):
+          # Re-define the send function since the NHR module can handle all input in serial!
+          command += "\r\n"
+          self.serial_conn.write(command.encode())
+          answer = self.serial_conn.readline().decode()
+          print(command + " -> " + answer)
+          if answer != command:
+               print(command + "->" +answer_char+"("+str(i)+")")
+               #if self.serial_conn.readline().decode() != command[i]:
+               print("inconsistent response from module!")
+               # To prevent faiulure of the HV, diconnect it immediatly, when this happens!
+               self.close_connection()
+               return None
+
+          result_1 = self.serial_conn.readline()
+          print(" => " + result_1.decode().split('\r')[0])
+          return result_1.decode().split('\r')[0]        
+
 
      def sync_module(self):
          if self.read_module_info():
@@ -211,7 +232,7 @@ class nhr_hv_channel(gen_hv_channel):
         command = (":MEAS:CURR? (@%d)" % self.channel)
         answer = self.module.send_long_command(command) 
         self.current = self.convert_answer_with_unit(answer, "A")
-
+        print(self.current)
         
     def read_voltage_limit(self):
         command = (":READ:VOLT:LIM? (@%d)" % self.channel)
@@ -248,7 +269,7 @@ class nhr_hv_channel(gen_hv_channel):
         try: value = int(answer)
         except (ValueError, TypeError): return False
         #Convert to binary and reverse to have same numbering as in manual
-        binary = '{0:08b}'.format(value)[::-1]
+        binary = '{0:16b}'.format(value)[::-1]
         self.polarity_positive = (binary[0] == '1')
         self.hv_switch_off = (binary[3] == '1')        
         self.channel_in_error = (binary[2] == '1')        
@@ -311,6 +332,7 @@ class nhq_hv_module(gen_hv_module):
 
     def __init__(self, name, port):
         super().__init__(name, port)
+        self.type = "NHQ"
 
     def add_channel(self, number, name, defaults):
         new_child_hv_channel = nhq_hv_channel(name, self, number, defaults)
