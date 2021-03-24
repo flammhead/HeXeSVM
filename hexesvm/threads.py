@@ -57,7 +57,10 @@ class MonitorIsegModule(_qc.QThread):
                     if self.module.stop_thread:
                         self.stop()   
                         break
-                    channel.read_status()                                 
+
+                    if channel.module.type == "NHQ":
+                        channel.read_status()                                 
+                        
                     if self.module.stop_thread:
                         self.stop()         
                         break  
@@ -69,7 +72,10 @@ class MonitorIsegModule(_qc.QThread):
                     if self.module.stop_thread:
                         self.stop()         
                         break                
-                    channel.read_trip_current()
+
+                    if channel.module.type == "NHQ":    
+                        channel.read_trip_current()
+                        
                     if self.module.stop_thread:
                         self.stop()      
                         break
@@ -77,7 +83,10 @@ class MonitorIsegModule(_qc.QThread):
                     if self.module.stop_thread:
                         self.stop()
                         break
-                    channel.read_auto_start()
+                        
+                    if channel.module.type == "NHQ":
+                        channel.read_auto_start()
+                        
             if i >= n_read_all:
                 i = 0
             i+=1    

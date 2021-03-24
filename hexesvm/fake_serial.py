@@ -21,22 +21,23 @@ class Serial:
         self.is_open  = True
         self._receivedData = ''
         self.sum_receivedData = ""
-
+        self.echoed = False
+        
         self.time_last_command = 0
 
         n_channels = 0
         # Simulate a NHQ module at COM1
         if port=="COM1":
             self.n_channels = 2
-        # For COM2 lets take an NHR module
-        elif port=="COM2":
+        # For COM3 lets take an NHR module
+        elif port=="COM3":
             self.n_channels = 4
  
         self.u = self.n_channels*[0]
         self.i = self.n_channels*[0]
         if port=="COM1":
             self.r = self.n_channels*[40.5e6]
-        if port=="COM2":
+        if port=="COM3":
             self.r = [40e9, 40e9, _np.inf, _np.inf]
         self.v = self.n_channels*[2]
         self.d = self.n_channels*[0]
@@ -114,7 +115,7 @@ class Serial:
         self.refresh_board()
         if not "\r\n" in self.sum_receivedData:
             return self.read()
-
+            
        
         if self.port == "COM1":
 
@@ -224,8 +225,13 @@ class Serial:
             if self.sum_receivedData == "A2\r\n":
               answer = "8"                                 
 
-        elif self.port == "COM2":
+        elif self.port == "COM3":
 
+            if self.echoed == False:
+                self.echoed = True
+                return self.sum_receivedData.encode()
+            self.echoed = False
+            
             ######################
             # NHR virtualization #
             ######################
@@ -325,6 +331,10 @@ class Serial:
               answer = "S2="+self.ch_state[1]
               if self.ch_state[1] == "ERR":          
                   self.ch_state[1] = "ON"
+
+            # Since for the NHR board, we don't need to wait for each character
+            # To echo, we prepend the echo to the answer of the command
+            answer = answer
 
 
                                                                                      

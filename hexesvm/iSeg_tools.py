@@ -154,9 +154,9 @@ class nhr_hv_module(gen_hv_module):
           command += "\r\n"
           self.serial_conn.write(command.encode())
           answer = self.serial_conn.readline().decode()
-          print(command + " -> " + answer)
+          #print(repr(command) + " -> " + repr(answer))
           if answer != command:
-               print(command + "->" +answer_char+"("+str(i)+")")
+               print(command + "->" +answer)
                #if self.serial_conn.readline().decode() != command[i]:
                print("inconsistent response from module!")
                # To prevent faiulure of the HV, diconnect it immediatly, when this happens!
@@ -164,7 +164,7 @@ class nhr_hv_module(gen_hv_module):
                return None
 
           result_1 = self.serial_conn.readline()
-          print(" => " + result_1.decode().split('\r')[0])
+          #print(" => " + result_1.decode().split('\r')[0])
           return result_1.decode().split('\r')[0]        
 
 
@@ -194,7 +194,7 @@ class nhr_hv_module(gen_hv_module):
      def check_last_command(self):
         command = ("*OPC?")
         answer = self.module.send_long_command(command)
-        if answer is not '1':
+        if not answer == '1':
             print("LAST COMMAND ERROR!")
             return False
         return True        
@@ -202,7 +202,7 @@ class nhr_hv_module(gen_hv_module):
      def set_safe_values(self):
         # turn off HV (with ramp, all channels), set voltage and current to zero
         answer = self.send_long_command("*RST;*OPC?")
-        if answer is not '1':
+        if not answer == '1':
             print("SETTING SAFE VALUES FAILED!")
             return False
         return True
@@ -232,7 +232,6 @@ class nhr_hv_channel(gen_hv_channel):
         command = (":MEAS:CURR? (@%d)" % self.channel)
         answer = self.module.send_long_command(command) 
         self.current = self.convert_answer_with_unit(answer, "A")
-        print(self.current)
         
     def read_voltage_limit(self):
         command = (":READ:VOLT:LIM? (@%d)" % self.channel)
@@ -294,7 +293,7 @@ class nhr_hv_channel(gen_hv_channel):
         # shut down (w/o ramp), will stay off, until reset  
         command = (":VOLT EMCY OFF,(@%d);*OPC?" % self.channel)
         answer = self.module.send_long_command(command)
-        if answer is not '1':
+        if not answer == '1':
             print("EMERGENCY OFF ERROR!")
             return False
         return True      
