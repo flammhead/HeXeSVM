@@ -249,7 +249,7 @@ class nhr_hv_channel(gen_hv_channel):
         self.set_voltage = self.convert_answer_with_unit(answer, "V")
         
     def read_ramp_speed(self):
-        command = (":READ:RAMP:VOLT? (@%d)" % self.channel)
+        command = (":CONF:RAMP:VOLT:UP? (@%d)" % self.channel)
         answer = self.module.send_long_command(command)
         self.ramp_speed = self.convert_answer_with_unit(answer, "V/s")
     
@@ -318,7 +318,7 @@ class nhr_hv_channel(gen_hv_channel):
     def write_ramp_speed(self, speed):
         try: speed_int = int(speed)
         except (ValueError, TypeError): return "ERR"
-        command = (":CONF:RAMP:VOLT:UP %d,(@%d);*OPC?" % (speed_int, self.channel))
+        command = (":CONF:RAMP:VOLT %d,(@%d);*OPC?" % (speed_int, self.channel))
         answer = self.module.send_long_command(command)
         return not answer == '1'
              

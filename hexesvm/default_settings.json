@@ -23,7 +23,7 @@
     "interlock_parameter": "p1",
 	"interlock_value": 1.2,
 	
-	"use_virtual_hardware": true,
+	"use_virtual_hardware": false,
 	"modules": [
 	{
 		"name": "PMT module",
