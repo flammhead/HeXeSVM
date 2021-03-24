@@ -301,12 +301,12 @@ class nhr_hv_channel(gen_hv_channel):
     def turn_on_hv(self):
         command = (":VOLT ON,(@%d);*OPC?" % self.channel)
         answer = self.module.send_long_command(command)
-        return answer == '1'
+        return not answer == '1'
         
     def turn_off_hv(self):
         command = (":VOLT OFF,(@%d);*OPC?" % self.channel)
         answer = self.module.send_long_command(command)
-        return answer == '1'
+        return not answer == '1'
         
     def set_polarity(self, pol):
         if pol == "pos":
@@ -339,16 +339,16 @@ class nhr_hv_channel(gen_hv_channel):
         except (ValueError, TypeError): return "ERR"
         command = (":VOLT %d,(@%d);*OPC?" % (voltage_int, self.channel))
         answer = self.module.send_long_command(command)
-        return answer == '1'
+        return not answer == '1'
         
     def write_ramp_speed(self, speed):
         try: speed_int = int(speed)
         except (ValueError, TypeError): return "ERR"
         command = (":CONF:RAMP:VOLT:UP %d,(@%d);*OPC?" % (speed_int, self.channel))
         answer_1 = self.module.send_long_command(command)
-        command = (":CONF:RAMP:VOLT:DOWN %d,(@%d);*OPC?" % (speed_int, self.channel))
+        command = (":CONF:RAMP:VOLT:DO %d,(@%d);*OPC?" % (speed_int, self.channel))
         answer_2 = self.module.send_long_command(command)
-        return answer_1 == '1' and answer_2 == '2'
+        return not(answer_1 == '1' and answer_2 == '1')
              
     def write_trip_current(self, trip_current):
         print("write_trip_current not implemented")
