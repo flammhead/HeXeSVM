@@ -293,7 +293,7 @@ class nhr_hv_channel(gen_hv_channel):
         # shut down (w/o ramp), will stay off, until reset  
         command = (":VOLT EMCY OFF,(@%d);*OPC?" % self.channel)
         answer = self.module.send_long_command(command)
-        if not answer == '1':
+        if answer == '1':
             print("EMERGENCY OFF ERROR!")
             return False
         return True      
@@ -301,26 +301,54 @@ class nhr_hv_channel(gen_hv_channel):
     def turn_on_hv(self):
         command = (":VOLT ON,(@%d);*OPC?" % self.channel)
         answer = self.module.send_long_command(command)
-        return not answer == '1'
+        return answer == '1'
         
     def turn_off_hv(self):
         command = (":VOLT OFF,(@%d);*OPC?" % self.channel)
         answer = self.module.send_long_command(command)
-        return not answer == '1'
+        return answer == '1'
         
+    def set_polarity(self, pol):
+        if pol == "pos":
+            set_pol = True
+        elif pol == "neg":
+            set_pol = False
+        else:
+            print("requested polarity: "+pol+" not understood!!")
+            return False
+            
+        current_pol = self.polarity_positive
+        change_needed = np.logical_xor(set_pol, current_pol)
+        if change_needed:
+            return self.switch_polarity()
+        return True
+                         
+    def switch_polarity(self):
+        if self.polarity_positive:
+            command = (":CONF:OUT:POL n,(@%d);*OPC?" % self.channel)
+        else:
+            command = (":CONF:OUT:POL p,(@%d);*OPC?" % self.channel)
+
+        answer = self.module.send_long_command(command)
+        if not answer == '1':
+            return False
+        return True        
+
     def write_set_voltage(self, voltage):
         try: voltage_int = int(voltage)
         except (ValueError, TypeError): return "ERR"
         command = (":VOLT %d,(@%d);*OPC?" % (voltage_int, self.channel))
         answer = self.module.send_long_command(command)
-        return not answer == '1'
+        return answer == '1'
         
     def write_ramp_speed(self, speed):
         try: speed_int = int(speed)
         except (ValueError, TypeError): return "ERR"
-        command = (":CONF:RAMP:VOLT %d,(@%d);*OPC?" % (speed_int, self.channel))
-        answer = self.module.send_long_command(command)
-        return not answer == '1'
+        command = (":CONF:RAMP:VOLT:UP %d,(@%d);*OPC?" % (speed_int, self.channel))
+        answer_1 = self.module.send_long_command(command)
+        command = (":CONF:RAMP:VOLT:DOWN %d,(@%d);*OPC?" % (speed_int, self.channel))
+        answer_2 = self.module.send_long_command(command)
+        return answer_1 == '1' and answer_2 == '2'
              
     def write_trip_current(self, trip_current):
         print("write_trip_current not implemented")
