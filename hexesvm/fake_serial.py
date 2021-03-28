@@ -49,6 +49,8 @@ class Serial:
         self.ch_last_trip = self.n_channels*[0]
         self.channel_state_bin = self.n_channels*[170] 
         self.ch_state = self.n_channels*["ON"]
+        self.hv_on = self.n_channels*[False]
+        self.is_positive = self.n_channels*[False]
             
         
     def refresh_board(self):
@@ -236,86 +238,85 @@ class Serial:
             # NHR virtualization #
             ######################
             
+            if "(@" in self.sum_receivedData:
+                # Extract the channel number on which to act the command
+                split_command = self.sum_receivedData.split('(@')
+                channel_trail = split_command[1]
+                channel_number = int(channel_trail.split(')')[0])
+
+            
             if self.sum_receivedData == "*IDN?\r\n":
                 answer = "iseg Spezialelektronik GmbH,NR042060r4050000200,8200002,1.12"
             if self.sum_receivedData == "*OPC?\r\n":
                 answer = "1"
-            if self.sum_receivedData == ":MEAS:VOLT? (@0)\r\n":
-                answer = str(self.u[0]/1e3) + "E3V"
-            if self.sum_receivedData == ":MEAS:VOLT? (@1)\r\n":
-                answer = str(self.u[1]/1e3) + "E3V"
-            if self.sum_receivedData == ":MEAS:VOLT? (@2)\r\n":
-                answer = str(self.u[2]/1e3) + "E3V"
-            if self.sum_receivedData == ":MEAS:VOLT? (@3)\r\n":
-                answer = str(self.u[3]/1e3) + "E3V"
-            if self.sum_receivedData == ":MEAS:CURR? (@0)\r\n":
-                answer = str(self.i[0]/1e3) + "E-3A"
-            if self.sum_receivedData == ":MEAS:CURR? (@1)\r\n":
-                answer = str(self.i[1]/1e3) + "E-3A"
-            if self.sum_receivedData == ":MEAS:CURR? (@2)\r\n":
-                answer = str(self.i[2]/1e3) + "E-3A"
-            if self.sum_receivedData == ":MEAS:CURR? (@3)\r\n":
-                answer = str(self.i[3]/1e3) + "E-3A"
-
-            if self.sum_receivedData == ":READ:VOLT:LIM? (@0)\r\n":
+                
+            if "MEAS:VOLT?" in self.sum_receivedData:
+                answer = str(self.u[channel_number]/1e3)+"E3V"
+            if "MEAS:CURR?" in self.sum_receivedData:
+                answer = str(self.i[channel_number]*1e3)+"E-3A"
+            
+            if "READ:VOLT:LIM?" in self.sum_receivedData:
                 answer = "41"
-            if self.sum_receivedData == ":READ:VOLT:LIM? (@1)\r\n":
-                answer = "42"  
-            if self.sum_receivedData == ":READ:VOLT:LIM? (@2)\r\n":
-                answer = "43"
-            if self.sum_receivedData == ":READ:VOLT:LIM? (@3)\r\n":
-                answer = "44"  
-            if self.sum_receivedData == ":READ:CURR:LIM? (@0)\r\n":
-                answer = "41"
-            if self.sum_receivedData == ":READ:CURR:LIM? (@1)\r\n":
-                answer = "42"      
-            if self.sum_receivedData == ":READ:CURR:LIM? (@2)\r\n":
-                answer = "43"
-            if self.sum_receivedData == ":READ:CURR:LIM? (@3)\r\n":
-                answer = "44"      
+            if "READ:CURR:LIM?" in self.sum_receivedData:
+                answer = "44"            
 
-            if self.sum_receivedData == ":READ:VOLT? (@0)\r\n":
-                answer = str(self.d[0]/1e3)+"E3V"  
-            if self.sum_receivedData == ":READ:VOLT? (@1)\r\n":
-                answer = str(self.d[1]/1e3)+"E3V"
-            if self.sum_receivedData == ":READ:VOLT? (@2)\r\n":
-                answer = str(self.d[2]/1e3)+"E3V"  
-            if self.sum_receivedData == ":READ:VOLT? (@3)\r\n":
-                answer = str(self.d[3]/1e3)+"E3V"  
+            if "READ:VOLT?" in self.sum_receivedData:
+                answer = str(self.d[channel_number]/1e3)+"E3V"  
 
+            if ":VOLT " in self.sum_receivedData:
+                if " ON,(" in self.sum_receivedData:
+                    # Turn on HV channel
+                    pass
+                elif " OFF,(" in self.sum_receivedData:
+                    # Turn off HV channel
+                    pass
+                elif "EMCY OFF,(":
+                    # Turn off channel without ramp set emcy state
+                    pass
+                else:
+                    value_trail = self.sum_receivedData.split('VOLT ')[1]
+                    value = int(value_trail.split(',(')[0])
+                    self.d[channel_number] = value
+            
             if ":VOLT " in self.sum_receivedData and not ("ON" in self.sum_receivedData or "OFF" in self.sum_receivedData):
-                channel_trail = self.sum_receivedData.split('(@')[1]
-                channel = int(channel_trail.split(')')[0])
                 value_trail = self.sum_receivedData.split('VOLT ')[1]
                 value = int(value_trail.split(',(')[0])
-                self.d[channel] = value
+                self.d[channel_number] = value
                 answer = "1"
          
-            if self.sum_receivedData == ":READ:RAMP:VOLT? (@0)\r\n":
-                answer = str(self.v[0])+"V/s"
-            if self.sum_receivedData == ":READ:RAMP:VOLT? (@1)\r\n":
-                answer = str(self.v[1])+"V/s"        
-            if self.sum_receivedData == ":READ:RAMP:VOLT? (@2)\r\n":
-                answer = str(self.v[2])+"V/s"       
-            if self.sum_receivedData == ":READ:RAMP:VOLT? (@3)\r\n":
-                answer = str(self.v[3])+"V/s"          
+         
+            if ":CONF:RAMP:VOLT:UP?" in self.sum_receivedData:
+                answer = str(self.v[channel_number]/1e3)+"E3V/s"   
 
-            if ":CONF:RAMP:VOLT:UP " in self.sum_receivedData:
-                channel_trail = self.sum_receivedData.split('(@')[1]
-                channel = int(channel_trail.split(')')[0])
+            if ":CONF:RAMP:VOLT:UP " in self.sum_receivedData: 
                 value_trail = self.sum_receivedData.split(':CONF:RAMP:VOLT:UP ')[1]
                 value = int(value_trail.split(',(')[0])
-                self.v[channel] = value
-                answer = "1"                
+                self.v[channel_number] = value
+                answer = "1"
+            if ":CONF:RAMP:VOLT:DO " in self.sum_receivedData:
+                value_trail = self.sum_receivedData.split(':CONF:RAMP:VOLT:DO ')[1]
+                value = int(value_trail.split(',(')[0])
+                self.v[channel_number] = value
+                answer = "1"
+                
 
             if ":VOLT ON,(@" in self.sum_receivedData:
                 channel = int(self.sum_receivedData[11])
-                self.ch_state[channel] = "ON"
+                self.hv_on[channel] = True
                 if self.d[channel] != self.u[channel]:
                     self.ch_ramping[0] = True
                 self.chan_g_time[0] = time.time()
                 answer = "1"
 
+            if ":CONF:OUT:POL " in self.sum_receivedData:
+                value_trail = self.sum_receivedData.split(':CONF:OUT:POL ')[1]
+                value = value_trail.split(',(')[0]
+                if not self.hv_on[channel_number]:
+                    if abs(self.u[channel_number]) < 0.002 * 6E3:
+                        self.is_positive[channel_number] = value == "p"
+                        answer = "1"                
+                else:
+                    answer = "0"            
               
             if self.sum_receivedData == ":READ:CHAN:STAT? (@0)\r\n":
               answer = "S1="+ self.ch_state[0]
