@@ -269,13 +269,22 @@ class nhr_hv_channel(gen_hv_channel):
         try: value = int(answer)
         except (ValueError, TypeError): return False
         #Convert to binary and reverse to have same numbering as in manual
-        binary = '{0:16b}'.format(value)[::-1]
+        binary = '{0:32b}'.format(value)[::-1]
         self.polarity_positive = (binary[0] == '1')
-        self.hv_switch_off = (binary[3] == '1')        
-        self.channel_in_error = (binary[2] == '1')        
+        self.hv_switch_off = (binary[3] == '0')        
+        self.channel_in_error = (binary[5] == '1')        
         self.channel_is_ramping = (binary[4] == '1') 
         self.channel_is_tripped = (binary[1] == '1')   
         self.hardware_inhibit = (binary[12] == '1')                
+
+        if self.hv_switch_off:
+            self.status = ""
+        elif binary[19] == '1':
+            self.status = "L2H"
+        elif binary[20] == '1':
+            self.status = "H2L"
+        elif not self.channel_is_ramping:
+            self.status = "ON"
 
         # Not part of the register...
         command = (":CONF:TRIP:ACT? (@%d)" % self.channel)
