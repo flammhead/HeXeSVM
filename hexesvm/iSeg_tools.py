@@ -13,12 +13,13 @@ with open("hexesvm/default_settings.json") as settings:
 
 class gen_hv_module:
 
-    def __init__(self, name, port):
+    def __init__(self, name, port, defaults):
         self.name = name
         self.port = port
+        self.defaults = defaults
         self.sleep_time = 1
         self.response_timeout = 5
-        self.is_high_precission = False
+        self.is_high_precission = self.defaults['is_high_precission']
         self.type = None
         self.is_connected = False
         self.child_channels = []
@@ -139,8 +140,8 @@ class gen_hv_channel:
 
 class nhr_hv_module(gen_hv_module):
 
-     def __init__(self, name, port):
-        super().__init__(name, port)
+     def __init__(self, name, port, defaults):
+        super().__init__(name, port, defaults)
         self.type = "NHR"
 
      def add_channel(self, number, name, defaults):
@@ -357,8 +358,8 @@ class nhr_hv_channel(gen_hv_channel):
 
 class nhq_hv_module(gen_hv_module):
 
-    def __init__(self, name, port):
-        super().__init__(name, port)
+    def __init__(self, name, port, defaults):
+        super().__init__(name, port, defaults)
         self.type = "NHQ"
 
     def add_channel(self, number, name, defaults):

@@ -29,6 +29,7 @@
 		"name": "PMT module",
 		"port": "COM1",
 		"type": "NHQ",
+		"is_high_precission": false,
 
 		"channels": [
 		{
@@ -63,6 +64,7 @@
 		"name": "Drift module",
 		"port": "COM3",
 		"type": "NHR",
+		"is_high_precission": false,
 
 		"channels": [
 		{

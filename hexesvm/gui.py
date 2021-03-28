@@ -79,14 +79,13 @@ class MainWindow(_qw.QMainWindow):
         self._init_menu()
         self._init_status_bar()
         self._init_subwindows()
-
-        
-                
+  
     def updateUI(self):
 
         self.update_status_bar()
         self.update_overview()
-        self.update_module_tabs()
+        for module_tab in self.mod_tabs.values():
+            module_tab.update_module_tab()
         # The current time stamp needs to be updated for the hearbeat detection
         self.time_stamp = time.time()
 
@@ -99,9 +98,9 @@ class MainWindow(_qw.QMainWindow):
         index_list = [] # Helper dict for sorting later on
         for idx, this_module in enumerate(self.defaults['modules']):
            if this_module['type'] == "NHQ":
-               self.modules.update({this_module['name']: _iseg.nhq_hv_module(this_module['name'], this_module['port'])})
+               self.modules.update({this_module['name']: _iseg.nhq_hv_module(this_module['name'], this_module['port'], this_module)})
            elif this_module['type'] == "NHR":
-               self.modules.update({this_module['name']: _iseg.nhr_hv_module(this_module['name'], this_module['port'])})
+               self.modules.update({this_module['name']: _iseg.nhr_hv_module(this_module['name'], this_module['port'], this_module)})
            else:
               print("MODULE OF TYPE:", this_module['type'], " is not supported!!")
               continue
@@ -294,13 +293,17 @@ class MainWindow(_qw.QMainWindow):
         self.mod_tabs = {}
         for key, mod in self.modules.items():
             if mod.type == "NHR":
-                this_tab = _gui_hv_modules.nhr_module_tab(slef, self.defaults, this_module)
+                this_tab = _gui_hv.nhr_module_tab(self, self.defaults, mod)
+                this_tab._init_module_tab()
                 self.mod_tabs.update({key: this_tab})
-            elif this_module.type == "NHQ":
-                this_tab = _gui_hv_modules.nhq_module_tab(slef, self.defaults, this_module)
+                self.main_widget.addTab(this_tab, key)
+            elif mod.type == "NHQ":
+                this_tab = _gui_hv.nhq_module_tab(self, self.defaults, mod)
+                this_tab._init_module_tab()
                 self.mod_tabs.update({key: this_tab})
+                self.main_widget.addTab(this_tab, key)
             else:
-                MainWindow.log.debug("Called MainWindow._init_module_tabs: Non supported Module type required! "+this_module.type)
+                MainWindow.log.debug("Called MainWindow._init_module_tabs: Non supported Module type required! "+mod.type)
 
 
         self.main_widget.addTab(self.rampScheduleTab, "Schedule")
@@ -309,47 +312,10 @@ class MainWindow(_qw.QMainWindow):
         self._init_settings()
         self._init_ramp_schedule_tab()
 
-        # self._init_module_tabs()
-        
         self._init_overview()
 
 #TODO
-    def _init_module_tabs(self):
-        MainWindow.log.debug("Called MainWindow._init_module_tabs")
-        # intialize a tabs for each of the HV Modules
-        self.hv_module_tabs = []
-        for this_module in self.modules:
-            if this_module.type == "NHR":
-                this_tab = _gui_hv_modules.nhr_module_tab(slef, self.defaults, this_module)
-                self.hv_module_tabs.append(this_tab)
-            elif this_module.type == "NHQ":
-                this_tab = _gui_hv_modules.nhq_module_tab(slef, self.defaults, this_module)
-                self.hv_module_tabs.append(this_tab)
-            else:
-                MainWindow.log.debug("Called MainWindow._init_module_tabs: Non supported Module type required! "+this_module.type)
-        
-        
-        #DONE
-        
-        
-        self.module_com_labels = []
-        self.module_com_line_edits = []
-        self.module_is_high_precission_labels = []        
-        self.module_is_high_precission_boxes = []
-        self.module_connect_buttons = []
-        self.module_disconnect_buttons = []           
-        self.module_umax_labels = []
-        self.module_umax_fields = []        
-        self.module_imax_labels = []
-        self.module_imax_fields = []
-        self.module_serial_labels = []
-        self.module_serial_fields = []        
-        self.module_firmware_labels = []
-        self.module_firmware_fields = []
-        self.module_svgs = []
-        self.module_hsep = []              
-        self.module_vsep = [] 
-        self.module_grid_layouts = []
+    '''
 
         # create these as nested dictionaries
         self.all_channels_error_sign = {}
@@ -409,99 +375,7 @@ class MainWindow(_qw.QMainWindow):
             self.all_channels_apply_button.update({key: {}})
             self.all_channels_start_button.update({key: {}})
 
-            this_tab = self.mod_tabs[key]
-            this_module = self.modules[key]
-    
-            this_com_port_label = _qw.QLabel("Port:")
-            
-            self.module_com_labels.append(this_com_port_label)
-            this_com_port = _qw.QLineEdit(this_tab)
-            this_com_port.setText(this_module.port)
-            self.module_com_line_edits.append(this_com_port)
-            #this_com_port.returnPressed.connect(this_connect_button.click)
-            
-            this_high_precision_label = _qw.QLabel("High precision:")
-            self.module_is_high_precission_labels.append(this_high_precision_label)
-            this_high_precision_box = _qw.QCheckBox(this_tab)
-            this_high_precision_box.setToolTip("Check if this channel provides high-precision read out!")
-            self.module_is_high_precission_boxes.append(this_high_precision_box)
-            
-            this_connect_button = _qw.QPushButton("&Connect")
-            self.module_connect_buttons.append(this_connect_button)
-            this_connect_button.clicked.connect(partial(self.connect_hv_module, key, i))
-            
-            this_disconnect_button = _qw.QPushButton("&Disconnect")
-            this_disconnect_button.setEnabled(False)               
-            self.module_disconnect_buttons.append(this_disconnect_button)
-            this_disconnect_button.clicked.connect(partial(self.disconnect_hv_module, key, i))      
-            
-            this_u_max_label = _qw.QLabel("U(V):")
-            this_u_max_label.setToolTip("Maximum output voltage of the board")
-            self.module_umax_labels.append(this_u_max_label)
-            this_u_max_field = _qw.QLineEdit(this_tab)
-            this_u_max_field.setToolTip("Maximum output voltage of the board")
-            this_u_max_field.setDisabled(True)
-            self.module_umax_fields.append(this_u_max_field)
-            
-            this_i_max_label = _qw.QLabel("I(mA):")
-            this_i_max_label.setToolTip("Maximum output current of the board")
-            self.module_imax_labels.append(this_i_max_label)
-            this_i_max_field = _qw.QLineEdit(this_tab)
-            this_i_max_field.setToolTip("Maximum output current of the board")
-            this_i_max_field.setDisabled(True)
-            self.module_imax_fields.append(this_i_max_field)            
 
-            this_serial_number_label = _qw.QLabel("Serial:")
-            self.module_serial_labels.append(this_serial_number_label)
-            this_serial_number_field = _qw.QLineEdit(this_tab)
-            this_serial_number_field.setDisabled(True)
-            self.module_serial_fields.append(this_serial_number_field)  
-            
-            this_firmware_label = _qw.QLabel("Firmware:")
-            self.module_firmware_labels.append(this_firmware_label)
-            this_firmware_field = _qw.QLineEdit(this_tab)
-            this_firmware_field.setDisabled(True)
-            self.module_firmware_fields.append(this_firmware_field)    
-
-            this_mod_type = self.defaults['modules'][i]['type']
-            if this_mod_type == "NHQ":
-                this_module_svg  = _qs.QSvgWidget('hexesvm/icons/iseg_nhq_front_1_discon.svg', this_tab)
-            elif this_mod_type == "NHR":
-                this_module_svg  = _qs.QSvgWidget('hexesvm/icons/iseg_nhr_front_3_discon.svg', this_tab)
-
-            self.module_svgs.append(this_module_svg) 
-            svg_min_size = _qc.QSize(82,538)
-            svg_max_size = _qc.QSize(82,538)
-            this_module_svg.setMinimumSize(svg_min_size)
-            this_module_svg.setMaximumSize(svg_max_size)
-            
-            horizontal_separator = _qw.QLabel("")
-            self.module_hsep.append(horizontal_separator)
-            horizontal_separator.setFrameStyle(_qw.QFrame.HLine)
-            horizontal_separator.setLineWidth(2)
-        
-            grid = _qw.QGridLayout()
-            grid.setSpacing(10)
-            # Row 1 widgetd
-            grid.addWidget(this_com_port_label, 1,2)
-            grid.addWidget(this_com_port, 1,3,1,1)
-            grid.addWidget(this_connect_button, 1,4, 1,1, _qc.Qt.AlignHCenter)
-            grid.addWidget(this_disconnect_button, 1,5, 1,1, _qc.Qt.AlignHCenter)            
-            # Row 2 and 3 widgets
-            grid.addWidget(this_u_max_label, 2,2)
-            grid.addWidget(this_u_max_field, 2,3)
-            grid.addWidget(this_i_max_label, 2,4)
-            grid.addWidget(this_i_max_field, 2,5)
-            grid.addWidget(this_serial_number_label, 3,2)
-            grid.addWidget(this_serial_number_field, 3,3)  
-            grid.addWidget(this_firmware_label, 3,4)
-            grid.addWidget(this_firmware_field, 3,5)
-            grid.addWidget(this_high_precision_label, 1, 6, 2,1)
-            grid.addWidget(this_high_precision_box, 3,6)
-
-            grid.addWidget(this_module_svg, 1,7,12,2)
-            grid.addWidget(horizontal_separator, 4,1,1,6)
-           
 
             # Create a tab for each channel in this moduel
             this_module_ch_tabs = _qw.QTabWidget(this_tab)
@@ -712,25 +586,7 @@ class MainWindow(_qw.QMainWindow):
         
         return grid
         
-    def update_module_tabs(self):
-        #MainWindow.log.debug("Called MainWindow.update_module_tabs")
-        for i, key in zip(range(len(self.modules)), self.modules.keys()):    
-            this_tab = self.mod_tabs[key]
-            this_module = self.modules[key]
-            
-            self.module_umax_fields[i].setText(this_module.u_max)
-            self.module_imax_fields[i].setText(this_module.i_max)
-            self.module_serial_fields[i].setText(this_module.model_no)
-            self.module_firmware_fields[i].setText(this_module.firmware_vers)
 
-            # update the "virtual" module
-            # DO SOME MAGIC HERE
-
-            # Trigger update of the channel sections
-            for idx in range(len(self.channels[key].keys())):
-                 self.update_channel_section(key, list(self.channels[key].keys())[idx])
-
-        return
         
     def update_channel_section(self, mod_key, channel_key):
         this_tab = self.mod_tabs[mod_key]
@@ -878,70 +734,6 @@ class MainWindow(_qw.QMainWindow):
         
         return
             
-        
-    def connect_hv_module(self, key, index):
-        MainWindow.log.debug("connecting "+key)  
-        self.statusBar().showMessage("connecting "+key)
-        com_port = self.module_com_line_edits[index].text().strip()
-        self.modules[key].set_comport(com_port)
-        is_high_precission = self.module_is_high_precission_boxes[index].checkState()
-        self.modules[key].is_high_precission = is_high_precission
-        
-        try:
-            self.modules[key].establish_connection()
-            
-        except FileNotFoundError:
-            MainWindow.log.warning("Could not connect to HV Module: "
-                   			"Wrong COM Port")
-            self.statusBar().showMessage("Wrong COM Port")
-            self.err_msg_module = _qw.QMessageBox.warning(self, "HV module",
-                                   	"Connection Failed! "
-                                   	"Wrong Com port!")
-            return
-        # add here exception for com port in use!
-        self.modules[key].sync_module()
-        self.modules[key].read_module_info()
-        self.module_com_line_edits[index].setDisabled(True)
-        self.module_is_high_precission_boxes[index].setEnabled(False)
-        self.module_connect_buttons[index].setEnabled(False)
-        self.module_disconnect_buttons[index].setEnabled(True)        
-        self.start_reader_thread(self.modules[key])
-        return
-        
-    def disconnect_hv_module(self, key, index):
-        MainWindow.log.debug("disconnecting "+key)
-        self.statusBar().showMessage("disconnecting "+key)
-        self.stop_reader_thread(self.modules[key])
-        
-        self.modules[key].close_connection()
-        self.module_com_line_edits[index].setDisabled(False)      
-        self.module_is_high_precission_boxes[index].setEnabled(True)        
-        self.module_disconnect_buttons[index].setEnabled(False)        
-        self.module_connect_buttons[index].setEnabled(True)
-        return
-        
-    def start_reader_thread(self, module):
-        if module.is_connected:
-            if not module.reader_thread:
-                module_thread = _thr.MonitorIsegModule(module)
-                module.set_reader_thread(module_thread)
-                module_thread.start()
-                MainWindow.log.debug("thread "+module.name+" started")
-                self.statusBar().showMessage("thread "+module.name+" started") 
-        return
-
-    def stop_reader_thread(self, module):
-        if not module.is_connected:
-            return False
-        module.stop_running_thread()      
-
-        while module.board_occupied:
-            MainWindow.log.debug("Waiting for thread "+module.name+" to stop")
-            self.statusBar().showMessage("Waiting for thread "+module.name+" to stop")
-            time.sleep(0.2)
-        MainWindow.log.debug("thread "+module.name+" stopped")
-        self.statusBar().showMessage("thread "+module.name+" stopped")
-        return True
 
     @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')      
     def change_channel_hv_field(self, module_key, channel_key, set_voltage, ramp_speed):
@@ -1113,7 +905,7 @@ class MainWindow(_qw.QMainWindow):
             self.modules[module_key].board_occupied = False
             self.start_reader_thread(self.modules[module_key])
             return False
-
+    '''
 #TODO
 
     def _init_overview(self):
