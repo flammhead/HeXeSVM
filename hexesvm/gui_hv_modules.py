@@ -631,11 +631,77 @@ class nhr_channel_tab(gen_channel_tab):
         
     def _init_channel_tab(self):
         super()._init_channel_tab()
+        # Push button to change board polarity
+        self.change_pol_button = _qw.QPushButton("toggle")
+        self.change_pol_button.setToolTip("Toggle the polarity of the channel. (Only possible if HV is off, and output is close to zero volt)")
+        self.change_pol_button.setFixedWidth(70)
+        self.change_pol_button.setEnabled(False)               
+        self.change_pol_button.setStyleSheet("QPushButton {background-color: #9addf5;}")
+        self.change_pol_button.clicked.connect(partial(self.change_channel_polarity))
+        
+        #### Push Buttons to apply settings and turn on HV
+        self.apply_button = _qw.QPushButton("set")
+        self.apply_button.setToolTip("Write Set voltage and Ramp speed to the board. Refresh dT setting.\n(If High-Voltage is on, the board will directly start to ramp!)")
+        self.apply_button.setFixedWidth(70)
+        #TODO
+        #self.apply_button.clicked.connect(partial(self.apply_hv_settings, mod_key, channel_key)) 
+        # connect the return key to the apply action
+        self.time_between_trips_field.returnPressed.connect(self.apply_button.click)
+        self.set_voltage_field.returnPressed.connect(self.apply_button.click)
+        self.ramp_speed_field.returnPressed.connect(self.apply_button.click)                
+        
+        self.on_off_button = _qw.QPushButton("on/off")
+        self.on_off_button.setToolTip("Turn High-Voltage On and Off \n(using the currently set values)")
+        self.on_off_button.setFixedWidth(70)
+        self.on_off_button.setStyleSheet("QPushButton {background-color: red;}")
+        #TODO
+        #self.start_button.clicked.connect(partial(self.start_hv_change, mod_key, channel_key))    
+        
+        self.grid.addWidget(self.change_pol_button, 1, 6, 2, 1, _qc.Qt.AlignHCenter)        
+        self.grid.addWidget(self.apply_button, 9, 4, _qc.Qt.AlignHCenter)
+        self.grid.addWidget(self.on_off_button, 9, 5, _qc.Qt.AlignHCenter)
+        
         
     def update_channel_section(self):
         super().update_channel_section()
+        
+        # Enable/disable the change polarity button if Voltage is applied
+        if self.host_module.is_connected:
+            if (self.channel.hv_switch_off and abs(self.channel.voltage) <= 0.002 * self.voltage_limit):
+                self.change_pol_button.setEnabled(True)
+            else:
+                self.change_pol_button.setEnabled(False)
+        else:
+            self.change_pol_button.setEnabled(False)
 
 
+    def change_channel_polarity(self):
+        if not self.module.is_connected:
+            self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Module", 
+                "Module is not connected!")
+            return False
+        self.host_module.stop_reader_thread()
+        while self.module.board_occupied:
+            time.sleep(0.2)
+        self.module.board_occupied = True
+        
+        ramp_speed_text = self.ramp_speed_field.text().strip()
+        set_voltage_text = self.set_voltage_field.text().strip()
+        min_trip_time_text = self.time_between_trips_field.text().strip()
+        print("Swapping polarity")
+        if not self.channel.switch_polarity():
+            self.err_msg_set_hv_values_speed = _qw.QMessageBox.warning(self, "Switch polarity", 
+            "Invalid response from HV Channel for Polarity switch. Check values!")
+            self.module.board_occupied = False            
+            self.host_module.start_reader_thread()
+
+        self.module.board_occupied = False         
+        self.host_module.start_reader_thread()        
+        
+
+            
+
+        
     '''        
         
     def update_channel_section(self, mod_key, channel_key):

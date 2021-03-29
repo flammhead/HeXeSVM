@@ -42,6 +42,8 @@ class Serial:
         self.v = self.n_channels*[2]
         self.d = self.n_channels*[0]
         self.ch_ramping = self.n_channels*[False]
+        self.ch_ramp_up = self.n_channels*[False]
+        self.ch_ramp_down = self.n_channels*[False]
         self.chan_g_time = self.n_channels*[0]
         self.ch_tripped = self.n_channels*[False]
         self.ch_tripping_active = self.n_channels*[False]
@@ -62,15 +64,19 @@ class Serial:
             if self.ch_state[index] == "H2L":
                 if self.u[index] > self.d[index]:
                     self.u[index] = self.u[index] - self.v[index]*t_delta
+                    self.ch_ramp_down[index] = True
                 else:
                     self.u[index] = self.d[index]
                     self.ch_state[index] = "ON"
+                    self.ch_ramp_down[index] = False
             elif self.ch_state[index] == "L2H":
                 if self.u[index] < self.d[index]:
                     self.u[index] = self.u[index] + self.v[index]*t_delta
+                    self.ch_ramp_up[index] = True
                 else:
                     self.u[index] = self.d[index]
-                    self.ch_state[index] = "ON"   
+                    self.ch_state[index] = "ON"
+                    self.ch_ramp_up[index] = False
             if self.ch_tripping_active[index]:
                 if self.ch_last_trip[index] == 0:
                     self.ch_last_trip[index] == now_time
@@ -78,6 +84,7 @@ class Serial:
                     self.u[index] = 0
                     self.ch_state[index] = "ERR"
                     self.ch_last_trip[index] = now_time
+                    self.ch_tripped[index] = True
             # Set the current according to the resistance
             self.i[index] = self.u[index] / self.r[index]
                 
@@ -179,6 +186,7 @@ class Serial:
                     else:
                         answer = "S1=ON"
                         self.ch_state[0] = "ON"
+                        self.ch_tripped[0] = False
                     self.chan_g_time[0] = time.time()
                     
                 else:
@@ -216,11 +224,13 @@ class Serial:
               answer = "S1="+ self.ch_state[0]
               if self.ch_state[0] == "ERR":
                   self.ch_state[0] = "ON"
+                  self.ch_tripped[0] = False
     
             if self.sum_receivedData == "S2\r\n":
               answer = "S2="+self.ch_state[1]
               if self.ch_state[1] == "ERR":          
                   self.ch_state[1] = "ON"
+                  self.ch_tripped[1] = False
               
             if self.sum_receivedData == "A1\r\n":
               answer = "8"  
@@ -318,20 +328,24 @@ class Serial:
                 else:
                     answer = "0"            
               
-            if self.sum_receivedData == ":READ:CHAN:STAT? (@0)\r\n":
-              answer = "S1="+ self.ch_state[0]
-              if self.ch_state[0] == "ERR":
-                  self.ch_state[0] = "ON"
-
-            if self.sum_receivedData == ":READ:CHAN:STAT? (@1)\r\n":
-              answer = "S1="+ self.ch_state[0]
-              if self.ch_state[0] == "ERR":
-                  self.ch_state[0] = "ON"
-    
-            if self.sum_receivedData == "S2\r\n":
-              answer = "S2="+self.ch_state[1]
-              if self.ch_state[1] == "ERR":          
-                  self.ch_state[1] = "ON"
+            if ":READ:CHAN:STAT?" in self.sum_receivedData:
+                #calculate the binary state
+                POS = self.is_positive[channel_number]
+                HVON = self.ch_state[channel_number]=='ON'
+                RAMP = self.ch_ramping[channel_number]
+                TRIP = self.ch_tripped[channel_number]
+                RUP = self.ch_ramp_up[channel_number]
+                RDOWN = self.ch_ramp_down[channel_number]
+                
+                bin_state = _np.array((POS,0,0,HVON,RAMP,0,0,0,
+                                      0,0,0,0,0,TRIP,0,0,
+                                      0,0,0,RUP,RDOWN,0,0,0,
+                                      0,0,0,0,0,0,0,0))
+                int_state = 0
+                for idx, byte in enumerate(bin_state):
+                    int_state += byte*(2**idx)
+                
+                answer = int_state
 
             # Since for the NHR board, we don't need to wait for each character
             # To echo, we prepend the echo to the answer of the command
