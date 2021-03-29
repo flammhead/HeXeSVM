@@ -318,6 +318,12 @@ class nhr_hv_channel(gen_hv_channel):
         answer = self.module.send_long_command(command)
         return not answer == '1'
         
+    def toggle_hv(self):
+        if self.hv_switch_off:
+            self.turn_on_hv()
+        else:
+            self.turn_off_hv()
+        
     def set_polarity(self, pol):
         if pol == "pos":
             set_pol = True
