@@ -335,11 +335,12 @@ class nhr_hv_channel(gen_hv_channel):
                          
     def switch_polarity(self):
         if self.polarity_positive:
-            command = (":CONF:OUT:POL n,(@%d);*OPC?" % self.channel)
+            command = (":CONF:OUTP:POL n,(@%d);*OPC?" % self.channel)
         else:
-            command = (":CONF:OUT:POL p,(@%d);*OPC?" % self.channel)
+            command = (":CONF:OUTP:POL p,(@%d);*OPC?" % self.channel)
 
         answer = self.module.send_long_command(command)
+        print(answer)
         if not answer == '1':
             return False
         return True        

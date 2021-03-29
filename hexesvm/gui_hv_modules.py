@@ -116,7 +116,7 @@ class gen_module_tab(_qw.QWidget):
         try:
             self.module.establish_connection()
             
-        except FileNotFoundError:
+        except (FileNotFoundError, PortNotOpenError):
             gen_module_tab.log.warning("Could not connect to HV Module: "
                    			"Wrong COM Port")
             self.main_ui.statusBar().showMessage("Wrong COM Port")
@@ -667,7 +667,7 @@ class nhr_channel_tab(gen_channel_tab):
         
         # Enable/disable the change polarity button if Voltage is applied
         if self.host_module.is_connected:
-            if (self.channel.hv_switch_off and abs(self.channel.voltage) <= 0.002 * self.voltage_limit):
+            if (self.channel.hv_switch_off and abs(self.channel.voltage) <= 0.002 * int(self.host_module.u_max)):
                 self.change_pol_button.setEnabled(True)
             else:
                 self.change_pol_button.setEnabled(False)
@@ -676,14 +676,14 @@ class nhr_channel_tab(gen_channel_tab):
 
 
     def change_channel_polarity(self):
-        if not self.module.is_connected:
+        if not self.host_module.is_connected:
             self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Module", 
                 "Module is not connected!")
             return False
-        self.host_module.stop_reader_thread()
-        while self.module.board_occupied:
+        self.mother_widget.stop_reader_thread()
+        while self.host_module.board_occupied:
             time.sleep(0.2)
-        self.module.board_occupied = True
+        self.host_module.board_occupied = True
         
         ramp_speed_text = self.ramp_speed_field.text().strip()
         set_voltage_text = self.set_voltage_field.text().strip()
@@ -692,11 +692,11 @@ class nhr_channel_tab(gen_channel_tab):
         if not self.channel.switch_polarity():
             self.err_msg_set_hv_values_speed = _qw.QMessageBox.warning(self, "Switch polarity", 
             "Invalid response from HV Channel for Polarity switch. Check values!")
-            self.module.board_occupied = False            
-            self.host_module.start_reader_thread()
+            self.host_module.board_occupied = False            
+            self.mother_widget.start_reader_thread()
 
-        self.module.board_occupied = False         
-        self.host_module.start_reader_thread()        
+        self.host_module.board_occupied = False         
+        self.mother_widget.start_reader_thread()        
         
 
             
