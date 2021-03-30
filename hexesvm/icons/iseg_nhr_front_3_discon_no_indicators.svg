@@ -15,7 +15,7 @@
    version="1.1"
    id="svg2339"
    inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)"
-   sodipodi:docname="iseg_nhr_front_3_discon.svg">
+   sodipodi:docname="iseg_nhr_front_3_discon_clean.svg">
   <defs
      id="defs141" />
   <sodipodi:namedview
@@ -78,7 +78,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -153,25 +153,7 @@
            height="94.954338"
            x="78.791901"
            y="435.11087" /></flowRegion><flowPara
-         id="flowPara3015" /></flowRoot>    <circle
-       r="1.1980795"
-       cy="126.60178"
-       cx="109.58163"
-       id="circle3027"
-       style="fill:#1b1b1b;fill-opacity:0.98039216;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
-    <circle
-       r="1.1980795"
-       cy="131.89343"
-       cx="101.64417"
-       id="circle3029"
-       style="fill:#1b1b1b;fill-opacity:0.98039216;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
-    <circle
-       style="fill:#1b1b1b;fill-opacity:0.98039216;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="circle3039"
-       cx="109.58163"
-       cy="131.89343"
-       r="1.1980795" />
-    <g
+         id="flowPara3015" /></flowRoot>    <g
        id="g3141"
        transform="translate(0,-0.01550684)">
       <circle
@@ -216,12 +198,6 @@
          x="95.350647"
          y="66.299385"
          style="font-size:3.52777767px;stroke-width:0.26458332">NHR 42 60</tspan></text>
-    <circle
-       style="fill:#1b1b1b;fill-opacity:0.98039216;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="path2957"
-       cx="101.65852"
-       cy="126.60178"
-       r="1.1980795" />
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
@@ -233,78 +209,6 @@
          x="97.342346"
          y="70.495735"
          style="font-size:1.05833328px;stroke-width:0.26458332">4ch | 6kV | 6mA | switchable</tspan></text>
-    <circle
-       style="fill:#1b1b1b;fill-opacity:0.98039216;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="circle3155"
-       cx="109.58163"
-       cy="138.24344"
-       r="1.1980795" />
-    <circle
-       style="fill:#1b1b1b;fill-opacity:0.98039216;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="circle3157"
-       cx="101.64417"
-       cy="143.5351"
-       r="1.1980795" />
-    <circle
-       r="1.1980795"
-       cy="143.5351"
-       cx="109.58163"
-       id="circle3167"
-       style="fill:#1b1b1b;fill-opacity:0.98039216;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
-    <circle
-       r="1.1980795"
-       cy="138.24344"
-       cx="101.65852"
-       id="circle3169"
-       style="fill:#1b1b1b;fill-opacity:0.98039216;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
-    <circle
-       r="1.1980795"
-       cy="149.35594"
-       cx="109.58163"
-       id="circle3179"
-       style="fill:#1b1b1b;fill-opacity:0.98039216;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
-    <circle
-       r="1.1980795"
-       cy="154.6476"
-       cx="101.64417"
-       id="circle3181"
-       style="fill:#1b1b1b;fill-opacity:0.98039216;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
-    <circle
-       style="fill:#1b1b1b;fill-opacity:0.98039216;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="circle3191"
-       cx="109.58163"
-       cy="154.6476"
-       r="1.1980795" />
-    <circle
-       style="fill:#1b1b1b;fill-opacity:0.98039216;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="circle3193"
-       cx="101.65852"
-       cy="149.35594"
-       r="1.1980795" />
-    <circle
-       style="fill:#1b1b1b;fill-opacity:0.98039216;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="circle3203"
-       cx="109.58163"
-       cy="160.46844"
-       r="1.1980795" />
-    <circle
-       style="fill:#1b1b1b;fill-opacity:0.98039216;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       id="circle3205"
-       cx="101.64417"
-       cy="165.7601"
-       r="1.1980795" />
-    <circle
-       r="1.1980795"
-       cy="165.7601"
-       cx="109.58163"
-       id="circle3215"
-       style="fill:#1b1b1b;fill-opacity:0.98039216;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
-    <circle
-       r="1.1980795"
-       cy="160.46844"
-       cx="101.65852"
-       id="circle3217"
-       style="fill:#1b1b1b;fill-opacity:0.98039216;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
     <rect
        ry="0.75595164"
        y="85.994789"

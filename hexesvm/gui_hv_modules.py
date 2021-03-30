@@ -7,6 +7,7 @@ from PyQt5 import QtCore as _qc
 from PyQt5 import QtGui as _qg
 from PyQt5 import QtWidgets as _qw
 from PyQt5 import QtSvg as _qs
+from PyQt5 import QtXml as _xml
 from functools import partial
 
 from hexesvm import threads as _thr 
@@ -25,7 +26,8 @@ class gen_module_tab(_qw.QWidget):
         self.defaults = defaults
         self.module = hv_module
         self.channel_tabs = {}
-
+        self.channel_idx_tab = {}
+        
 
     def _init_module_tab(self):
         gen_module_tab.log.debug("Called MainWindow._init_module_tab")
@@ -184,16 +186,24 @@ class nhr_module_tab(gen_module_tab):
     # Class in which the looks of an NHR module interface are defined
     def __init__(self, mother_ui, defaults, hv_module):
         super().__init__(mother_ui, defaults, hv_module)
+        self.led_colors = {"off": '#1b1b1b', "hv_on": '#ffd400', "pol_pos": '#ff0b00', "pol_neg": '#00fcff', "ok": '#00ff4d'}
         
     def _init_module_tab(self):
         super()._init_module_tab()
         # Now add the module specific things (.svg file)
-        self.module_svg = _qs.QSvgWidget('hexesvm/icons/iseg_nhr_front_3_discon.svg', self)
+        self.module_svg = _qs.QSvgWidget('hexesvm/icons/iseg_nhr_front_3_discon_no_indicators.svg', self)
+        self.indicator_svg_widget = _qs.QSvgWidget(self.module_svg)   
         svg_min_size = _qc.QSize(82,538)
         svg_max_size = _qc.QSize(82,538)
         self.module_svg.setMinimumSize(svg_min_size)
         self.module_svg.setMaximumSize(svg_max_size)
         self.grid.addWidget(self.module_svg, 1,7,12,2)
+
+        self._init_svg_indicators()
+        #self.indicator_svg.setMinimumSize(svg_min_size)
+        #self.indicator_svg.setMaximumSize(svg_max_size)
+        #self.grid.addWidget(self.indicator_svg, 1,7,12,2)        
+        
         self._init_channel_tabs()
         self.update_module_tab()   
         
@@ -205,6 +215,65 @@ class nhr_module_tab(gen_module_tab):
             this_channel_tab._init_channel_tab()
             self.this_module_ch_tabs.addTab(this_channel_tab, this_channel.name)
             self.channel_tabs.update({this_channel.name: this_channel_tab})
+            self.channel_idx_tab.update({this_channel.channel: this_channel_tab})
+
+    def _init_svg_indicators(self):
+        indicator_xml = _xml.QDomDocument("hexesvm/icons/iseg_nhr_front_3_color_indicators.svg")
+        docElement = indicator_xml.documentElement()
+        for idx in range(docElement.childNodes().count()):
+            print(docElement.chlidNodes[idx].toElement())
+        
+        # load the file in which all indicators are located as a string
+        with open("hexesvm/icons/iseg_nhr_front_3_color_indicators_test.svg") as svg_file:
+
+            self.indicator_svg_content = svg_file.read()
+            self.build_svg_string()
+            self.indicator_svg_widget.load(self.indicator_svg_content.encode())
+
+        
+    def update_module_tab(self):
+            super().update_module_tab()
+            self.build_svg_string()
+            self.indicator_svg_widget.load(self.indicator_svg_content.encode())
+
+    def build_svg_string(self):
+        new_string = ""
+        
+        str_parts = self.indicator_svg_content.split('<circle')
+        for idx, this_part in enumerate(str_parts):
+            if idx == 0:
+                new_string = this_part
+                continue
+            
+            id_field = this_part.split("id=\"ch")[1]
+            this_channel = id_field[0]
+            this_attribute = id_field.split("\"")[0][2:]
+            
+            pre_color_str = this_part.split('style=\"fill:')
+            post_color_str = pre_color_str[1][7:]
+            if not self.module.is_connected:
+                new_color = self.led_colors['off']
+            else:
+                # See if this channel is part of the game
+                new_color = self.led_colors['off']
+                try: 
+                    this_channel_tab = self.channel_idx_tab[int(this_channel)]
+                    hv_chan = this_channel_tab.channel
+                    if this_attribute == 'led_ok' and not hv_chan.channel_is_tripped:
+                        new_color = self.led_colors['ok']                      
+                    if this_attribute == 'hv_on' and not hv_chan.hv_switch_off:
+                        new_color = self.led_colors['hv_on']                         
+                    if this_attribute == 'pol_neg' and not hv_chan.polarity_positive:
+                        new_color = self.led_colors['pol_neg']                          
+                    if this_attribute == 'pol_pos' and hv_chan.polarity_positive:
+                        new_color = self.led_colors['pol_pos']                    
+                except KeyError:
+                    new_color = self.led_colors['off']
+
+            new_string += "<circle" + pre_color_str[0] + "style=\"fill:" + new_color + post_color_str
+            
+        self.indicator_svg_content = new_string
+        return
 
 class nhq_module_tab(gen_module_tab):
     # Class in which the looks of an NHQ module interface are defined
