@@ -108,6 +108,7 @@ class gen_hv_channel:
         self.hv_switch_off = None
         self.polarity_positive = None
         self.manual_control = None
+        self.channel_is_ramping = None 
         
         self.status = ""   
         
@@ -274,18 +275,22 @@ class nhr_hv_channel(gen_hv_channel):
         self.hv_switch_off = (binary[3] == '0')        
         self.channel_in_error = (binary[5] == '1')        
         self.channel_is_ramping = (binary[4] == '1') 
-        self.channel_is_tripped = (binary[1] == '1')   
         self.hardware_inhibit = (binary[12] == '1')                
-
+		
         if self.hv_switch_off:
             self.status = ""
-        elif binary[19] == '1':
-            self.status = "L2H"
-        elif binary[20] == '1':
-            self.status = "H2L"
         elif not self.channel_is_ramping:
             self.status = "ON"
-
+        
+		# Ask if a HV trip occured
+        command = (":READ:CHAN:EV:STAT? (@%d)" % self.channel)
+        answer = self.module.send_long_command(command)
+        try: value = int(answer)
+        except (ValueError, TypeError): return False
+        #Convert to binary and reverse to have same numbering as in manual
+        ev_binary = '{0:32b}'.format(value)[::-1]
+        self.channel_is_tripped = (ev_binary[13] == '1')   
+		
         # Not part of the register...
         command = (":CONF:TRIP:ACT? (@%d)" % self.channel)
         answer = self.module.send_long_command(command)
@@ -309,9 +314,11 @@ class nhr_hv_channel(gen_hv_channel):
         return True      
     
     def turn_on_hv(self):
+        command = (":EV CLEAR,(@%d);*OPC?" % self.channel)
+        answer_1 = self.module.send_long_command(command)
         command = (":VOLT ON,(@%d);*OPC?" % self.channel)
-        answer = self.module.send_long_command(command)
-        return not answer == '1'
+        answer_2 = self.module.send_long_command(command)
+        return not (answer_1 == '1' and answer_2 == '1')
         
     def turn_off_hv(self):
         command = (":VOLT OFF,(@%d);*OPC?" % self.channel)
@@ -352,18 +359,19 @@ class nhr_hv_channel(gen_hv_channel):
         return True        
 
     def write_set_voltage(self, voltage):
-        try: voltage_flt = round(float(voltage),3) * (-1) *(not self.polarity_positive)
+        #try: voltage_flt = round(float(voltage),3) * (-1) *(not self.polarity_positive)
+        try: voltage_flt = round(float(voltage),3)
         except (ValueError, TypeError): return "ERR"
-        command = (":VOLT %d,(@%d);*OPC?" % (voltage_flt, self.channel))
+        command = (":VOLT %.3f,(@%d);*OPC?" % (voltage_flt, self.channel))
         answer = self.module.send_long_command(command)
         return not answer == '1'
         
     def write_ramp_speed(self, speed):
-        try: speed_flt = round(float(speed,3))
+        try: speed_flt = round(float(speed),3)
         except (ValueError, TypeError): return "ERR"
-        command = (":CONF:RAMP:VOLT:UP %d,(@%d);*OPC?" % (speed_flt, self.channel))
+        command = (":CONF:RAMP:VOLT:UP %.3f,(@%d);*OPC?" % (speed_flt, self.channel))
         answer_1 = self.module.send_long_command(command)
-        command = (":CONF:RAMP:VOLT:DO %d,(@%d);*OPC?" % (speed_flt, self.channel))
+        command = (":CONF:RAMP:VOLT:DOWN %.3f,(@%d);*OPC?" % (speed_flt, self.channel))
         answer_2 = self.module.send_long_command(command)
         return not(answer_1 == '1' and answer_2 == '1')
              

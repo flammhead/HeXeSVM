@@ -449,10 +449,6 @@ class gen_channel_tab(_qw.QWidget):
             self.hv_ramp_sign.setPixmap(none_pix)
         elif self.channel.status == "ON":
             self.hv_ramp_sign.setPixmap(_qg.QPixmap('hexesvm/icons/hexe_bar.svg'))
-        elif self.channel.status == "H2L":
-            self.hv_ramp_sign.setPixmap(_qg.QPixmap('hexesvm/icons/hexe_arrow_down.svg'))        
-        elif self.channel.status == "L2H":                
-            self.hv_ramp_sign.setPixmap(_qg.QPixmap('hexesvm/icons/hexe_arrow_up.svg'))
 
         self.channel.trip_rate = 0
         now = time.time()
@@ -560,6 +556,11 @@ class nhq_channel_tab(gen_channel_tab):
             self.dac_on_sign.setPixmap(ok_pix)
             self.dac_on_sign.setToolTip("Board is in remote control mode")                        
         
+        if self.channel.status == "H2L":
+            self.hv_ramp_sign.setPixmap(_qg.QPixmap('hexesvm/icons/hexe_arrow_down.svg'))        
+        elif self.channel.status == "L2H":                
+            self.hv_ramp_sign.setPixmap(_qg.QPixmap('hexesvm/icons/hexe_arrow_up.svg'))
+		
         if self.channel.channel == 1:
             self.number_label = _qw.QLabel('<span style="font-size:xx-large"><b>A</b></span>')
         elif self.channel.channel == 2:
@@ -743,6 +744,9 @@ class nhr_channel_tab(gen_channel_tab):
     def update_channel_section(self):
         super().update_channel_section()
         
+        if self.channel.channel_is_ramping:
+            self.hv_ramp_sign.setPixmap(_qg.QPixmap('hexesvm/icons/hexe_arrow_down.svg'))        
+		
         # Enable/disable the change polarity button if Voltage is applied
         if self.host_module.is_connected:
             if (self.channel.hv_switch_off and abs(self.channel.voltage) <= 0.002 * int(self.host_module.u_max)):
@@ -792,7 +796,7 @@ class nhr_channel_tab(gen_channel_tab):
         ramp_speed_text = self.ramp_speed_field.text().strip()
         set_voltage_text = self.set_voltage_field.text().strip()
         min_trip_time_text = self.time_between_trips_field.text().strip()
-        print("try")
+        print("try") 
         try:
             if ramp_speed_text:
                 ramp_speed = abs(round(float(ramp_speed_text),3))
@@ -802,7 +806,7 @@ class nhr_channel_tab(gen_channel_tab):
             if set_voltage_text:
                 set_voltage = abs(round(float(set_voltage_text),3))
             else:
-                set_voltage = round(float(self.set_voltage_field.placeholderText(),3))
+                set_voltage = round(float(self.set_voltage_field.placeholderText()),3)
                 
             if min_trip_time_text:
                 set_min_trip_time = abs(float(min_trip_time_text))
@@ -896,8 +900,9 @@ class nhr_channel_tab(gen_channel_tab):
         if confirmation:
             self.channel.read_device_status()        
             answer = self.channel.turn_on_hv()
+            time.sleep(0.75)
             self.channel.read_device_status()
-            if not (self.channel.status == "L2H" or self.channel.status == "ON" ):
+            if self.channel.hv_switch_off:
                 self.err_msg_voltage_change = _qw.QMessageBox.warning(self, "Voltage Change",
                	"Invalid response from HV Channel. Check values!")
        	        self.host_module.board_occupied = False
@@ -929,8 +934,9 @@ class nhr_channel_tab(gen_channel_tab):
         
         self.channel.read_device_status()        
         answer = self.channel.turn_off_hv()
+        time.sleep(0.75)
         self.channel.read_device_status()
-        if not (self.channel.status == "H2L" or self.channel.status == "" ):
+        if not self.channel.channel_is_ramping:
             self.err_msg_voltage_change = _qw.QMessageBox.warning(self, "Voltage Change", "Invalid response from HV Channel. Check values!")
             self.host_module.board_occupied = False
             self.mother_widget.start_reader_thread()

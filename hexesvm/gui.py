@@ -136,7 +136,7 @@ class MainWindow(_qw.QMainWindow):
 
         # Disable the auto-reramp boxes
         for this_module_tab in self.mod_tabs.values():
-            for this_channel_tab in this_module_tab.channel_tabs:
+            for this_channel_tab in this_module_tab.channel_tabs.values():
                 this_channel_tab.auto_reramp_box.setCheckState(False)
                 this_channel_tab.auto_reramp_box.setEnabled(False)
 
