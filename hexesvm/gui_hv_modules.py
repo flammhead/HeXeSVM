@@ -24,7 +24,7 @@ class gen_module_tab(_qw.QWidget):
         self.main_ui = mother_ui
         self.defaults = defaults
         self.module = hv_module
-        self.channel_tabs = []
+        self.channel_tabs = {}
 
 
     def _init_module_tab(self):
@@ -103,7 +103,7 @@ class gen_module_tab(_qw.QWidget):
         # DO SOME MAGIC HERE
 
         # Trigger update of the channel sections
-        for this_channel in self.channel_tabs:
+        for this_channel in self.channel_tabs.values():
             this_channel.update_channel_section()
         return    
     
@@ -204,7 +204,7 @@ class nhr_module_tab(gen_module_tab):
             this_channel_tab = nhr_channel_tab(self, this_channel)
             this_channel_tab._init_channel_tab()
             self.this_module_ch_tabs.addTab(this_channel_tab, this_channel.name)
-            self.channel_tabs.append(this_channel_tab)
+            self.channel_tabs.update({this_channel.name: this_channel_tab})
 
 class nhq_module_tab(gen_module_tab):
     # Class in which the looks of an NHQ module interface are defined
@@ -240,7 +240,7 @@ class nhq_module_tab(gen_module_tab):
             this_channel_tab = nhq_channel_tab(self, this_channel)
             this_channel_tab._init_channel_tab()
             self.this_module_ch_tabs.addTab(this_channel_tab, this_channel.name)
-            self.channel_tabs.append(this_channel_tab)
+            self.channel_tabs.update({this_channel.name: this_channel_tab})
                     
     # Add to the connect and disconnect methods the handling of the high-res checkbox
     def connect_hv_module(self):
@@ -265,6 +265,7 @@ class gen_channel_tab(_qw.QWidget):
         self.defaults = host_widget.defaults
         self.channel = this_channel
         self.host_module = this_channel.module
+        self.disable_in_auto_mode = []
 
     def _init_channel_tab(self):
         # Define widgets that are common to all Types of HV boards channels
@@ -401,6 +402,11 @@ class gen_channel_tab(_qw.QWidget):
         
         self.setLayout(self.grid)
         
+        # Add widgets to list, which should be enabled/disabled when schedule is running
+        self.disable_in_auto_mode.append(self.time_between_trips_field)
+        self.disable_in_auto_mode.append(self.set_voltage_field)
+        self.disable_in_auto_mode.append(self.ramp_speed_field)
+        
         return
 
     def update_channel_section(self):
@@ -510,6 +516,10 @@ class nhq_channel_tab(gen_channel_tab):
         self.grid.addWidget(self.dac_on_sign, 7,2)
         self.grid.addWidget(self.apply_button, 9, 4, _qc.Qt.AlignHCenter)
         self.grid.addWidget(self.start_button, 9, 5, _qc.Qt.AlignHCenter)
+        
+        # Add widgets to list, which should be enabled/disabled when schedule is running
+        self.disable_in_auto_mode.append(self.apply_button)
+        self.disable_in_auto_mode.append(self.start_button)
         
         return
 
@@ -698,23 +708,37 @@ class nhr_channel_tab(gen_channel_tab):
         self.apply_button.setToolTip("Write Set voltage and Ramp speed to the board. Refresh dT setting.\n(If High-Voltage is on, the board will directly start to ramp!)")
         self.apply_button.setFixedWidth(70)
         #TODO
-        #self.apply_button.clicked.connect(partial(self.apply_hv_settings, mod_key, channel_key)) 
+        self.apply_button.clicked.connect(partial(self.apply_hv_settings))
         # connect the return key to the apply action
         self.time_between_trips_field.returnPressed.connect(self.apply_button.click)
         self.set_voltage_field.returnPressed.connect(self.apply_button.click)
         self.ramp_speed_field.returnPressed.connect(self.apply_button.click)                
         
-        self.on_off_button = _qw.QPushButton("on/off")
-        self.on_off_button.setToolTip("Turn High-Voltage On and Off \n(using the currently set values)")
-        self.on_off_button.setFixedWidth(70)
-        self.on_off_button.setStyleSheet("QPushButton {background-color: red;}")
+        self.hv_on_button = _qw.QPushButton("HV ON")
+        self.hv_on_button.setToolTip("Turn High-Voltage On and ramp\nto currently set values")
+        self.hv_on_button.setFixedWidth(70)
+        self.hv_on_button.setStyleSheet("QPushButton {background-color: #8fff8f;}")
+        
         #TODO
-        #self.start_button.clicked.connect(partial(self.start_hv_change, mod_key, channel_key))    
+        self.hv_on_button.clicked.connect(partial(self.turn_hv_on))
+        
+        self.hv_off_button = _qw.QPushButton("HV OFF")
+        self.hv_off_button.setToolTip("Turn High-Voltage Off with ramp")
+        self.hv_off_button.setFixedWidth(70)
+        self.hv_off_button.setStyleSheet("QPushButton {background-color: #ff8787;}")
+        
+        #TODO
+        self.hv_off_button.clicked.connect(partial(self.turn_hv_off))
         
         self.grid.addWidget(self.change_pol_button, 1, 6, 2, 1, _qc.Qt.AlignHCenter)        
         self.grid.addWidget(self.apply_button, 9, 4, _qc.Qt.AlignHCenter)
-        self.grid.addWidget(self.on_off_button, 9, 5, _qc.Qt.AlignHCenter)
+        self.grid.addWidget(self.hv_on_button, 9, 5, _qc.Qt.AlignHCenter)
+        self.grid.addWidget(self.hv_off_button, 9, 6, _qc.Qt.AlignHCenter)
         
+        # Add widgets to list, which should be enabled/disabled when schedule is running
+        self.disable_in_auto_mode.append(self.apply_button)
+        self.disable_in_auto_mode.append(self.hv_on_button)
+        self.disable_in_auto_mode.append(self.hv_off_button)
         
     def update_channel_section(self):
         super().update_channel_section()
@@ -753,6 +777,220 @@ class nhr_channel_tab(gen_channel_tab):
         self.mother_widget.start_reader_thread()        
         
 
+
+    @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject')    
+    def apply_hv_settings(self, module_key=None, channel_key=None, auto=False):
+        if not self.host_module.is_connected:
+            self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Module", 
+                "Module is not connected!")
+            return False
+        self.mother_widget.stop_reader_thread()
+        while self.host_module.board_occupied:
+            time.sleep(0.2)
+        self.host_module.board_occupied = True
+        
+        ramp_speed_text = self.ramp_speed_field.text().strip()
+        set_voltage_text = self.set_voltage_field.text().strip()
+        min_trip_time_text = self.time_between_trips_field.text().strip()
+        print("try")
+        try:
+            if ramp_speed_text:
+                ramp_speed = abs(round(float(ramp_speed_text),3))
+            else:
+                ramp_speed = abs(round(float(self.ramp_speed_field.placeholderText()),3))
+                
+            if set_voltage_text:
+                set_voltage = abs(round(float(set_voltage_text),3))
+            else:
+                set_voltage = round(float(self.set_voltage_field.placeholderText(),3))
+                
+            if min_trip_time_text:
+                set_min_trip_time = abs(float(min_trip_time_text))
+            else:
+                set_min_trip_time = float(self.time_between_trips_field.placeholderText())
+
+        except (ValueError, TypeError):
+            self.err_msg_set_hv_values = _qw.QMessageBox.warning(self, "Values",
+            "Invalid input for the Board parameters!")
+            self.host_module.board_occupied = False
+       	    self.mother_widget.start_reader_thread()
+            return False
+
+        confirmation = auto
+        if (not auto) and (not self.channel.hv_switch_off):
+            answer = _qw.QMessageBox.question(self, "Are you sure?", 
+            "You are about to change the HV of channel: "+self.channel.name+
+            "\nSet Voltage: "+str(self.channel.set_voltage)+
+            "\nRamp Speed: "+str(self.channel.ramp_speed)+
+            "\nPlease Confirm!", _qw.QMessageBox.Yes, _qw.QMessageBox.No)
+            confirmation = (answer == _qw.QMessageBox.Yes)
+        elif self.channel.hv_switch_off:
+            confirmation = True
+              
+        self.host_module.board_occupied = True
+        
+        if confirmation:            
+
+            if self.channel.write_ramp_speed(ramp_speed):
+                self.err_msg_set_hv_values_speed = _qw.QMessageBox.warning(self, "Set Ramp speed", 
+                "Invalid response from HV Channel for set Ramp speed. Check values!")
+                self.host_module.board_occupied = False            
+                self.mother_widget.start_reader_thread()
+                return False
+            if self.channel.write_set_voltage(set_voltage):
+                self.err_msg_set_hv_values_voltage = _qw.QMessageBox.warning(self, "Set Voltage",
+                               	"Invalid response from HV Channel for set Voltage. Check values!")
+                self.host_module.board_occupied = False
+                self.mother_widget.start_reader_thread()
+                return False
+            self.channel.min_time_trips = set_min_trip_time
+            self.ramp_speed_field.setText("")
+            self.set_voltage_field.setText("")
+            self.time_between_trips_field.setText("")
+            # This is neccessary to delete the current saved value and make the change clear
+            self.channel.set_voltage = float('nan')
+            self.channel.ramp_speed = float('nan')
+            self.ramp_speed_field.setPlaceholderText("")
+            self.set_voltage_field.setPlaceholderText("")
+            self.time_between_trips_field.setPlaceholderText("")  
+            self.host_module.board_occupied = False         
+            self.mother_widget.start_reader_thread()
+        
+        else:
+            self.err_msg_voltage_change_abort = _qw.QMessageBox.warning(self, "Voltage Change",
+               	"Operation aborted!")
+            self.host_module.board_occupied = False
+            self.mother_widget.start_reader_thread()
+            return False        
+
+        return True        
+        
+    def turn_hv_on(self, module_key=None, channel_key=None, auto=False):
+        if not self.host_module.is_connected:
+            self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Module", 
+                "Module is not connected!")
+            return False
+            
+        if _np.isnan(self.channel.set_voltage) or _np.isnan(self.channel.ramp_speed):
+            self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Channel", 
+                "Channel shows invalid value!")        
+            return False
+        if not (self.main_ui.locker.lock_state and self.main_ui.interlock_value):
+            self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Interlock", 
+                "Interlock is/was triggered! Abort Voltage change!")        
+            return False
+
+        confirmation = auto
+        if not auto:
+            answer = _qw.QMessageBox.question(self, "Are you sure?", 
+            "You are about to turn on High voltage for channel: "+self.channel.name+
+            "\nSet Voltage: "+str(self.channel.set_voltage)+
+            "\nRamp Speed: "+str(self.channel.ramp_speed)+
+            "\nPlease Confirm!", _qw.QMessageBox.Yes, _qw.QMessageBox.No)
+            confirmation = (answer == _qw.QMessageBox.Yes)
+        self.mother_widget.stop_reader_thread()
+        while self.host_module.board_occupied:
+            time.sleep(0.2)        
+        self.host_module.board_occupied = True
+        
+        if confirmation:
+            self.channel.read_device_status()        
+            answer = self.channel.turn_on_hv()
+            self.channel.read_device_status()
+            if not (self.channel.status == "L2H" or self.channel.status == "ON" ):
+                self.err_msg_voltage_change = _qw.QMessageBox.warning(self, "Voltage Change",
+               	"Invalid response from HV Channel. Check values!")
+       	        self.host_module.board_occupied = False
+               	self.mother_widget.start_reader_thread()
+               	return False
+            else:
+                if not auto:
+                    self.err_msg_voltage_change_good = _qw.QMessageBox.information(self, "Voltage Change", "Voltage is changing!")
+       	        self.host_module.board_occupied = False
+                self.mother_widget.start_reader_thread()
+                return True
+        else:
+            self.err_msg_voltage_change_abort = _qw.QMessageBox.warning(self, "Voltage Change",
+               	"Operation aborted!")
+            self.host_module.board_occupied = False
+            self.mother_widget.start_reader_thread()
+            return False
+        
+    def turn_hv_off(self, module_key=None, channel_key=None, auto=False):
+        if not self.host_module.is_connected:
+            self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Module", 
+                "Module is not connected!")
+            return False    
+
+        self.mother_widget.stop_reader_thread()
+        while self.host_module.board_occupied:
+            time.sleep(0.2)        
+        self.host_module.board_occupied = True
+        
+        self.channel.read_device_status()        
+        answer = self.channel.turn_off_hv()
+        self.channel.read_device_status()
+        if not (self.channel.status == "H2L" or self.channel.status == "" ):
+            self.err_msg_voltage_change = _qw.QMessageBox.warning(self, "Voltage Change", "Invalid response from HV Channel. Check values!")
+            self.host_module.board_occupied = False
+            self.mother_widget.start_reader_thread()
+            return False
+        self.host_module.board_occupied = False
+        self.mother_widget.start_reader_thread()
+        return True
+        
+        
+    @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')        
+    def start_hv_change(self, module_key=None, channel_key=None, auto=False):
+        if not self.host_module.is_connected:
+            self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Module", 
+                "Module is not connected!")
+            return False
+            
+        if _np.isnan(self.channel.set_voltage) or _np.isnan(self.channel.ramp_speed):
+            self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Channel", 
+                "Channel shows invalid value!")        
+            return False
+        if not (self.main_ui.locker.lock_state and self.main_ui.interlock_value):
+            self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Interlock", 
+                "Interlock is/was triggered! Abort Voltage change!")        
+            return False
+
+        confirmation = auto
+        if not auto:
+            answer = _qw.QMessageBox.question(self, "Are you sure?", 
+            "You are about to turn on High voltage for channel: "+self.channel.name+
+            "\nSet Voltage: "+str(self.channel.set_voltage)+
+            "\nRamp Speed: "+str(self.channel.ramp_speed)+
+            "\nPlease Confirm!", _qw.QMessageBox.Yes, _qw.QMessageBox.No)
+            confirmation = (answer == _qw.QMessageBox.Yes)
+        self.mother_widget.stop_reader_thread()
+        while self.host_module.board_occupied:
+            time.sleep(0.2)        
+        self.host_module.board_occupied = True
+        
+        if confirmation:
+            self.channel.read_device_status()        
+            answer = self.channel.start_voltage_change()
+            if not ("H2L" in answer or "L2H" in answer or "ON" in answer):
+                self.err_msg_voltage_change = _qw.QMessageBox.warning(self, "Voltage Change",
+               	"Invalid response from HV Channel. Check values!")
+       	        self.host_module.board_occupied = False
+               	self.mother_widget.start_reader_thread()
+               	return False
+            else:
+                if not auto:
+                    self.err_msg_voltage_change_good = _qw.QMessageBox.information(self, "Voltage Change",
+                    "Voltage is changing!")
+       	        self.host_module.board_occupied = False
+                self.mother_widget.start_reader_thread()
+                return True
+        else:
+            self.err_msg_voltage_change_abort = _qw.QMessageBox.warning(self, "Voltage Change",
+               	"Operation aborted!")
+            self.host_module.board_occupied = False
+            self.mother_widget.start_reader_thread()
+            return False
             
 
         

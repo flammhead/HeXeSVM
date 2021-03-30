@@ -95,7 +95,7 @@ class MainWindow(_qw.QMainWindow):
 
         self.modules = OrderedDict()
         self.channels = OrderedDict()
-        index_list = [] # Helper dict for sorting later on
+        self.index_list = [] # Helper dict for sorting later on
         for idx, this_module in enumerate(self.defaults['modules']):
            if this_module['type'] == "NHQ":
                self.modules.update({this_module['name']: _iseg.nhq_hv_module(this_module['name'], this_module['port'], this_module)})
@@ -107,18 +107,18 @@ class MainWindow(_qw.QMainWindow):
            this_mod_chan = OrderedDict()
            for jdx, this_channel in enumerate(this_module['channels']):
                this_mod_chan.update({this_channel['name']: self.modules[this_module['name']].add_channel(this_channel['index'], this_channel['name'], this_channel)})
-               index_list.append([this_channel['img_pos'], this_module['name'], this_channel['name']])
+               self.index_list.append([this_channel['img_pos'], this_module['name'], this_channel['name']])
            self.channels.update({this_module['name']: this_mod_chan})
 
         # Also construct one dict which holds the module/channel combination in the order
         # they should appear on the overview page
         self.channel_order_dict = []
-        for i in range(len(index_list)):
+        for i in range(len(self.index_list)):
            pos = -1
-           for j in range(len(index_list)):
-               if index_list[j][0] == i:
+           for j in range(len(self.index_list)):
+               if self.index_list[j][0] == i:
                    pos = j
-           self.channel_order_dict.append((index_list[pos][1], index_list[pos][2]))
+           self.channel_order_dict.append((self.index_list[pos][1], self.index_list[pos][2]))
 
         
     def kill_all_hv(self):
@@ -134,9 +134,11 @@ class MainWindow(_qw.QMainWindow):
                 continue
             self.modules[key].stop_running_thread()      
 
-        for pair in self.channel_order_dict:
-            self.all_channels_auto_reramp_box[pair[0]][pair[1]].setCheckState(False)
-            self.all_channels_auto_reramp_box[pair[0]][pair[1]].setEnabled(False)
+        # Disable the auto-reramp boxes
+        for this_module_tab in self.mod_tabs.values():
+            for this_channel_tab in this_module_tab.channel_tabs:
+                this_channel_tab.auto_reramp_box.setCheckState(False)
+                this_channel_tab.auto_reramp_box.setEnabled(False)
 
         for key in self.modules.keys():
             if not self.modules[key].is_connected:
@@ -152,7 +154,7 @@ class MainWindow(_qw.QMainWindow):
         for key in self.modules.keys():
             if not self.modules[key].is_connected:
                 continue        
-            self.start_reader_thread(self.modules[key])               
+            self.mod_tabs[key].start_reader_thread()               
 
         # This will prevent from ramping HV up again
         self.interlock_value = False
@@ -201,7 +203,7 @@ class MainWindow(_qw.QMainWindow):
 
         MainWindow.log.debug("Called MainWindow._init_menu")
         self.file_menu = _qw.QMenu("&File", self)
-        self.file_menu.addAction("&Quit", self.file_quit,
+        self.file_menu.addAction("&Quit", self.close,
 		                 _qc.Qt.CTRL + _qc.Qt.Key_Q)
 
 
@@ -365,7 +367,7 @@ class MainWindow(_qw.QMainWindow):
         self.hv_kill_button.setStyleSheet("QPushButton {background-color: red;}");
         
         grid_layout_y_positions = ((1,2,3,5,6))
-
+        
         grid = _qw.QGridLayout()
         grid.setSpacing(10)
         grid.addWidget(self.hexe_drawing, 1,0,6,1)
@@ -373,13 +375,14 @@ class MainWindow(_qw.QMainWindow):
         grid.addWidget(status_label_text, 0,6)
 
         #for i in range(len(self.channels)):
-        for i in range(len(self.channel_order_dict)):        
-            grid.addWidget(self.channel_labels[i], grid_layout_y_positions[i], 1)
-            grid.addWidget(self.channel_voltage_lcds[i], grid_layout_y_positions[i], 2)
-            grid.addWidget(self.voltage_units[i], grid_layout_y_positions[i], 3)
-            grid.addWidget(self.channel_current_lcds[i], grid_layout_y_positions[i], 4)
-            grid.addWidget(self.current_units[i], grid_layout_y_positions[i], 5)
-            grid.addWidget(self.status_lights[i], grid_layout_y_positions[i], 6)
+        for i in range(len(self.channel_order_dict)):
+            this_y_position = grid_layout_y_positions[i] 
+            grid.addWidget(self.channel_labels[i], this_y_position, 1)
+            grid.addWidget(self.channel_voltage_lcds[i], this_y_position, 2)
+            grid.addWidget(self.voltage_units[i], this_y_position, 3)
+            grid.addWidget(self.channel_current_lcds[i], this_y_position, 4)
+            grid.addWidget(self.current_units[i], this_y_position, 5)
+            grid.addWidget(self.status_lights[i], this_y_position, 6)
 
         self.overviewTab.setLayout(grid)
 
@@ -579,12 +582,10 @@ class MainWindow(_qw.QMainWindow):
             return False
         self.inAutoMode = True
 
-        for mod_key, channel_key in self.channel_order_dict:
-            self.all_channels_apply_button[mod_key][channel_key].setEnabled(False)
-            self.all_channels_start_button[mod_key][channel_key].setEnabled(False)
-            self.all_channels_ramp_speed_field[mod_key][channel_key].setDisabled(True)
-            self.all_channels_set_voltage_field[mod_key][channel_key].setDisabled(True)
-            self.all_channels_time_between_trips_field[mod_key][channel_key].setDisabled(True)
+        for this_module in mod_tabs.values():
+            for this_channel in this_module.channel_tabs.values():
+                for this_widget in this_channel.disable_in_auto_mode:
+                    this_widget.setEnabled(True)
 
         self.rampTableRunButton.setEnabled(False)        
         self.rampTableStopButton.setEnabled(True)
@@ -593,6 +594,7 @@ class MainWindow(_qw.QMainWindow):
         self.auto_ramp_thread = _thr.ScheduleRampIsegModule(self)
         # connect thread's signals to the respective apply and ramp functions
 
+        #TODO
         self.auto_ramp_thread.highlight_row.connect(self.highlight_ramp_table_row)
         self.auto_ramp_thread.change_hv_settings.connect(self.change_channel_hv_field)
         self.auto_ramp_thread.apply_hv.connect(self.apply_hv_settings)
@@ -629,12 +631,10 @@ class MainWindow(_qw.QMainWindow):
         
         self.rampTableRunButton.setEnabled(True)        
         self.rampTableStopButton.setEnabled(False)
-        for mod_key, channel_key in self.channel_order_dict:
-            self.all_channels_apply_button[mod_key][channel_key].setEnabled(True)
-            self.all_channels_start_button[mod_key][channel_key].setEnabled(True)
-            self.all_channels_ramp_speed_field[mod_key][channel_key].setDisabled(False)
-            self.all_channels_set_voltage_field[mod_key][channel_key].setDisabled(False)
-            self.all_channels_time_between_trips_field[mod_key][channel_key].setDisabled(False)            
+        for this_module in mod_tabs.values():
+            for this_channel in this_module.channel_tabs.values():
+                for this_widget in this_channel.disable_in_auto_mode:
+                    this_widget.setEnabled(True)
         self.inAutoMode = False
 
         return
@@ -769,6 +769,9 @@ class MainWindow(_qw.QMainWindow):
         self.db_connection = True
         self.statusBar().showMessage("sql connection established")
         self.sql_conn_button.setEnabled(False)
+        self.form_email_info.setEnabled(False)
+        self.form_email_alarm.setEnabled(False)
+        self.form_email_sms.setEnabled(False)
         #self.locker.set_sql_container(self.sql_cont_interlock)
         self.locker.set_psycopg_conn(address, dbname, username, password, tablename_interlock)
         
@@ -815,18 +818,19 @@ class MainWindow(_qw.QMainWindow):
 
     def send_mail(self, mod_key, channel_key, alarm_mode):
 
+        this_channel_tab = self.mod_tabs[mod_key].channel_tabs[channel_key]
         if self.email_sender.recipients_info == "" or self.email_sender.recipients_alarm == "":
             self.err_msg_mail = _qw.QMessageBox.warning(self, "Mail",
                                    "Set info & and alarm email recipients first!")
             return False
         if alarm_mode == "single":
-            sms_flag = self.all_channels_single_sms_box[mod_key][channel_key].checkState()
-            priority = self.all_channels_single_button_group[mod_key][channel_key].checkedId()
+            sms_flag = this_channel_tab.single_sms_box.checkState()
+            priority = this_channel_tab.single_button_group.checkedId()
         elif alarm_mode == "frequent":
-            sms_flag = self.all_channels_frequent_sms_box[mod_key][channel_key].checkState()
-            priority = self.all_channels_frequent_button_group[mod_key][channel_key].checkedId()
+            sms_flag = this_channel_tab.frequent_sms_box.checkState()
+            priority = this_channel_tab.frequent_button_group.checkedId()
 
-        hv_channel = self.channels[mod_key][channel_key]
+        hv_channel = this_channel_tab.channel
         self.email_sender.send_alarm(hv_channel, priority, alarm_mode)
         if sms_flag:
             self.email_sender.send_sms(hv_channel, priority, alarm_mode)
@@ -838,8 +842,13 @@ class MainWindow(_qw.QMainWindow):
         self.info_msg_mail.exec_()
         return True
 	
+    def closeEvent(self, event):
+        if self.file_quit_diag():
+            event.accept()
+        else:
+           event.ignore()
     
-    def file_quit(self):
+    def file_quit_diag(self):
         """Closes the application"""
         MainWindow.log.debug("Called MainWindow.file_quit")
         self.statusBar().showMessage("Quitting application")
@@ -850,10 +859,9 @@ class MainWindow(_qw.QMainWindow):
 	        _qw.QMessageBox.Cancel)
         if reply == _qw.QMessageBox.Yes:
             # Disconnect the modules
-            for i, key in zip(range(len(self.modules)), self.modules.keys()):
-                if self.modules[key].is_connected:
-                    self.disconnect_hv_module(key, i)
-            self.close()
+            for this_module in self.mod_tabs.values():
+                if this_module.module.is_connected:
+                    this_module.disconnect_hv_module()
             return(True)
         else:
             return(False)

@@ -276,9 +276,11 @@ class Serial:
             if ":VOLT " in self.sum_receivedData:
                 if " ON,(" in self.sum_receivedData:
                     # Turn on HV channel
+                    self.hv_on[channel_number] = True
                     pass
                 elif " OFF,(" in self.sum_receivedData:
                     # Turn off HV channel
+                    self.hv_on[channel_number] = False
                     pass
                 elif "EMCY OFF,(":
                     # Turn off channel without ramp set emcy state

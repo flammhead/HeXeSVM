@@ -352,23 +352,40 @@ class nhr_hv_channel(gen_hv_channel):
         return True        
 
     def write_set_voltage(self, voltage):
-        try: voltage_int = int(voltage)
+        try: voltage_flt = round(float(voltage),3) * (-1) *(not self.polarity_positive)
         except (ValueError, TypeError): return "ERR"
-        command = (":VOLT %d,(@%d);*OPC?" % (voltage_int, self.channel))
+        command = (":VOLT %d,(@%d);*OPC?" % (voltage_flt, self.channel))
         answer = self.module.send_long_command(command)
         return not answer == '1'
         
     def write_ramp_speed(self, speed):
-        try: speed_int = int(speed)
+        try: speed_flt = round(float(speed,3))
         except (ValueError, TypeError): return "ERR"
-        command = (":CONF:RAMP:VOLT:UP %d,(@%d);*OPC?" % (speed_int, self.channel))
+        command = (":CONF:RAMP:VOLT:UP %d,(@%d);*OPC?" % (speed_flt, self.channel))
         answer_1 = self.module.send_long_command(command)
-        command = (":CONF:RAMP:VOLT:DO %d,(@%d);*OPC?" % (speed_int, self.channel))
+        command = (":CONF:RAMP:VOLT:DO %d,(@%d);*OPC?" % (speed_flt, self.channel))
         answer_2 = self.module.send_long_command(command)
         return not(answer_1 == '1' and answer_2 == '1')
              
     def write_trip_current(self, trip_current):
         print("write_trip_current not implemented")
+        return False
+        
+    # Subsequent High level methods
+            
+    def kill_hv(self):
+        # here needs to come an interrupt signal to give this command
+        # direct access to the board communication
+        if self.module.is_connected:
+            self.module.board_occupied = True
+            self.kill_active = True
+            set_voltage_received = self.write_set_voltage(0)
+            ramp_speed_received = self.write_ramp_speed(255)
+            self.read_device_status()
+            
+            self.module.board_occupied = False
+            if self.status =="H2L" or self.hv_switch_off:
+                return True
         return False
 
 
