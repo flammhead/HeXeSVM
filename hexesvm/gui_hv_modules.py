@@ -708,7 +708,6 @@ class nhr_channel_tab(gen_channel_tab):
         self.apply_button = _qw.QPushButton("set")
         self.apply_button.setToolTip("Write Set voltage and Ramp speed to the board. Refresh dT setting.\n(If High-Voltage is on, the board will directly start to ramp!)")
         self.apply_button.setFixedWidth(70)
-        #TODO
         self.apply_button.clicked.connect(partial(self.apply_hv_settings))
         # connect the return key to the apply action
         self.time_between_trips_field.returnPressed.connect(self.apply_button.click)
@@ -719,16 +718,12 @@ class nhr_channel_tab(gen_channel_tab):
         self.hv_on_button.setToolTip("Turn High-Voltage On and ramp\nto currently set values")
         self.hv_on_button.setFixedWidth(70)
         self.hv_on_button.setStyleSheet("QPushButton {background-color: #8fff8f;}")
-        
-        #TODO
         self.hv_on_button.clicked.connect(partial(self.turn_hv_on))
         
         self.hv_off_button = _qw.QPushButton("HV OFF")
         self.hv_off_button.setToolTip("Turn High-Voltage Off with ramp")
         self.hv_off_button.setFixedWidth(70)
         self.hv_off_button.setStyleSheet("QPushButton {background-color: #ff8787;}")
-        
-        #TODO
         self.hv_off_button.clicked.connect(partial(self.turn_hv_off))
         
         self.grid.addWidget(self.change_pol_button, 1, 6, 2, 1, _qc.Qt.AlignHCenter)        
@@ -745,7 +740,7 @@ class nhr_channel_tab(gen_channel_tab):
         super().update_channel_section()
         
         if self.channel.channel_is_ramping:
-            self.hv_ramp_sign.setPixmap(_qg.QPixmap('hexesvm/icons/hexe_arrow_down.svg'))        
+            self.hv_ramp_sign.setPixmap(_qg.QPixmap('hexesvm/icons/hexe_arrow_up_down.svg'))        
 		
         # Enable/disable the change polarity button if Voltage is applied
         if self.host_module.is_connected:
