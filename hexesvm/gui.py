@@ -402,7 +402,7 @@ class MainWindow(_qw.QMainWindow):
                 self.channel_voltage_lcds[i].setToolTip("Please connect the HV module!")
                 #self.channel_voltage_lcds[i].setText("Error")                
             else:
-                self.channel_voltage_lcds[i].display(this_hv_channel.voltage)
+                self.channel_voltage_lcds[i].display(round(this_hv_channel.voltage,0))
                 self.channel_voltage_lcds[i].setToolTip("Actual voltage of the channel")                
                 #self.channel_voltage_lcds[i].setText(str(this_hv_channel.voltage))
 
@@ -419,7 +419,7 @@ class MainWindow(_qw.QMainWindow):
                 self.channel_current_lcds[i].setToolTip("Please connect the HV module!")                
                 #self.channel_current_lcds[i].setText("Error")                
             else:
-                self.channel_current_lcds[i].display(current_value)
+                self.channel_current_lcds[i].display(round(current_value,0))
                 self.channel_current_lcds[i].setToolTip("Actual current of the channel")                                
                 #self.channel_current_lcds[i].setText(str(current_value))
                 
