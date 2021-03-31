@@ -224,7 +224,7 @@ class nhr_module_tab(gen_module_tab):
             print(docElement.chlidNodes[idx].toElement())
         
         # load the file in which all indicators are located as a string
-        with open("hexesvm/icons/iseg_nhr_front_3_color_indicators_test.svg") as svg_file:
+        with open("hexesvm/icons/iseg_nhr_front_3_color_indicators.svg") as svg_file:
 
             self.indicator_svg_content = svg_file.read()
             self.build_svg_string()
