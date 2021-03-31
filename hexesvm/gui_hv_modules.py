@@ -544,6 +544,42 @@ class gen_channel_tab(_qw.QWidget):
         self.set_voltage_field.setPlaceholderText(str(self.channel.set_voltage))
         self.ramp_speed_field.setPlaceholderText(str(self.channel.ramp_speed))            
             
+    def trip_detection_autoreramp(self):
+    
+        # check for trips, and auto-reramp
+        if not _np.isnan(self.channel.voltage):
+            if self.trip_detect_box.checkState():
+                if (abs(self.channel.voltage) < self.channel.trip_voltage):
+                    if not self.channel.trip_detected:
+                        # channel is probably tripped
+                        self.channel.trip_detected = True        
+                        self.channel.trip_time_stamps.append(time.time())
+                        if len(self.channel.trip_time_stamps) < 2:
+                            dt_last_trip = self.channel.min_time_trips*60
+                        else:
+                            dt_last_trip = time.time() - self.channel.trip_time_stamps[-2]    
+                        if dt_last_trip < self.channel.min_time_trips*60:
+                            # This was a frequent trip
+                            self.main_ui.send_mail(self.host_module.name, self.channel.name, "frequent")
+                            self.channel.auto_reramp_mode = "freq_trip"
+                        else:
+                            # This was a single trip
+                            self.main_ui.send_mail(self.host_module.name, self.channel.name, "single")
+                            if not self.channel.manual_control:
+                                if self.auto_reramp_box.checkState():
+                                    if not (_np.isnan(self.channel.set_voltage) or _np.isnan(self.channel.ramp_speed)):
+                                        if self.main_ui.interlock_value:
+                                            self.start_hv_change(self.host_module.name, self.channel.name, True)
+                                        
+                else:
+                    self.channel.trip_detected = False
+                    if self.auto_reramp_box.checkState():
+                        self.channel.auto_reramp_mode = "on"
+                    else:
+                        self.channel.auto_reramp_mode = "off"
+                    if self.channel.manual_control:
+                        self.channel.auto_reramp_mode = "no_dac"
+
 
 class nhq_channel_tab(gen_channel_tab):
 
@@ -772,6 +808,15 @@ class nhr_channel_tab(gen_channel_tab):
         
     def _init_channel_tab(self):
         super()._init_channel_tab()
+        
+        # Push button to clear all channel events
+        self.clear_channel_events_label = _qw.QLabel("All events")
+        self.clear_channel_events = _qw.QPushButton("clear")
+        self.clear_channel_events.setToolTip("Clear all channel events")  
+        self.clear_channel_events.setFixedWidth(70)               
+        self.clear_channel_events.setStyleSheet("QPushButton {background-color: #8fff8f;}")
+        self.clear_channel_events.clicked.connect(partial(self.clear_all_channel_events))          
+            
         # Push button to change board polarity
         self.change_pol_button = _qw.QPushButton("toggle")
         self.change_pol_button.setToolTip("Toggle the polarity of the channel. (Only possible if HV is off, and output is close to zero volt)")
@@ -802,6 +847,8 @@ class nhr_channel_tab(gen_channel_tab):
         self.hv_off_button.setStyleSheet("QPushButton {background-color: #ff8787;}")
         self.hv_off_button.clicked.connect(partial(self.turn_hv_off))
         
+        self.grid.addWidget(self.clear_channel_events_label, 5, 1)
+        self.grid.addWidget(self.clear_channel_events, 5, 2, 1, 2)
         self.grid.addWidget(self.change_pol_button, 1, 6, 2, 1, _qc.Qt.AlignHCenter)        
         self.grid.addWidget(self.apply_button, 9, 4, _qc.Qt.AlignHCenter)
         self.grid.addWidget(self.hv_on_button, 9, 5, _qc.Qt.AlignHCenter)
@@ -851,7 +898,21 @@ class nhr_channel_tab(gen_channel_tab):
         self.host_module.board_occupied = False         
         self.mother_widget.start_reader_thread()        
         
+    def clear_all_channel_events(self):
+        if not self.host_module.is_connected:
+            self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Module", 
+                "Module is not connected!")
+            return False
+        self.mother_widget.stop_reader_thread()
+        while self.host_module.board_occupied:
+            time.sleep(0.2)
+        self.host_module.board_occupied = True
 
+        self.channel.clear_all_channel_events()
+
+        self.host_module.board_occupied = False
+        self.mother_widget.start_reader_thread()
+        return True
 
     @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject')    
     def apply_hv_settings(self, module_key=None, channel_key=None, auto=False):
@@ -954,6 +1015,10 @@ class nhr_channel_tab(gen_channel_tab):
             self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Interlock", 
                 "Interlock is/was triggered! Abort Voltage change!")        
             return False
+        if not auto and self.channel.channel_is_tripped:
+            self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Channel event", 
+                "Channel is in tripped state! Clear event first.")        
+            return False            
 
         confirmation = auto
         if not auto:
@@ -968,6 +1033,10 @@ class nhr_channel_tab(gen_channel_tab):
             time.sleep(0.2)        
         self.host_module.board_occupied = True
         
+        if auto and not self.channel.channel_in_error:
+            # Clear channel events (from possible previous trip) but only if EMCY OFF is not set
+            self.channel.clear_all_channel_events()
+            
         if confirmation:
             self.channel.read_device_status()        
             answer = self.channel.turn_on_hv()
@@ -1022,55 +1091,8 @@ class nhr_channel_tab(gen_channel_tab):
         
     @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')        
     def start_hv_change(self, module_key=None, channel_key=None, auto=False):
-        if not self.host_module.is_connected:
-            self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Module", 
-                "Module is not connected!")
-            return False
-            
-        if _np.isnan(self.channel.set_voltage) or _np.isnan(self.channel.ramp_speed):
-            self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Channel", 
-                "Channel shows invalid value!")        
-            return False
-        if not (self.main_ui.locker.lock_state and self.main_ui.interlock_value):
-            self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Interlock", 
-                "Interlock is/was triggered! Abort Voltage change!")        
-            return False
-
-        confirmation = auto
-        if not auto:
-            answer = _qw.QMessageBox.question(self, "Are you sure?", 
-            "You are about to turn on High voltage for channel: "+self.channel.name+
-            "\nSet Voltage: "+str(self.channel.set_voltage)+
-            "\nRamp Speed: "+str(self.channel.ramp_speed)+
-            "\nPlease Confirm!", _qw.QMessageBox.Yes, _qw.QMessageBox.No)
-            confirmation = (answer == _qw.QMessageBox.Yes)
-        self.mother_widget.stop_reader_thread()
-        while self.host_module.board_occupied:
-            time.sleep(0.2)        
-        self.host_module.board_occupied = True
-        
-        if confirmation:
-            self.channel.read_device_status()        
-            answer = self.channel.start_voltage_change()
-            if not ("H2L" in answer or "L2H" in answer or "ON" in answer):
-                self.err_msg_voltage_change = _qw.QMessageBox.warning(self, "Voltage Change",
-               	"Invalid response from HV Channel. Check values!")
-       	        self.host_module.board_occupied = False
-               	self.mother_widget.start_reader_thread()
-               	return False
-            else:
-                if not auto:
-                    self.err_msg_voltage_change_good = _qw.QMessageBox.information(self, "Voltage Change",
-                    "Voltage is changing!")
-       	        self.host_module.board_occupied = False
-                self.mother_widget.start_reader_thread()
-                return True
-        else:
-            self.err_msg_voltage_change_abort = _qw.QMessageBox.warning(self, "Voltage Change",
-               	"Operation aborted!")
-            self.host_module.board_occupied = False
-            self.mother_widget.start_reader_thread()
-            return False
+    # wrapper for backwards compatibility with the auto-reramp function
+        self.turn_on_hv(module_key, channel_key, auto)
             
 
         
@@ -1078,53 +1100,6 @@ class nhr_channel_tab(gen_channel_tab):
         
     def update_channel_section(self, mod_key, channel_key):
 
-
-
-        # check for trips, and auto-reramp
-        if not _np.isnan(this_channel.voltage):
-            if self.all_channels_trip_detect_box[mod_key][channel_key].checkState():
-                if (abs(this_channel.voltage) < this_channel.trip_voltage):
-                    if not this_channel.trip_detected:
-                        # channel is probably tripped
-                        this_channel.trip_detected = True        
-                        this_channel.trip_time_stamps.append(time.time())
-                        if len(this_channel.trip_time_stamps) < 2:
-                            dt_last_trip = this_channel.min_time_trips*60
-                        else:
-                            dt_last_trip = time.time() - this_channel.trip_time_stamps[-2]    
-                        if dt_last_trip < this_channel.min_time_trips*60:
-                            # This was a frequent trip
-                            self.send_mail(mod_key, channel_key, "frequent")   
-                            this_channel.auto_reramp_mode = "freq_trip"
-                        else:
-                            # This was a single trip
-                            self.send_mail(mod_key, channel_key, "single")
-                            if not this_channel.manual_control:
-                                if self.all_channels_auto_reramp_box[mod_key][channel_key].checkState():
-                                    if not (_np.isnan(self.channels[mod_key][channel_key].set_voltage) or _np.isnan(self.channels[mod_key][channel_key].ramp_speed)):
-                                        if self.interlock_value:
-                                            self.start_hv_change(mod_key, channel_key, True)
-                                            #self.stop_reader_thread(self.modules[mod_key])
-                                            #self.channels[mod_key][channel_key].read_status()
-                                            #answer = self.channels[mod_key][channel_key].start_voltage_change()
-                                            #self.start_reader_thread(self.modules[mod_key])
-                                        
-                else:
-                    this_channel.trip_detected = False
-                    if self.all_channels_auto_reramp_box[mod_key][channel_key].checkState():
-                        this_channel.auto_reramp_mode = "on"
-                    else:
-                        this_channel.auto_reramp_mode = "off"
-                    if this_channel.manual_control:
-                        this_channel.auto_reramp_mode = "no_dac"
-          
-        self.all_channels_time_between_trips_field[mod_key][channel_key].setPlaceholderText(str(this_channel.min_time_trips))        
-        self.all_channels_set_voltage_field[mod_key][channel_key].setPlaceholderText(str(this_channel.set_voltage))
-        self.all_channels_ramp_speed_field[mod_key][channel_key].setPlaceholderText(str(this_channel.ramp_speed))
-        
-        return
-            
-        
 
 
     @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')      

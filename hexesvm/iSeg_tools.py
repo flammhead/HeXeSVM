@@ -313,12 +313,15 @@ class nhr_hv_channel(gen_hv_channel):
             return False
         return True      
     
-    def turn_on_hv(self):
+    def clear_all_channel_events(self):
         command = (":EV CLEAR,(@%d);*OPC?" % self.channel)
-        answer_1 = self.module.send_long_command(command)
+        answer = self.module.send_long_command(command)
+        return not answer == 1
+        
+    def turn_on_hv(self):
         command = (":VOLT ON,(@%d);*OPC?" % self.channel)
-        answer_2 = self.module.send_long_command(command)
-        return not (answer_1 == '1' and answer_2 == '1')
+        answer = self.module.send_long_command(command)
+        return not answer == '1'
         
     def turn_off_hv(self):
         command = (":VOLT OFF,(@%d);*OPC?" % self.channel)
