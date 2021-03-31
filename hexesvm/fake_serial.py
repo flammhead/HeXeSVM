@@ -47,7 +47,7 @@ class Serial:
         self.chan_g_time = self.n_channels*[0]
         self.ch_tripped = self.n_channels*[False]
         self.in_emcy_off = self.n_channels*[False]
-        self.ch_tripping_active = self.n_channels*[False]
+        self.ch_tripping_active = self.n_channels*[True]
         self.ch_trip_interval = self.n_channels*[60]
         self.ch_last_trip = self.n_channels*[0]
         self.channel_state_bin = self.n_channels*[170] 
@@ -65,8 +65,10 @@ class Serial:
     # this functino is activated when communication with board and refreshes all values
     # this function simulates the Hardware
         now_time = time.time()
-        for index in range(self.n_channels):
+        t_delta = 0
+        if self.time_last_command:
             t_delta = now_time - self.time_last_command
+        for index in range(self.n_channels):
             if self.ch_state[index] == "H2L":
                 if self.turning_off[index]:
                     if self.u[index] > 0:
@@ -383,7 +385,7 @@ class Serial:
                     int_state += byte*(2**idx)
                 answer = int_state
 
-            if ":EV:CLEAR,(@" in self.sum_receivedData:
+            if ":EV CLEAR,(@" in self.sum_receivedData:
                 self.ch_tripped[channel_number] = False
                 self.in_emcy_off[channel_number] = False
                 answer = "1"

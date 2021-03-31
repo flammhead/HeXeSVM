@@ -486,6 +486,9 @@ class gen_channel_tab(_qw.QWidget):
 
     def update_channel_section(self):
     
+        # Exectue the trip detection and auto-reramp subroutine
+        self.trip_detection_autoreramp()
+    
         none_pix = _qg.QPixmap('hexesvm/icons/hexe_circle_gray_small.svg')
         ok_pix = _qg.QPixmap('hexesvm/icons/hexe_circle_green_small.svg')
         err_pix = _qg.QPixmap('hexesvm/icons/hexe_circle_red_small.svg')
@@ -1092,7 +1095,7 @@ class nhr_channel_tab(gen_channel_tab):
     @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')        
     def start_hv_change(self, module_key=None, channel_key=None, auto=False):
     # wrapper for backwards compatibility with the auto-reramp function
-        self.turn_on_hv(module_key, channel_key, auto)
+        self.turn_hv_on(module_key, channel_key, auto)
             
 
         
