@@ -192,17 +192,16 @@ class nhr_module_tab(gen_module_tab):
         super()._init_module_tab()
         # Now add the module specific things (.svg file)
         self.module_svg = _qs.QSvgWidget('hexesvm/icons/iseg_nhr_front_3_discon_no_indicators.svg', self)
-        self.indicator_svg_widget = _qs.QSvgWidget(self.module_svg)   
+
+        self.text_svg_widget = _qs.QSvgWidget(self.module_svg)   
+        self.indicator_svg_widget = _qs.QSvgWidget(self.text_svg_widget)   
         svg_min_size = _qc.QSize(82,538)
         svg_max_size = _qc.QSize(82,538)
         self.module_svg.setMinimumSize(svg_min_size)
         self.module_svg.setMaximumSize(svg_max_size)
         self.grid.addWidget(self.module_svg, 1,7,12,2)
 
-        self._init_svg_indicators()
-        #self.indicator_svg.setMinimumSize(svg_min_size)
-        #self.indicator_svg.setMaximumSize(svg_max_size)
-        #self.grid.addWidget(self.indicator_svg, 1,7,12,2)        
+        self._init_svg_indicators()  
         
         self._init_channel_tabs()
         self.update_module_tab()   
@@ -218,25 +217,30 @@ class nhr_module_tab(gen_module_tab):
             self.channel_idx_tab.update({this_channel.channel: this_channel_tab})
 
     def _init_svg_indicators(self):
-        indicator_xml = _xml.QDomDocument("hexesvm/icons/iseg_nhr_front_3_color_indicators.svg")
-        docElement = indicator_xml.documentElement()
-        for idx in range(docElement.childNodes().count()):
-            print(docElement.chlidNodes[idx].toElement())
         
         # load the file in which all indicators are located as a string
         with open("hexesvm/icons/iseg_nhr_front_3_color_indicators.svg") as svg_file:
 
             self.indicator_svg_content = svg_file.read()
-            self.build_svg_string()
+            self.build_indicator_svg_string()
             self.indicator_svg_widget.load(self.indicator_svg_content.encode())
+
+        # load the file in which all texts are located as a string
+        with open("hexesvm/icons/iseg_nhr_front_3_discon_texts.svg") as svg_file:
+
+            self.texts_svg_content = svg_file.read()
+            self.build_texts_svg_string()
+            self.text_svg_widget.load(self.texts_svg_content.encode())
 
         
     def update_module_tab(self):
             super().update_module_tab()
-            self.build_svg_string()
+            self.build_indicator_svg_string()
             self.indicator_svg_widget.load(self.indicator_svg_content.encode())
+            self.build_texts_svg_string()
+            self.text_svg_widget.load(self.texts_svg_content.encode())
 
-    def build_svg_string(self):
+    def build_indicator_svg_string(self):
         new_string = ""
         
         str_parts = self.indicator_svg_content.split('<circle')
@@ -280,6 +284,38 @@ class nhr_module_tab(gen_module_tab):
             
         self.indicator_svg_content = new_string
         return
+        
+    def build_texts_svg_string(self):
+        new_string = "     "
+        
+        str_parts = self.texts_svg_content.split('<text')
+        for idx, this_part in enumerate(str_parts):
+            if idx == 0:
+                new_string = this_part
+                continue
+            
+            id_field = this_part.split("id=\"ch")[1]
+            this_channel = id_field[0]
+            this_attribute = id_field.split("\"")[0][2:]
+            pre_text_str = this_part.split("</tspan>")
+            post_text_str = pre_text_str[1]
+            if not self.module.is_connected:
+                new_text = "     "
+            else:
+                # See if this channel is part of the game
+                new_text = "     "
+                try: 
+                    this_channel_tab = self.channel_idx_tab[int(this_channel)]
+                    hv_chan = this_channel_tab.channel
+                    voltage = str("%04dV" % (hv_chan.voltage))
+                    new_text = voltage
+                except (KeyError, ValueError):
+                    new_text = "     "
+
+            new_string += "<text" + pre_text_str[0][:-5] + new_text + "</tspan>" + post_text_str
+            
+        self.texts_svg_content = new_string
+        return        
 
 class nhq_module_tab(gen_module_tab):
     # Class in which the looks of an NHQ module interface are defined
