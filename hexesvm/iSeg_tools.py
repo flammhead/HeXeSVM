@@ -276,7 +276,7 @@ class nhr_hv_channel(gen_hv_channel):
         self.channel_in_error = (binary[5] == '1')        
         self.channel_is_ramping = (binary[4] == '1') 
         self.hardware_inhibit = (binary[12] == '1')                
-		
+
         if self.hv_switch_off:
             self.status = ""
         elif not self.channel_is_ramping:
@@ -359,7 +359,6 @@ class nhr_hv_channel(gen_hv_channel):
         return True        
 
     def write_set_voltage(self, voltage):
-        #try: voltage_flt = round(float(voltage),3) * (-1) *(not self.polarity_positive)
         try: voltage_flt = round(float(voltage),3)
         except (ValueError, TypeError): return "ERR"
         command = (":VOLT %.3f,(@%d);*OPC?" % (voltage_flt, self.channel))

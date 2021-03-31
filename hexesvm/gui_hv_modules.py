@@ -264,11 +264,11 @@ class nhr_module_tab(gen_module_tab):
                     if this_attribute == 'hv_on' and not hv_chan.hv_switch_off:
                         new_color = self.led_colors['hv_on']
                         # Do the animation of the ON LED while board is ramping
-                        if hv_chan.channel_is_ramping and self.on_led_indicator_state:
+                        if hv_chan.channel_is_ramping and this_channel_tab.on_led_indicator_state:
                             new_color = self.led_colors['off']
-                            self.on_led_indicator_state = False
+                            this_channel_tab.on_led_indicator_state = False
                         else:
-                            self.on_led_indicator_state = True
+                            this_channel_tab.on_led_indicator_state = True
                     if this_attribute == 'pol_neg' and not hv_chan.polarity_positive:
                         new_color = self.led_colors['pol_neg']                          
                     if this_attribute == 'pol_pos' and hv_chan.polarity_positive:
@@ -768,6 +768,7 @@ class nhr_channel_tab(gen_channel_tab):
 
     def __init__(self, host_widget, this_channel):
         super().__init__(host_widget, this_channel)
+        self.on_led_indicator_state = False
         
     def _init_channel_tab(self):
         super()._init_channel_tab()
@@ -893,9 +894,9 @@ class nhr_channel_tab(gen_channel_tab):
         confirmation = auto
         if (not auto) and (not self.channel.hv_switch_off):
             answer = _qw.QMessageBox.question(self, "Are you sure?", 
-            "You are about to change the HV of channel: "+self.channel.name+
-            "\nSet Voltage: "+str(self.channel.set_voltage)+
-            "\nRamp Speed: "+str(self.channel.ramp_speed)+
+            "You are about to change the HV settings of channel: "+self.channel.name+
+            "\nSet Voltage: "+str(set_voltage)+
+            "\nRamp Speed: "+str(ramp_speed)+
             "\nPlease Confirm!", _qw.QMessageBox.Yes, _qw.QMessageBox.No)
             confirmation = (answer == _qw.QMessageBox.Yes)
         elif self.channel.hv_switch_off:
@@ -1011,6 +1012,9 @@ class nhr_channel_tab(gen_channel_tab):
             self.host_module.board_occupied = False
             self.mother_widget.start_reader_thread()
             return False
+        if not auto:
+            self.err_msg_voltage_change_good = _qw.QMessageBox.information(self, "Voltage Change",
+                    "High Voltage is turning off!")            
         self.host_module.board_occupied = False
         self.mother_widget.start_reader_thread()
         return True

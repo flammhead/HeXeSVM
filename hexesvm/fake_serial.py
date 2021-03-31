@@ -46,12 +46,18 @@ class Serial:
         self.ch_ramp_down = self.n_channels*[False]
         self.chan_g_time = self.n_channels*[0]
         self.ch_tripped = self.n_channels*[False]
+        self.in_emcy_off = self.n_channels*[False]
         self.ch_tripping_active = self.n_channels*[False]
         self.ch_trip_interval = self.n_channels*[60]
         self.ch_last_trip = self.n_channels*[0]
         self.channel_state_bin = self.n_channels*[170] 
-        self.ch_state = self.n_channels*["ON"]
-        self.hv_on = self.n_channels*[False]
+        self.turning_off = self.n_channels*[False]
+        if port=="COM3":
+            self.ch_state = self.n_channels*["ON"]
+            self.hv_on = self.n_channels*[False]
+        elif port=="COM1":
+            self.ch_state = self.n_channels*["ON"]
+            self.hv_on = self.n_channels*[True]
         self.is_positive = self.n_channels*[False]
             
         
@@ -62,21 +68,32 @@ class Serial:
         for index in range(self.n_channels):
             t_delta = now_time - self.time_last_command
             if self.ch_state[index] == "H2L":
-                if self.u[index] > self.d[index]:
+                if self.turning_off[index]:
+                    if self.u[index] > 0:
+                        self.u[index] = self.u[index] - self.v[index]*t_delta
+                        self.ch_ramping[index] = True
+                    else:
+                        self.u[index] = 0
+                        self.ch_ramping[index] = False
+                        self.hv_on[index] = False
+                        self.ch_state[index] = ""
+
+                elif self.u[index] > self.d[index]:
                     self.u[index] = self.u[index] - self.v[index]*t_delta
-                    self.ch_ramp_down[index] = True
+                    self.ch_ramping[index] = True
                 else:
                     self.u[index] = self.d[index]
                     self.ch_state[index] = "ON"
-                    self.ch_ramp_down[index] = False
+                    self.ch_ramping[index] = False
+                    
             elif self.ch_state[index] == "L2H":
                 if self.u[index] < self.d[index]:
                     self.u[index] = self.u[index] + self.v[index]*t_delta
-                    self.ch_ramp_up[index] = True
+                    self.ch_ramping[index] = True
                 else:
                     self.u[index] = self.d[index]
                     self.ch_state[index] = "ON"
-                    self.ch_ramp_up[index] = False
+                    self.ch_ramping[index] = False
             if self.ch_tripping_active[index]:
                 if self.ch_last_trip[index] == 0:
                     self.ch_last_trip[index] == now_time
@@ -85,6 +102,7 @@ class Serial:
                     self.ch_state[index] = "ERR"
                     self.ch_last_trip[index] = now_time
                     self.ch_tripped[index] = True
+                    self.hv_on[index] = False
             # Set the current according to the resistance
             self.i[index] = self.u[index] / self.r[index]
                 
@@ -261,14 +279,15 @@ class Serial:
                 answer = "1"
                 
             if "MEAS:VOLT?" in self.sum_receivedData:
-                answer = str(self.u[channel_number]/1e3)+"E3V"
+                answer = ("%.6fE3V" % (self.u[channel_number]/1e3))
+                
             if "MEAS:CURR?" in self.sum_receivedData:
-                answer = str(self.i[channel_number]*1e3)+"E-3A"
-            
+                answer = ("%.6fE-6A" % (self.i[channel_number]*1e6))
+
             if "READ:VOLT:LIM?" in self.sum_receivedData:
-                answer = "41"
+                answer = "3E3V"
             if "READ:CURR:LIM?" in self.sum_receivedData:
-                answer = "44"            
+                answer = "3E-6A"            
 
             if "READ:VOLT?" in self.sum_receivedData:
                 answer = str(self.d[channel_number]/1e3)+"E3V"  
@@ -276,52 +295,57 @@ class Serial:
             if ":VOLT " in self.sum_receivedData:
                 if " ON,(" in self.sum_receivedData:
                     # Turn on HV channel
-                    self.hv_on[channel_number] = True
-                    pass
+                    if not (self.ch_tripped[channel_number] and self.in_emcy_off[channel_number]):
+                        self.hv_on[channel_number] = True
+                        self.chan_g_time[channel_number] = time.time()
+                        if abs(self.d[channel_number]) > abs(self.u[channel_number]):
+                            self.ch_state[channel_number]="L2H"
+                        if abs(self.d[channel_number]) < abs(self.u[channel_number]):
+                            self.ch_state[channel_number]="H2L"
+
                 elif " OFF,(" in self.sum_receivedData:
                     # Turn off HV channel
+                    self.ch_state[channel_number] = "H2L"
+                    self.turning_off[channel_number] = True
+
+                elif "EMCY OFF,(" in self.sum_receivedData:
+                    self.in_emcy_off[channel_number] = True
                     self.hv_on[channel_number] = False
-                    pass
-                elif "EMCY OFF,(":
+                    self.ch_state[channel_number] = ""
+                    self.u[channel_number] = 0
+                    self.i[channel_number] = 0
                     # Turn off channel without ramp set emcy state
-                    pass
+
                 else:
                     value_trail = self.sum_receivedData.split('VOLT ')[1]
-                    value = int(value_trail.split(',(')[0])
+                    value = float(value_trail.split(',(')[0])
                     self.d[channel_number] = value
-            
-            if ":VOLT " in self.sum_receivedData and not ("ON" in self.sum_receivedData or "OFF" in self.sum_receivedData):
-                value_trail = self.sum_receivedData.split('VOLT ')[1]
-                value = int(value_trail.split(',(')[0])
-                self.d[channel_number] = value
+                    if self.hv_on[channel_number]:
+                        if abs(self.d[channel_number]) > abs(self.u[channel_number]):
+                            self.ch_state[channel_number]="L2H"
+                        if abs(self.d[channel_number]) < abs(self.u[channel_number]):
+                            self.ch_state[channel_number]="H2L"
                 answer = "1"
-         
+           
          
             if ":CONF:RAMP:VOLT:UP?" in self.sum_receivedData:
                 answer = str(self.v[channel_number]/1e3)+"E3V/s"   
 
             if ":CONF:RAMP:VOLT:UP " in self.sum_receivedData: 
                 value_trail = self.sum_receivedData.split(':CONF:RAMP:VOLT:UP ')[1]
-                value = int(value_trail.split(',(')[0])
+                value = float(value_trail.split(',(')[0])
                 self.v[channel_number] = value
                 answer = "1"
-            if ":CONF:RAMP:VOLT:DO " in self.sum_receivedData:
-                value_trail = self.sum_receivedData.split(':CONF:RAMP:VOLT:DO ')[1]
-                value = int(value_trail.split(',(')[0])
+
+            if ":CONF:RAMP:VOLT:DOWN " in self.sum_receivedData:
+                value_trail = self.sum_receivedData.split(':CONF:RAMP:VOLT:DOWN ')[1]
+                value = float(value_trail.split(',(')[0])
                 self.v[channel_number] = value
                 answer = "1"
                 
-
-            if ":VOLT ON,(@" in self.sum_receivedData:
-                channel = int(self.sum_receivedData[11])
-                self.hv_on[channel] = True
-                if self.d[channel] != self.u[channel]:
-                    self.ch_ramping[0] = True
-                self.chan_g_time[0] = time.time()
-                answer = "1"
-
-            if ":CONF:OUT:POL " in self.sum_receivedData:
-                value_trail = self.sum_receivedData.split(':CONF:OUT:POL ')[1]
+            
+            if ":CONF:OUTP:POL " in self.sum_receivedData:
+                value_trail = self.sum_receivedData.split(':CONF:OUTP:POL ')[1]
                 value = value_trail.split(',(')[0]
                 if not self.hv_on[channel_number]:
                     if abs(self.u[channel_number]) < 0.002 * 6E3:
@@ -333,21 +357,36 @@ class Serial:
             if ":READ:CHAN:STAT?" in self.sum_receivedData:
                 #calculate the binary state
                 POS = self.is_positive[channel_number]
-                HVON = self.ch_state[channel_number]=='ON'
+                HVON = self.hv_on[channel_number]
                 RAMP = self.ch_ramping[channel_number]
-                TRIP = self.ch_tripped[channel_number]
                 RUP = self.ch_ramp_up[channel_number]
                 RDOWN = self.ch_ramp_down[channel_number]
-                
                 bin_state = _np.array((POS,0,0,HVON,RAMP,0,0,0,
-                                      0,0,0,0,0,TRIP,0,0,
-                                      0,0,0,RUP,RDOWN,0,0,0,
+                                      0,0,0,0,0,0,0,0,
+                                      1,0,0,0,0,0,0,0,
                                       0,0,0,0,0,0,0,0))
                 int_state = 0
                 for idx, byte in enumerate(bin_state):
                     int_state += byte*(2**idx)
-                
                 answer = int_state
+                                    
+            if ":READ:CHAN:EV:STAT?" in self.sum_receivedData:
+                TRIP = self.ch_tripped[channel_number]
+                EMCY = self.in_emcy_off[channel_number]
+                bin_state = _np.array((0,0,0,0,EMCY,0,0,0,
+                                      0,0,0,0,0,TRIP,0,0,
+                                      1,0,0,0,0,0,0,0,
+                                      0,0,0,0,0,0,0,0))
+                                      
+                int_state = 0
+                for idx, byte in enumerate(bin_state):
+                    int_state += byte*(2**idx)
+                answer = int_state
+
+            if ":EV:CLEAR,(@" in self.sum_receivedData:
+                self.ch_tripped[channel_number] = False
+                self.in_emcy_off[channel_number] = False
+                answer = "1"
 
             # Since for the NHR board, we don't need to wait for each character
             # To echo, we prepend the echo to the answer of the command
