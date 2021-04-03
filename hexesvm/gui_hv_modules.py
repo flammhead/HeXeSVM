@@ -592,7 +592,13 @@ class gen_channel_tab(_qw.QWidget):
         # check for trips, and auto-reramp
         if not _np.isnan(self.channel.voltage):
             if self.trip_detect_box.checkState():
-                if (abs(self.channel.voltage) < self.channel.trip_voltage):
+                # defining the trip_conditions 
+                low_volt = abs(self.channel.voltage) < self.channel.trip_voltage
+                channel_on = not self.channel.hv_switch_off
+                set_volt = abs(self.channel.set_voltage) > self.channel.trip_voltage
+                no_ramp = not self.channel.channel_is_ramping
+                if low_volt and channel_on and set_volt and no_ramp:
+                
                     if not self.channel.trip_detected:
                         # channel is probably tripped
                         self.channel.trip_detected = True        
