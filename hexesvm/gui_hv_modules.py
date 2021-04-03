@@ -1170,15 +1170,20 @@ class nhr_channel_tab(gen_channel_tab):
             time.sleep(0.5)
             print("Toggle pol")
             self.change_channel_polarity()
-            time.sleep(0.5)
+            time.sleep(2)
         self.ramp_speed_field.setText(str(ramp_spped))                  
         self.set_voltage_field.setText(str(set_voltage))
+        if set_voltage == 0:
+            self.turn_hv_off(True)
         self.apply_hv_settings(True)
         return
 
     def schedule_start_ramp(self):
         # Since the NHR module directly starts ramping if HV is on, we do not 
         # tell it to start ramping here
-        self.turn_hv_on(True)        
+        if not self.channel.set_voltage == 0:
+            self.turn_hv_on(True)
+        else:
+            self.turn_hv_off(True)
         return True
 
