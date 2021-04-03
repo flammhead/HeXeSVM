@@ -133,7 +133,6 @@ class ScheduleRampIsegModule(_qc.QThread):
     
         if not self.gui.locker.lock_state:        
             print("Interlock is triggered!")
-            #self.gui.stop_ramp_schedule()            
             self.stop()
             return
         if self.stop_signal:
@@ -160,7 +159,7 @@ class ScheduleRampIsegModule(_qc.QThread):
         for i in range(len(self.gui.channel_order_dict)):
             if self.stop_signal:
                 self.performing_step = False
-                return        
+                return
             module_key = self.gui.channel_order_dict[i][0]
             channel_key = self.gui.channel_order_dict[i][1]
             if not self.gui.modules[module_key].is_connected:

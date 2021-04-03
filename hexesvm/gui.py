@@ -1,8 +1,10 @@
 import sys
 import os
+import io
 import logging as _lg
 import sqlalchemy as _sql
 import numpy as _np
+import pandas as _pd
 from datetime import datetime as _dt
 import time
 import json
@@ -469,15 +471,14 @@ class MainWindow(_qw.QMainWindow):
         # For now, the table is not edit, to be safe... might be changed at some point
         self.rampTable.setEditTriggers(_qw.QAbstractItemView.NoEditTriggers)
         self.rampTable.setColumnCount(len(self.channel_order_dict*2)+1)
-        list_header = []
+        self.ramp_list_header = ["time"]
         for i in range(len(self.channel_order_dict)):
-            list_header.append("U("+self.channel_order_dict[i][1]+")")
-            list_header.append("V("+self.channel_order_dict[i][1]+")")
+            self.ramp_list_header.append("U("+self.channel_order_dict[i][1]+")")
+            self.ramp_list_header.append("V("+self.channel_order_dict[i][1]+")")
         
-        self.rampTable.setHorizontalHeaderLabels(["time"] + list_header)
+        self.rampTable.setHorizontalHeaderLabels(self.ramp_list_header)
         self.rampTable.verticalHeader().setVisible(False)
         self.rampTable.resizeColumnsToContents()
-        
         
         self.rampTableLoadButton = _qw.QPushButton("&Load")
         self.rampTableLoadButton.clicked.connect(self.load_ramp_schedule)
@@ -506,9 +507,17 @@ class MainWindow(_qw.QMainWindow):
         dialog.setFileMode(_qw.QFileDialog.ExistingFile)
         dialog.setDirectory(os.path.join("hexesvm","etc"))
         filename = ""
-        data = []
         if dialog.exec_():
             filename = dialog.selectedFiles()
+            file_content = ""
+            with open(filename[0], "r") as f_in:
+                file_content = f_in.read()
+                file_content = file_content.replace('\r', '').replace('\t','')
+                data_string = io.StringIO(file_content)
+                data = _pd.read_csv(data_string, header=0, comment='#', sep=",")
+                print(data)
+
+            '''            
             with open(filename[0], "r") as f_in:
                 lines = f_in.read()
                 lines = lines.split("\n")
@@ -519,13 +528,28 @@ class MainWindow(_qw.QMainWindow):
                             continue
                         this_elements = line.split(",")
                         data.append(this_elements)
-                    
+            '''        
             # Validate the data!
-            length = self.rampTable.columnCount()
-            for row in data:
-                if len(row) != length:
-                    print("Loaded Data has missing (too little) values!")
-                    return False
+            # Check if there are NaN values (missing values in list)
+            if data.isnull().values.any():
+                print("Loaded Data contains NaN values (empty cells?)")
+                return False      
+            # Check the header matches the expected one
+            imported_header = data.columns.tolist()
+            expected_header = self.ramp_list_header
+            print(imported_header)
+            print(expected_header)
+            if len(imported_header) == len(expected_header):
+                for idx, import_col in enumerate(imported_header):
+                    if import_col == expected_header[idx]:
+                        pass
+                    else:
+                        print("Loaded Data headers not matching expected headers!")
+                        return False
+            else:
+                print("Loaded Data has not expected number of coloumns!")
+                return False
+            
             try:
                 data_np = _np.asarray(data, dtype=_np.float32)
             except ValueError:
@@ -570,7 +594,6 @@ class MainWindow(_qw.QMainWindow):
                             f_out.write(',')
                     f_out.write('\n')
                         
-
     def run_ramp_schedule(self):
 
         if self.rampTable.rowCount() < 1:
@@ -605,23 +628,14 @@ class MainWindow(_qw.QMainWindow):
 
              
         return
-
+        
     def stop_ramp_schedule(self):
 
         if not self.inAutoMode:
             return
-	    #disconnect the threads signals
-        #self.auto_ramp_thread.apply_hv.disconnect()
-        #self.auto_ramp_thread.ramp_hv.disconnect()
-        #self.auto_ramp_thread.highlight_row.disconnect()
-        #self.auto_ramp_thread.change_hv_settings.disconnect()
 
         # stop the auto ramp thread
         self.auto_ramp_thread.stop()
-        # and wait until it is shut down
-        #while self.auto_ramp_thread.is_running:
-        #    print("Waiting for ramp table thread to stop")
-        #    time.sleep(0.2)
         self.auto_ramp_thread = None
 
         for i in range(self.rampTable.rowCount()):
@@ -639,6 +653,7 @@ class MainWindow(_qw.QMainWindow):
 
         return
 
+    # Define the slots for the ramp schedule thread's signals to connect to
     @_qc.pyqtSlot('PyQt_PyObject')      
     def highlight_ramp_table_row(self, idx):
 
@@ -648,6 +663,21 @@ class MainWindow(_qw.QMainWindow):
             self.rampTable.item(idx, i).setBackground(_qg.QColor(195, 247, 204))
         return
 
+    # Also define abstract wrapper functions for the module changing signals
+    @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')
+    def change_hv_settings(self, module_key, channel_key, set_voltage, ramp_speed):
+        self.mod_tabs[module_key].channel_tabs[channel_key]
+    '''
+    @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')      
+    def change_channel_hv_field(self, module_key, channel_key, set_voltage, ramp_speed):
+    ''' 
+    
+    @_qc.pyqtSlot('PyQt_PyObject')
+    def apply_hv():
+        pass
+    @_qc.pyqtSlot('PyQt_PyObject')
+    def ramp_hv():
+        pass
 
     def _init_settings(self):
         MainWindow.log.debug("Called _init_settings")

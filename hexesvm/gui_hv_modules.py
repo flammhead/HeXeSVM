@@ -1136,9 +1136,6 @@ class nhr_channel_tab(gen_channel_tab):
 
         
     '''        
-        
-    def update_channel_section(self, mod_key, channel_key):
-
 
 
     @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')      
