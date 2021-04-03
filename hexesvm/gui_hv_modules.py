@@ -290,7 +290,7 @@ class nhr_module_tab(gen_module_tab):
         return
         
     def build_texts_svg_string(self):
-        new_string = "     "
+        new_string = ""
         
         str_parts = self.texts_svg_content.split('<text')
         for idx, this_part in enumerate(str_parts):
@@ -304,20 +304,20 @@ class nhr_module_tab(gen_module_tab):
             pre_text_str = this_part.split("</tspan>")
             post_text_str = pre_text_str[1]
             if not self.module.is_connected:
-                new_text = "     "
+                new_text = "      "
             else:
                 # See if this channel is part of the game
-                new_text = "     "
+                new_text = "      "
                 try: 
                     this_channel_tab = self.channel_idx_tab[int(this_channel)]
                     hv_chan = this_channel_tab.channel
-                    voltage = str("%04dV" % (hv_chan.voltage))
+                    voltage = str("%+05dV" % (hv_chan.voltage))
                     new_text = voltage
                 except (KeyError, ValueError):
-                    new_text = "     "
+                    new_text = "      "
 
-            new_string += "<text" + pre_text_str[0][:-5] + new_text + "</tspan>" + post_text_str
-            
+            new_string += "<text" + pre_text_str[0][:-6] + new_text + "</tspan>" + post_text_str
+
         self.texts_svg_content = new_string
         return        
 

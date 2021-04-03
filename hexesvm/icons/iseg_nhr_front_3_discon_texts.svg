@@ -64,46 +64,46 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#fff9f9;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-       x="100.01249"
+       x="98.954155"
        y="95.695671"
        id="ch1_text"><tspan
          sodipodi:role="line"
          id="tspan2490"
-         x="100.01249"
+         x="98.954155"
          y="95.695671"
-         style="fill:#fff9f9;fill-opacity:1;stroke-width:0.26458332">0000V</tspan></text>
+         style="fill:#fff9f9;fill-opacity:1;stroke-width:0.26458332">+0000V</tspan></text>
     <text
        id="ch0_text"
        y="91.991508"
-       x="100.01249"
+       x="98.954155"
        style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#fff9f9;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        xml:space="preserve"><tspan
          style="fill:#fff9f9;fill-opacity:1;stroke-width:0.26458332"
          y="91.991508"
-         x="100.01249"
+         x="98.954155"
          id="tspan2520"
-         sodipodi:role="line">0000V</tspan></text>
+         sodipodi:role="line">+0000V</tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#fff9f9;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-       x="100.01249"
+       x="98.954155"
        y="99.399834"
        id="ch2_text"><tspan
          sodipodi:role="line"
          id="tspan2524"
-         x="100.01249"
+         x="98.954155"
          y="99.399834"
-         style="fill:#fff9f9;fill-opacity:1;stroke-width:0.26458332">0000V</tspan></text>
+         style="fill:#fff9f9;fill-opacity:1;stroke-width:0.26458332">+0000V</tspan></text>
     <text
        id="ch3_text"
        y="103.104"
-       x="100.01249"
+       x="98.954155"
        style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#fff9f9;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        xml:space="preserve"><tspan
          style="fill:#fff9f9;fill-opacity:1;stroke-width:0.26458332"
          y="103.104"
-         x="100.01249"
+         x="98.954155"
          id="tspan2528"
-         sodipodi:role="line">0000V</tspan></text>
+         sodipodi:role="line">+0000V</tspan></text>
   </g>
 </svg>
