@@ -1043,6 +1043,11 @@ class nhr_channel_tab(gen_channel_tab):
                 self.host_module.board_occupied = False            
                 self.mother_widget.start_reader_thread()
                 return False
+            # In case set voltage of 0 is desired, also turn the HV off, to prevent
+            # a strange bug in the Hardware...
+            if set_voltage == 0:
+                self.channel.turn_off_hv()
+                
             if self.channel.write_set_voltage(set_voltage):
                 self.err_msg_set_hv_values_voltage = _qw.QMessageBox.warning(self, "Set Voltage",
                                	"Invalid response from HV Channel for set Voltage. Check values!")
