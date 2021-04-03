@@ -166,7 +166,8 @@ class ScheduleRampIsegModule(_qc.QThread):
             this_channel = self.gui.channels[module_key][channel_key]        
 
             if self.new_values_taken(this_channel, voltages[i], speeds[i]):
-                continue
+                if not this_channel.hv_switch_off:
+                    continue
 
             channels_needing_change.append(i)
             print("setting fields connected")
@@ -231,6 +232,7 @@ class ScheduleRampIsegModule(_qc.QThread):
     def new_values_taken(self, channel, voltage, speed):
         voltage_taken = channel.set_voltage == float(voltage)
         speed_taken = channel.ramp_speed == float(speed)
+
         if voltage == 0:
             polarity_taken = True
         else:
