@@ -515,60 +515,58 @@ class MainWindow(_qw.QMainWindow):
                 file_content = file_content.replace('\r', '').replace('\t','')
                 data_string = io.StringIO(file_content)
                 data = _pd.read_csv(data_string, header=0, comment='#', sep=",")
-                print(data)
-
-            '''            
-            with open(filename[0], "r") as f_in:
-                lines = f_in.read()
-                lines = lines.split("\n")
-                for line in lines:
-                    line = line.replace('\n', '').replace('\r', '').replace(' ', '').replace('\t','')
-                    if line:
-                        if line[0] == '#':
-                            continue
-                        this_elements = line.split(",")
-                        data.append(this_elements)
-            '''        
+ 
             # Validate the data!
             # Check if there are NaN values (missing values in list)
             if data.isnull().values.any():
-                print("Loaded Data contains NaN values (empty cells?)")
+                self.err_msg = _qw.QMessageBox.warning(self, "Data", "Loaded Data contains NaN values (empty cells?)")
                 return False      
             # Check the header matches the expected one
             imported_header = data.columns.tolist()
             expected_header = self.ramp_list_header
-            print(imported_header)
-            print(expected_header)
+
             if len(imported_header) == len(expected_header):
                 for idx, import_col in enumerate(imported_header):
                     if import_col == expected_header[idx]:
                         pass
                     else:
-                        print("Loaded Data headers not matching expected headers!")
+                        self.err_msg = _qw.QMessageBox.warning(self, "Data", "Loaded Data headers not matching expected headers!")
                         return False
             else:
-                print("Loaded Data has not expected number of coloumns!")
+                self.err_msg = _qw.QMessageBox.warning(self, "Data", "Loaded Data has not expected number of coloumns!")
                 return False
             
             try:
                 data_np = _np.asarray(data, dtype=_np.float32)
             except ValueError:
-                print("Loaded Data is not of correct type!")
+                self.err_msg = _qw.QMessageBox.warning(self, "Data", "Loaded Data is not of correct type!")
                 return False
             # check if the table does not proceed too far in the future.
-            if _np.sum(data_np[:,0]) >= 96.*60.:
-                print("Loaded Data is going too far in the future!!")
+            if _np.sum(data_np[:,0]) >= self.defaults["max_ramp_schedule_duration"]*60.:
+                self.err_msg = _qw.QMessageBox.warning(self, "Data", "Loaded Data is going too far in the future!! Maximum allowed time is: "+str(self.defaults["max_ramp_schedule_duration"]))
                 return False
             if _np.min(data_np[1:,0]) < 1.:
-                print("Loaded Data contains a time intervall < 1 minute!")
+                self.err_msg = _qw.QMessageBox.warning(self, "Data", "Loaded Data contains a time intervall < 1 minute!")
+
             #clear previous data content
             self.rampTable.setRowCount(0)
             self.rampTable.setRowCount(data_np.shape[0])
             for i in range(data_np.shape[0]):
                 for j in range(data_np.shape[1]):
-                    newTableItem = _qw.QTableWidgetItem(str(data_np[i,j]))
+                    newTableItem = _qw.QTableWidgetItem()
+                    this_header = data.columns.tolist()[j]
+                    if this_header[0] == 'U':
+                        newTableItem.setText("%+.1f" % (data_np[i,j]))
+                        if data_np[i,j] > 0:
+                            newTableItem.setForeground(_qg.QBrush(_qg.QColor(214, 26, 26)))
+                        else:
+                            newTableItem.setForeground(_qg.QBrush(_qg.QColor(50, 201, 24)))
+                    else:
+                        newTableItem.setText("%.1f" % (data_np[i,j]))
+
                     self.rampTable.setItem(i,j, newTableItem)
-            self.tampTableDataNp = data_np  
+            self.rampTableDataPd = data
+            self.rampTableDataNp = data_np  
             self.rampTable.resizeColumnsToContents()
 
     def save_ramp_schedule(self):
@@ -580,7 +578,6 @@ class MainWindow(_qw.QMainWindow):
         if dialog.exec_():
             filename = dialog.selectedFiles()
             with open(filename[0], "w") as f_out:
-                f_out.write('#')
                 for j in range(self.rampTable.columnCount()):
                     f_out.write(self.rampTable.horizontalHeaderItem(j).text())
                     if j <= self.rampTable.columnCount():
@@ -597,15 +594,32 @@ class MainWindow(_qw.QMainWindow):
     def run_ramp_schedule(self):
 
         if self.rampTable.rowCount() < 1:
-            print("No data in the ramp schedule!")
+            self.err_msg = _qw.QMessageBox.warning(self, "Data", "No data in the ramp schedule!")
             return False
-        #if not self.locker.lock_state:
-        if not self.locker.lock_state:        
-            print("Interlock is triggered!")
+
+        if not self.locker.lock_state:     
+            self.err_msg = _qw.QMessageBox.warning(self, "Data", "Interlock is/was triggered!")   
             return False
+            
+        # check that all channels are connected and have the correct polarity 
+        # for all rows or support electronic polarity change
+        for this_mod in self.mod_tabs.values():
+            if not this_mod.module.is_connected:
+                self.err_msg = _qw.QMessageBox.warning(self, "Data", "Module: " + this_mod.module.name + " is not connected!")
+                return False
+            for this_chan in this_mod.channel_tabs.values():
+                if not this_mod.module.polarity_switchable:
+                    requested_voltages = self.rampTableDataPd["U("+this_chan.channel.name+")"]
+                    polarities = _np.sign(requested_voltages)
+                    ch_is_pos = this_chan.channel.polarity_positive
+                    if not((ch_is_pos and polarities.all() >= 0) 
+                            or (not ch_is_pos and polarities.all() <= 0)):
+                        self.err_msg = _qw.QMessageBox.warning(self, "Data", "Ramp schedule requests wrong or changing polarity for channel " + this_chan.channel.name+ ", which does not support electronic switching! Abort ramping!")
+                        return False
+
         self.inAutoMode = True
 
-        for this_module in mod_tabs.values():
+        for this_module in self.mod_tabs.values():
             for this_channel in this_module.channel_tabs.values():
                 for this_widget in this_channel.disable_in_auto_mode:
                     this_widget.setEnabled(True)
@@ -616,16 +630,13 @@ class MainWindow(_qw.QMainWindow):
         #start the auto ramp thread
         self.auto_ramp_thread = _thr.ScheduleRampIsegModule(self)
         # connect thread's signals to the respective apply and ramp functions
-
-        #TODO
         self.auto_ramp_thread.highlight_row.connect(self.highlight_ramp_table_row)
-        self.auto_ramp_thread.change_hv_settings.connect(self.change_channel_hv_field)
-        self.auto_ramp_thread.apply_hv.connect(self.apply_hv_settings)
-        self.auto_ramp_thread.ramp_hv.connect(self.start_hv_change)
         self.auto_ramp_thread.finished.connect(self.stop_ramp_schedule)
 
-        self.auto_ramp_thread.start()        
+        self.auto_ramp_thread.change_hv_settings.connect(self.schedule_change_hv_settings)
+        self.auto_ramp_thread.ramp_hv.connect(self.schedule_start_ramp_hv)
 
+        self.auto_ramp_thread.start()        
              
         return
         
@@ -645,7 +656,7 @@ class MainWindow(_qw.QMainWindow):
         
         self.rampTableRunButton.setEnabled(True)        
         self.rampTableStopButton.setEnabled(False)
-        for this_module in mod_tabs.values():
+        for this_module in self.mod_tabs.values():
             for this_channel in this_module.channel_tabs.values():
                 for this_widget in this_channel.disable_in_auto_mode:
                     this_widget.setEnabled(True)
@@ -665,19 +676,13 @@ class MainWindow(_qw.QMainWindow):
 
     # Also define abstract wrapper functions for the module changing signals
     @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')
-    def change_hv_settings(self, module_key, channel_key, set_voltage, ramp_speed):
-        self.mod_tabs[module_key].channel_tabs[channel_key]
-    '''
-    @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')      
-    def change_channel_hv_field(self, module_key, channel_key, set_voltage, ramp_speed):
-    ''' 
-    
-    @_qc.pyqtSlot('PyQt_PyObject')
-    def apply_hv():
-        pass
-    @_qc.pyqtSlot('PyQt_PyObject')
-    def ramp_hv():
-        pass
+    def schedule_change_hv_settings(self, module_key, channel_key, set_voltage, ramp_speed):
+        self.mod_tabs[module_key].channel_tabs[channel_key].schedule_change_settings(set_voltage, ramp_speed)
+        
+    @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject')
+    def schedule_start_ramp_hv(self, module_key, channel_key):
+        self.mod_tabs[module_key].channel_tabs[channel_key].schedule_start_ramp()
+
 
     def _init_settings(self):
         MainWindow.log.debug("Called _init_settings")

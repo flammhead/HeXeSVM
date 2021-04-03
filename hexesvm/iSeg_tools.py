@@ -21,6 +21,7 @@ class gen_hv_module:
         self.response_timeout = 5
         self.is_high_precission = self.defaults['is_high_precission']
         self.type = None
+        self.polarity_switchable = None
         self.is_connected = False
         self.child_channels = []
         self.u_max = ""
@@ -144,6 +145,7 @@ class nhr_hv_module(gen_hv_module):
      def __init__(self, name, port, defaults):
         super().__init__(name, port, defaults)
         self.type = "NHR"
+        self.polarity_switchable = True
 
      def add_channel(self, number, name, defaults):
         new_child_hv_channel = nhr_hv_channel(name, self, number, defaults)
@@ -404,6 +406,7 @@ class nhq_hv_module(gen_hv_module):
     def __init__(self, name, port, defaults):
         super().__init__(name, port, defaults)
         self.type = "NHQ"
+        self.polarity_switchable = False
 
     def add_channel(self, number, name, defaults):
         new_child_hv_channel = nhq_hv_channel(name, self, number, defaults)
@@ -606,7 +609,7 @@ class nhq_hv_channel(gen_hv_channel):
         try: voltage_int = int(voltage)
         except (ValueError, TypeError): return "ERR"
         #This solution is meant to be temporary!...
-        if self.module.model_no == "487472" and voltage_int > 980:
+        if self.module.model_no == "487472" and voltage_int > 1000:
             voltage_int = 42
         command = ("D%d=%d" % (self.channel, voltage_int))
         answer = self.module.send_long_command(command)

@@ -47,10 +47,10 @@ class Serial:
         self.chan_g_time = self.n_channels*[0]
         self.ch_tripped = self.n_channels*[False]
         self.in_emcy_off = self.n_channels*[False]
-        self.ch_tripping_active = self.n_channels*[True]
+        self.ch_tripping_active = self.n_channels*[False]
         self.ch_trip_interval = self.n_channels*[60]
         self.ch_last_trip = self.n_channels*[0]
-        self.channel_state_bin = self.n_channels*[170] 
+        self.channel_state_bin = self.n_channels*[166] 
         self.turning_off = self.n_channels*[False]
         if port=="COM3":
             self.ch_state = self.n_channels*["ON"]

@@ -2,6 +2,8 @@ from PyQt5 import QtCore as _qc
 from PyQt5 import QtGui as _qg
 #from hexesvm import iSeg_tools as _iseg
 import time
+import pandas as _pd
+import numpy as _np
 
 
 class MonitorIsegModule(_qc.QThread):
@@ -101,8 +103,7 @@ class MonitorIsegModule(_qc.QThread):
 
 class ScheduleRampIsegModule(_qc.QThread):
 
-    apply_hv = _qc.pyqtSignal('PyQt_PyObject', 'PyQt_PyObject')
-    ramp_hv = _qc.pyqtSignal('PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')
+    ramp_hv = _qc.pyqtSignal('PyQt_PyObject', 'PyQt_PyObject')
     highlight_row = _qc.pyqtSignal('PyQt_PyObject')
     change_hv_settings = _qc.pyqtSignal('PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')
 
@@ -143,15 +144,12 @@ class ScheduleRampIsegModule(_qc.QThread):
         speeds = []
         channels_needing_change = []
         #extract the information
-        self.highlight_row.emit(self.rampTableCurrentIndex)
-        for i in range(self.gui.rampTable.columnCount()):
-
-            if i == 0:
-                continue
-            if (i+1)%2 == 0:
-                voltages.append(self.gui.rampTable.item(self.rampTableCurrentIndex, i).text())
-            if (i+1)%2 == 1:
-                speeds.append(self.gui.rampTable.item(self.rampTableCurrentIndex, i).text())
+        curr_row = self.rampTableCurrentIndex
+        self.highlight_row.emit(curr_row)
+        for jdx in range(len(self.gui.channel_order_dict)):
+            this_channel = self.gui.channel_order_dict[jdx][1]
+            voltages.append(self.gui.rampTableDataPd["U("+this_channel+")"][curr_row])
+            speeds.append(self.gui.rampTableDataPd["V("+this_channel+")"][curr_row])
 
         print(voltages)
         print(speeds)         
@@ -167,23 +165,17 @@ class ScheduleRampIsegModule(_qc.QThread):
             print("module connected")
             this_channel = self.gui.channels[module_key][channel_key]        
 
-            if (self.gui.channels[module_key][channel_key].set_voltage == float(voltages[i])) and (self.gui.channels[module_key][channel_key].ramp_speed == float(speeds[i])):
+            if self.new_values_taken(this_channel, voltages[i], speeds[i]):
                 continue
-                
+
             channels_needing_change.append(i)
             print("setting fields connected")
             self.change_hv_settings.emit(module_key, channel_key, voltages[i], speeds[i])
-            '''
-            wait until the settings are applied in the HV board
-            while not((self.gui.all_channels_ramp_speed_field[module_key][channel_key].placeholderText() == speeds[i]) and                    (self.gui.all_channels_set_voltage_field[module_key][channel_key].placeholderText() == voltages[i])):
-                print(self.gui.all_channels_ramp_speed_field[module_key][channel_key].placeholderText())
-                print(self.gui.all_channels_set_voltage_field[module_key][channel_key].placeholderText())
-                time.sleep(0.2)
-            '''
+
             print("applying settings")
-            #self.apply_hv.emit(module_key, channel_key)
+
             idx = 0
-            while not ((self.gui.channels[module_key][channel_key].set_voltage == float(voltages[i])) and (self.gui.channels[module_key][channel_key].ramp_speed == float(speeds[i]))):
+            while not self.new_values_taken(this_channel, voltages[i], speeds[i]):
                 if self.stop_signal:
                     self.performing_step = False
                     return
@@ -191,7 +183,6 @@ class ScheduleRampIsegModule(_qc.QThread):
                     # Try to re-eimit the signal once
                     print("re-applying settings")
                     self.change_hv_settings.emit(module_key, channel_key, voltages[i], speeds[i])
-                    self.apply_hv.emit(module_key, channel_key)
 
                 if idx > 50:
                     # Channel was not able to accept the set values within 20 sec. Abort!
@@ -216,7 +207,7 @@ class ScheduleRampIsegModule(_qc.QThread):
             if not self.gui.modules[module_key].is_connected:
                 continue        
             print("changing voltage")
-            self.ramp_hv.emit(module_key, channel_key, True)
+            self.ramp_hv.emit(module_key, channel_key)
             #self.gui.start_hv_change(module_key, channel_key, True)
             print("voltage changed")  
             #time.sleep(10)
@@ -237,4 +228,12 @@ class ScheduleRampIsegModule(_qc.QThread):
         self.is_running = False
         return
             
+    def new_values_taken(self, channel, voltage, speed):
+        voltage_taken = channel.set_voltage == float(voltage)
+        speed_taken = channel.ramp_speed == float(speed)
+        if voltage == 0:
+            polarity_taken = True
+        else:
+            polarity_taken = not _np.logical_xor(channel.polarity_positive, voltage > 0)
+        return voltage_taken and speed_taken and polarity_taken
             

@@ -23,8 +23,8 @@ class gen_module_tab(_qw.QWidget):
     def __init__(self, mother_ui, defaults, hv_module):
         super().__init__(mother_ui)
         self.main_ui = mother_ui
-        self.defaults = defaults
         self.module = hv_module
+        self.defaults = self.module.defaults
         self.channel_tabs = {}
         self.channel_idx_tab = {}
         
@@ -101,9 +101,6 @@ class gen_module_tab(_qw.QWidget):
         self.module_serial_field.setText(self.module.model_no)
         self.module_firmware_field.setText(self.module.firmware_vers)
 
-        # update the "virtual" module
-        # DO SOME MAGIC HERE
-
         # Trigger update of the channel sections
         for this_channel in self.channel_tabs.values():
             this_channel.update_channel_section()
@@ -138,6 +135,13 @@ class gen_module_tab(_qw.QWidget):
 
         self.module.sync_module()
         self.module.read_module_info()
+        if not self.defaults["serial_no"]:
+            self.err_msg_module = _qw.QMessageBox.warning(self, "Defaults",
+                               	"No value for the expected Modules serial number found in the default settings! Can not verify correct cabeling!")
+        else:
+            if not self.defaults["serial_no"] == self.module.model_no:
+                self.err_msg_module = _qw.QMessageBox.warning(self, "HV module",
+                                        "Module's serial number does not match the expected number given in default_settings.json! Please verify correct cabeling and COM Port!")
         self.module_com_line_edit.setDisabled(True)
         self.module_connect_button.setEnabled(False)
         self.module_disconnect_button.setEnabled(True)        
@@ -720,10 +724,7 @@ class nhq_channel_tab(gen_channel_tab):
 
         return
 
-
-
-    @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject')    
-    def apply_hv_settings(self, module_key=None, channel_key=None):
+    def apply_hv_settings(self):
         if not self.host_module.is_connected:
             self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Module", 
                 "Module is not connected!")
@@ -744,7 +745,7 @@ class nhq_channel_tab(gen_channel_tab):
                 ramp_speed = int(float(self.ramp_speed_field.placeholderText()))
                 
             if set_voltage_text:
-                set_voltage = abs(int(float(set_voltage_text)))
+                set_voltage = int(float(set_voltage_text))
             else:
                 set_voltage = int(float(self.set_voltage_field.placeholderText()))
                 
@@ -760,6 +761,15 @@ class nhq_channel_tab(gen_channel_tab):
        	    self.mother_widget.start_reader_thread()
             return False
 
+        # Check that required set voltage has the correct sign
+        if not set_voltage == 0:
+            if _np.logical_xor(self.channel.polarity_positive, set_voltage > 0):
+                self.err_msg_set_hv_values = _qw.QMessageBox.warning(self, "Values",
+                "Requested Set Voltage has the wrong sign for the settings of the channel!")
+                self.host_module.board_occupied = False            
+                self.mother_widget.start_reader_thread()
+                return False
+            
         if self.channel.write_ramp_speed(ramp_speed):
             self.err_msg_set_hv_values_speed = _qw.QMessageBox.warning(self, "Set Ramp speed", 
             "Invalid response from HV Channel for set Ramp speed. Check values!")
@@ -787,8 +797,7 @@ class nhq_channel_tab(gen_channel_tab):
         self.mother_widget.start_reader_thread()
         return True        
         
-    @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')        
-    def start_hv_change(self, module_key=None, channel_key=None, auto=False):
+    def start_hv_change(self, auto=False):
         if not self.host_module.is_connected:
             self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Module", 
                 "Module is not connected!")
@@ -838,6 +847,17 @@ class nhq_channel_tab(gen_channel_tab):
             self.host_module.board_occupied = False
             self.mother_widget.start_reader_thread()
             return False
+            
+    # Methods connected to the ramp schedule
+    def schedule_change_settings(self, set_voltage, ramp_spped):
+        self.ramp_speed_field.setText(str(ramp_spped))                  
+        self.set_voltage_field.setText(str(set_voltage))
+        self.apply_hv_settings()
+        return
+        
+    def schedule_start_ramp(self):
+        self.start_hv_change(True)
+        return
 
 class nhr_channel_tab(gen_channel_tab):
 
@@ -924,9 +944,6 @@ class nhr_channel_tab(gen_channel_tab):
             time.sleep(0.2)
         self.host_module.board_occupied = True
         
-        ramp_speed_text = self.ramp_speed_field.text().strip()
-        set_voltage_text = self.set_voltage_field.text().strip()
-        min_trip_time_text = self.time_between_trips_field.text().strip()
         print("Swapping polarity")
         if not self.channel.switch_polarity():
             self.err_msg_set_hv_values_speed = _qw.QMessageBox.warning(self, "Switch polarity", 
@@ -953,8 +970,7 @@ class nhr_channel_tab(gen_channel_tab):
         self.mother_widget.start_reader_thread()
         return True
 
-    @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject')    
-    def apply_hv_settings(self, module_key=None, channel_key=None, auto=False):
+    def apply_hv_settings(self, auto=False):
         if not self.host_module.is_connected:
             self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Module", 
                 "Module is not connected!")
@@ -975,7 +991,7 @@ class nhr_channel_tab(gen_channel_tab):
                 ramp_speed = abs(round(float(self.ramp_speed_field.placeholderText()),3))
                 
             if set_voltage_text:
-                set_voltage = abs(round(float(set_voltage_text),3))
+                set_voltage = round(float(set_voltage_text),3)
             else:
                 set_voltage = round(float(self.set_voltage_field.placeholderText()),3)
                 
@@ -991,6 +1007,15 @@ class nhr_channel_tab(gen_channel_tab):
        	    self.mother_widget.start_reader_thread()
             return False
 
+        # Check that required set voltage has the correct sign
+        if not set_voltage == 0:
+            if _np.logical_xor(self.channel.polarity_positive, set_voltage > 0):
+                self.err_msg_set_hv_values = _qw.QMessageBox.warning(self, "Values",
+                "Requested Set Voltage has the wrong sign for the settings of the channel!")
+                self.host_module.board_occupied = False            
+                self.mother_widget.start_reader_thread()
+                return False
+            
         confirmation = auto
         if (not auto) and (not self.channel.hv_switch_off):
             answer = _qw.QMessageBox.question(self, "Are you sure?", 
@@ -1040,12 +1065,14 @@ class nhr_channel_tab(gen_channel_tab):
 
         return True        
         
-    def turn_hv_on(self, module_key=None, channel_key=None, auto=False):
+    def turn_hv_on(self, auto=False):
         if not self.host_module.is_connected:
             self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Module", 
                 "Module is not connected!")
             return False
-            
+        # If HV switch is on already, skip the rest
+        if not self.channel.hv_switch_off:
+            return True
         if _np.isnan(self.channel.set_voltage) or _np.isnan(self.channel.ramp_speed):
             self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Channel", 
                 "Channel shows invalid value!")        
@@ -1100,12 +1127,14 @@ class nhr_channel_tab(gen_channel_tab):
             self.mother_widget.start_reader_thread()
             return False
         
-    def turn_hv_off(self, module_key=None, channel_key=None, auto=False):
+    def turn_hv_off(self, auto=False):
         if not self.host_module.is_connected:
             self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Module", 
                 "Module is not connected!")
             return False    
-
+        # If HV switch is off already, skip the rest
+        if self.channel.hv_switch_off:
+            return True
         self.mother_widget.stop_reader_thread()
         while self.host_module.board_occupied:
             time.sleep(0.2)        
@@ -1115,7 +1144,7 @@ class nhr_channel_tab(gen_channel_tab):
         answer = self.channel.turn_off_hv()
         time.sleep(0.75)
         self.channel.read_device_status()
-        if not self.channel.channel_is_ramping:
+        if not (self.channel.channel_is_ramping or self.channel.hv_switch_off):
             self.err_msg_voltage_change = _qw.QMessageBox.warning(self, "Voltage Change", "Invalid response from HV Channel. Check values!")
             self.host_module.board_occupied = False
             self.mother_widget.start_reader_thread()
@@ -1127,75 +1156,29 @@ class nhr_channel_tab(gen_channel_tab):
         self.mother_widget.start_reader_thread()
         return True
         
-        
-    @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')        
-    def start_hv_change(self, module_key=None, channel_key=None, auto=False):
-    # wrapper for backwards compatibility with the auto-reramp function
-        self.turn_hv_on(module_key, channel_key, auto)
-            
+    # Methods connected to the ramp schedule
+    def schedule_change_settings(self, set_voltage, ramp_spped):
+        # Check if the channel needs repolarization!
+        if set_voltage == 0:
+            change_needed = False
+        else:
+            change_needed = _np.logical_xor(self.channel.polarity_positive, set_voltage > 0)
 
-        
-    '''        
+        if change_needed:
+            print("HV off")
+            self.turn_hv_off(True)
+            time.sleep(0.5)
+            print("Toggle pol")
+            self.change_channel_polarity()
+            time.sleep(0.5)
+        self.ramp_speed_field.setText(str(ramp_spped))                  
+        self.set_voltage_field.setText(str(set_voltage))
+        self.apply_hv_settings(True)
+        return
 
-
-    @_qc.pyqtSlot('PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject', 'PyQt_PyObject')      
-    def change_channel_hv_field(self, module_key, channel_key, set_voltage, ramp_speed):
-        
-        channel = self.channels[module_key][channel_key]
-        if not self.modules[module_key].is_connected:
-            self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Module", 
-                "Module is not connected!")
-            return False
-        self.stop_reader_thread(self.modules[module_key])
-        while self.modules[module_key].board_occupied:
-            time.sleep(0.2)
-        self.modules[module_key].board_occupied = True
-        
-        print("try")
-        try:
-            ramp_speed_int = abs(int(float(ramp_speed)))
-            set_voltage_int = abs(int(float(set_voltage)))
-
-        except (ValueError, TypeError):
-            self.err_msg_set_hv_values = _qw.QMessageBox.warning(self, "Values",
-            "Invalid input for the Board parameters!")
-            self.modules[module_key].board_occupied = False
-       	    self.start_reader_thread(self.modules[module_key])
-            return False
-
-        if channel.write_ramp_speed(ramp_speed_int):
-            self.err_msg_set_hv_values_speed = _qw.QMessageBox.warning(self, "Set Ramp speed", 
-            "Invalid response from HV Channel for set Ramp speed. Check values!")
-            self.modules[module_key].board_occupied = False            
-            self.start_reader_thread(self.modules[module_key])
-            return False
-        if channel.write_set_voltage(set_voltage_int):
-            self.err_msg_set_hv_values_voltage = _qw.QMessageBox.warning(self, "Set Voltage",
-                           	"Invalid response from HV Channel for set Voltage. Check values!")
-            self.modules[module_key].board_occupied = False
-            self.start_reader_thread(self.modules[module_key])
-            return False
-
-        self.all_channels_ramp_speed_field[module_key][channel_key].setText("")
-        self.all_channels_set_voltage_field[module_key][channel_key].setText("")
-        self.all_channels_time_between_trips_field[module_key][channel_key].setText("")
-        # This is neccessary to delete the current saved value and make the change clear
-        channel.set_voltage = float('nan')
-        channel.ramp_speed = float('nan')
-        self.all_channels_ramp_speed_field[module_key][channel_key].setPlaceholderText("")
-        self.all_channels_set_voltage_field[module_key][channel_key].setPlaceholderText("")
-        self.all_channels_time_between_trips_field[module_key][channel_key].setPlaceholderText("")  
-
-        self.modules[module_key].board_occupied = False         
-        self.start_reader_thread(self.modules[module_key])
-        return True        
-
-
-
-        
-
-            
-    '''            
-            
-            
+    def schedule_start_ramp(self):
+        # Since the NHR module directly starts ramping if HV is on, we do not 
+        # tell it to start ramping here
+        self.turn_hv_on(True)        
+        return True
 

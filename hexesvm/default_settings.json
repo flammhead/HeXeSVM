@@ -23,12 +23,15 @@
     "interlock_parameter": "p1",
 	"interlock_value": 1.2,
 	
+    "max_ramp_schedule_duration": 96,
+	
 	"use_virtual_hardware": true,
 	"modules": [
 	{
 		"name": "PMT module",
 		"port": "COM1",
 		"type": "NHQ",
+		"serial_no": "487472",
 		"is_high_precission": false,
 
 		"channels": [
@@ -64,6 +67,7 @@
 		"name": "Drift module",
 		"port": "COM3",
 		"type": "NHR",
+		"serial_no": "NR042060r4050000200",
 		"is_high_precission": false,
 
 		"channels": [
