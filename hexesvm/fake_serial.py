@@ -279,7 +279,14 @@ class Serial:
                 answer = "iseg Spezialelektronik GmbH,NR042060r4050000200,8200002,1.12"
             if self.sum_receivedData == "*OPC?\r\n":
                 answer = "1"
-                
+
+            if "*RST;*OPC?" in self.sum_receivedData:
+                for idx in range(self.n_channels):
+                    self.d[idx] = 0
+                    self.ch_state[idx] = "H2L"
+                    self.turning_off[idx] = True
+                answer = "1"
+                    
             if "MEAS:VOLT?" in self.sum_receivedData:
                 answer = ("%.6fE3V" % (self.u[channel_number]/1e3))
                 
