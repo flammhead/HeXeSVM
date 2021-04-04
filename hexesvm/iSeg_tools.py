@@ -144,6 +144,8 @@ class nhr_hv_module(gen_hv_module):
 
      def __init__(self, name, port, defaults):
         super().__init__(name, port, defaults)
+        self.u_lim = float('nan')
+        self.i_lim = float('nan')
         self.type = "NHR"
         self.polarity_switchable = True
 
@@ -238,14 +240,14 @@ class nhr_hv_channel(gen_hv_channel):
         self.current = self.convert_answer_with_unit(answer, "A")
         
     def read_voltage_limit(self):
-        command = (":READ:VOLT:LIM? (@%d)" % self.channel)
+        command = (":READ:VOLT:LIM?")
         answer = self.module.send_long_command(command)
-        self.voltage_limit = self.convert_answer_with_unit(answer, "V")
+        self.module.u_lim = self.convert_answer_with_unit(answer, "%")
         
     def read_current_limit(self):
-        command = (":READ:CURR:LIM? (@%d)" % self.channel)
+        command = (":READ:CURR:LIM?")
         answer = self.module.send_long_command(command) 
-        self.current_limit = self.convert_answer_with_unit(answer, "A")
+        self.module.i_lim = self.convert_answer_with_unit(answer, "%")
 
     def read_set_voltage(self):
         command = (":READ:VOLT? (@%d)" % self.channel)

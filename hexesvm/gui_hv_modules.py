@@ -83,7 +83,7 @@ class gen_module_tab(_qw.QWidget):
         self.grid.addWidget(self.module_serial_field, 3,3)  
         self.grid.addWidget(self.module_firmware_label, 3,4)
         self.grid.addWidget(self.module_firmware_field, 3,5)
-        self.grid.addWidget(self.module_hsep, 4,1,1,6)
+        self.grid.addWidget(self.module_hsep, 4,1,1,7)
 
         self.setLayout(self.grid)
     
@@ -92,7 +92,7 @@ class gen_module_tab(_qw.QWidget):
         # corresponding non-abstract class
         self.this_module_ch_tabs = _qw.QTabWidget(self)
         self.this_module_ch_tabs.setTabPosition(_qw.QTabWidget.West)
-        self.grid.addWidget(self.this_module_ch_tabs, 5,1,8,6)
+        self.grid.addWidget(self.this_module_ch_tabs, 5,1,8,7)
     
     def update_module_tab(self):
         
@@ -191,19 +191,32 @@ class nhr_module_tab(gen_module_tab):
     def __init__(self, mother_ui, defaults, hv_module):
         super().__init__(mother_ui, defaults, hv_module)
         self.led_colors = {"off": '#1b1b1b', "hv_on": '#ffd400', "pol_pos": '#ff0b00', "pol_neg": '#00fcff', "ok": '#00ff4d'}
-        
+                
     def _init_module_tab(self):
         super()._init_module_tab()
+        
+        # Add text widgets for display U_lim and I_lim
+        self.module_ulim = _qw.QLabel("U(lim):")
+        self.module_ulim_line_edit = _qw.QLineEdit(self)
+        self.module_ulim_line_edit.setEnabled(False)
+        self.module_ilim = _qw.QLabel("I(lim):")
+        self.module_ilim_line_edit = _qw.QLineEdit(self)
+        self.module_ilim_line_edit.setEnabled(False)
+
+        self.grid.addWidget(self.module_ulim, 2,6)
+        self.grid.addWidget(self.module_ulim_line_edit,2,7)
+        self.grid.addWidget(self.module_ilim,3,6)
+        self.grid.addWidget(self.module_ilim_line_edit,3,7)
+       
         # Now add the module specific things (.svg file)
         self.module_svg = _qs.QSvgWidget('hexesvm/icons/iseg_nhr_front_3_discon_no_indicators.svg', self)
-
         self.text_svg_widget = _qs.QSvgWidget(self.module_svg)   
-        self.indicator_svg_widget = _qs.QSvgWidget(self.text_svg_widget)   
+        self.indicator_svg_widget = _qs.QSvgWidget(self.module_svg)   
         svg_min_size = _qc.QSize(82,538)
         svg_max_size = _qc.QSize(82,538)
         self.module_svg.setMinimumSize(svg_min_size)
         self.module_svg.setMaximumSize(svg_max_size)
-        self.grid.addWidget(self.module_svg, 1,7,12,2)
+        self.grid.addWidget(self.module_svg, 1,8,12,2)
 
         self._init_svg_indicators()  
         
@@ -238,11 +251,18 @@ class nhr_module_tab(gen_module_tab):
 
         
     def update_module_tab(self):
-            super().update_module_tab()
-            self.build_indicator_svg_string()
-            self.indicator_svg_widget.load(self.indicator_svg_content.encode())
-            self.build_texts_svg_string()
-            self.text_svg_widget.load(self.texts_svg_content.encode())
+        super().update_module_tab()
+        # Update the I_lim and U_lim fields
+        if self.module.is_connected:
+            self.module_ilim_line_edit.setPlaceholderText(str(self.module.i_lim)+"%")
+            self.module_ulim_line_edit.setPlaceholderText(str(self.module.u_lim)+"%")
+        else:  
+            self.module_ilim_line_edit.setPlaceholderText("")
+            self.module_ulim_line_edit.setPlaceholderText("")
+        self.build_indicator_svg_string()
+        self.indicator_svg_widget.load(self.indicator_svg_content.encode())
+        self.build_texts_svg_string()
+        self.text_svg_widget.load(self.texts_svg_content.encode())
 
     def build_indicator_svg_string(self):
         new_string = ""
@@ -325,6 +345,7 @@ class nhq_module_tab(gen_module_tab):
     # Class in which the looks of an NHQ module interface are defined
     def __init__(self, mother_ui, defaults, hv_module):
         super().__init__(mother_ui, defaults, hv_module)
+        self.led_colors = {"off": '#1b1b1b', "hv_on": '#ffd400', "pol_pos": '#ff0b00', "pol_neg": '#00fc00', "err": '#ff0b00'}
 
     def _init_module_tab(self):
         super()._init_module_tab()
@@ -334,16 +355,20 @@ class nhq_module_tab(gen_module_tab):
         if self.module.is_high_precission:
             self.module_is_high_precission_box.setChecked(True)
         self.module_is_high_precission_box.setToolTip("Check if this channel provides high-precision read out!")
-        self.grid.addWidget(self.module_is_high_precission_label, 1, 6, 2,1)
-        self.grid.addWidget(self.module_is_high_precission_box, 3,6)
+        self.grid.addWidget(self.module_is_high_precission_label, 2, 6)
+        self.grid.addWidget(self.module_is_high_precission_box, 2,7)
 
         # Now add the module specific things (.svg file)
-        self.module_svg = _qs.QSvgWidget('hexesvm/icons/iseg_nhq_front_1_discon.svg', self)
+        self.module_svg = _qs.QSvgWidget('hexesvm/icons/iseg_nhq_front_1_discon_no_indicators.svg', self)
+        self.text_svg_widget = _qs.QSvgWidget(self.module_svg)
+        self.indicator_svg_widget = _qs.QSvgWidget(self.module_svg)   
         svg_min_size = _qc.QSize(82,538)
         svg_max_size = _qc.QSize(82,538)
         self.module_svg.setMinimumSize(svg_min_size)
         self.module_svg.setMaximumSize(svg_max_size)
-        self.grid.addWidget(self.module_svg, 1,7,12,2)
+        self.grid.addWidget(self.module_svg, 1,8,12,2)
+        
+        self._init_svg_indicators()  
         
         self._init_channel_tabs()
         self.update_module_tab()   
@@ -356,7 +381,31 @@ class nhq_module_tab(gen_module_tab):
             this_channel_tab._init_channel_tab()
             self.this_module_ch_tabs.addTab(this_channel_tab, this_channel.name)
             self.channel_tabs.update({this_channel.name: this_channel_tab})
-                    
+            self.channel_idx_tab.update({this_channel.channel: this_channel_tab})
+
+    def _init_svg_indicators(self):
+        
+        # load the file in which all indicators are located as a string
+        with open("hexesvm/icons/iseg_nhq_front_1_color_indicators.svg") as svg_file:
+
+            self.indicator_svg_content = svg_file.read()
+            self.build_indicator_svg_string()
+            self.indicator_svg_widget.load(self.indicator_svg_content.encode())
+        
+        # load the file in which all texts are located as a string
+        with open("hexesvm/icons/iseg_nhq_front_1_discon_texts.svg") as svg_file:
+
+            self.texts_svg_content = svg_file.read()
+            self.build_texts_svg_string()
+            self.text_svg_widget.load(self.texts_svg_content.encode())
+
+    def update_module_tab(self):
+            super().update_module_tab()
+            self.build_indicator_svg_string()
+            self.indicator_svg_widget.load(self.indicator_svg_content.encode())
+            self.build_texts_svg_string()
+            self.text_svg_widget.load(self.texts_svg_content.encode())
+  
     # Add to the connect and disconnect methods the handling of the high-res checkbox
     def connect_hv_module(self):
         is_high_precission = self.module_is_high_precission_box.checkState()
@@ -369,6 +418,77 @@ class nhq_module_tab(gen_module_tab):
         self.module_is_high_precission_box.setEnabled(True)        
         return    
     
+    def build_indicator_svg_string(self):
+        new_string = ""
+        
+        str_parts = self.indicator_svg_content.split('<circle')
+        for idx, this_part in enumerate(str_parts):
+            if idx == 0:
+                new_string = this_part
+                continue
+            
+            id_field = this_part.split("id=\"ch")[1]
+            this_channel = id_field[0]
+            this_attribute = id_field.split("\"")[0][2:]
+            
+            pre_color_str = this_part.split('style=\"fill:')
+            post_color_str = pre_color_str[1][7:]
+            if not self.module.is_connected:
+                new_color = self.led_colors['off']
+            else:
+                # See if this channel is part of the game
+                new_color = self.led_colors['off']
+                try: 
+                    this_channel_tab = self.channel_idx_tab[int(this_channel)]
+                    hv_chan = this_channel_tab.channel
+                    if this_attribute == 'err' and hv_chan.channel_is_tripped:
+                        new_color = self.led_colors['err']               
+                    if this_attribute == 'hv_on' and not hv_chan.hv_switch_off:
+                        new_color = self.led_colors['hv_on']
+                    if this_attribute == 'pol_neg' and not hv_chan.polarity_positive:
+                        new_color = self.led_colors['pol_neg']                          
+                    if this_attribute == 'pol_pos' and hv_chan.polarity_positive:
+                        new_color = self.led_colors['pol_pos']                    
+                except KeyError:
+                    new_color = self.led_colors['off']
+
+            new_string += "<circle" + pre_color_str[0] + "style=\"fill:" + new_color + post_color_str
+            
+        self.indicator_svg_content = new_string
+        return
+        
+    
+    def build_texts_svg_string(self):
+        new_string = ""
+        
+        str_parts = self.texts_svg_content.split('<text')
+        for idx, this_part in enumerate(str_parts):
+            if idx == 0:
+                new_string = this_part
+                continue
+            
+            id_field = this_part.split("id=\"ch")[1]
+            this_channel = id_field[0]
+            this_attribute = id_field.split("\"")[0][2:]
+            pre_text_str = this_part.split("</tspan>")
+            post_text_str = pre_text_str[1]
+            if not self.module.is_connected:
+                new_text = "      "
+            else:
+                # See if this channel is part of the game
+                new_text = "      "
+                try: 
+                    this_channel_tab = self.channel_idx_tab[int(this_channel)]
+                    hv_chan = this_channel_tab.channel
+                    voltage = str("%+05dV" % (hv_chan.voltage))
+                    new_text = voltage
+                except (KeyError, ValueError):
+                    new_text = "      "
+
+            new_string += "<text" + pre_text_str[0][:-6] + new_text + "</tspan>" + post_text_str
+
+        self.texts_svg_content = new_string
+        return        
     
 class gen_channel_tab(_qw.QWidget):
     # Class defining how a general HV channel tab should look like
@@ -597,7 +717,8 @@ class gen_channel_tab(_qw.QWidget):
                 channel_on = not self.channel.hv_switch_off
                 set_volt = abs(self.channel.set_voltage) > self.channel.trip_voltage
                 no_ramp = not self.channel.channel_is_ramping
-                if low_volt and channel_on and set_volt and no_ramp:
+                tripped = self.channel.channel_is_tripped
+                if (low_volt and channel_on and set_volt and no_ramp) or tripped:
                 
                     if not self.channel.trip_detected:
                         # channel is probably tripped
@@ -1197,4 +1318,5 @@ class nhr_channel_tab(gen_channel_tab):
         else:
             self.turn_hv_off(True)
         return True
+          
 
