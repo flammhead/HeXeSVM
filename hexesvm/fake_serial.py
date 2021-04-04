@@ -47,7 +47,7 @@ class Serial:
         self.chan_g_time = self.n_channels*[0]
         self.ch_tripped = self.n_channels*[False]
         self.in_emcy_off = self.n_channels*[False]
-        self.ch_tripping_active = self.n_channels*[False]
+        self.ch_tripping_active = self.n_channels*[True]
         self.ch_trip_interval = self.n_channels*[60]
         self.ch_last_trip = self.n_channels*[0]
         self.channel_state_bin = self.n_channels*[166] 
@@ -287,9 +287,9 @@ class Serial:
                 answer = ("%.6fE-6A" % (self.i[channel_number]*1e6))
 
             if "READ:VOLT:LIM?" in self.sum_receivedData:
-                answer = "3E3V"
+                answer = "100.0%"
             if "READ:CURR:LIM?" in self.sum_receivedData:
-                answer = "3E-6A"            
+                answer = "10.0%"            
 
             if "READ:VOLT?" in self.sum_receivedData:
                 answer = str(self.d[channel_number]/1e3)+"E3V"  

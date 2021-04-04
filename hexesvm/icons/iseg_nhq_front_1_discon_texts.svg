@@ -15,7 +15,7 @@
    version="1.1"
    id="svg2339"
    inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)"
-   sodipodi:docname="iseg_nhr_front_3_discon_texts.svg">
+   sodipodi:docname="iseg_nhq_front_1_discon_texts.svg">
   <defs
      id="defs141" />
   <sodipodi:namedview
@@ -26,8 +26,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="5.6568542"
-     inkscape:cx="-3.4325131"
-     inkscape:cy="385.52323"
+     inkscape:cx="-12.502255"
+     inkscape:cy="418.78578"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -52,7 +52,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -64,46 +64,24 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#fff9f9;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-       x="99.483322"
-       y="95.695671"
-       id="ch1_text"><tspan
-         sodipodi:role="line"
-         id="tspan2490"
-         x="99.483322"
-         y="95.695671"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:FreeMono;-inkscape-font-specification:'FreeMono Bold';fill:#fff9f9;fill-opacity:1;stroke-width:0.26458332">+0000V</tspan></text>
-    <text
-       id="ch0_text"
-       y="91.991508"
-       x="99.483322"
-       style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#fff9f9;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-       xml:space="preserve"><tspan
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:FreeMono;-inkscape-font-specification:'FreeMono Bold';fill:#fff9f9;fill-opacity:1;stroke-width:0.26458332"
-         y="91.991508"
-         x="99.483322"
-         id="tspan2520"
-         sodipodi:role="line">+0000V</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#fff9f9;fill-opacity:1;stroke:none;stroke-width:0.26458332"
-       x="99.483322"
-       y="99.399834"
+       x="100.01249"
+       y="85.244637"
        id="ch2_text"><tspan
          sodipodi:role="line"
-         id="tspan2524"
-         x="99.483322"
-         y="99.399834"
+         id="tspan2490"
+         x="100.01249"
+         y="85.244637"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:FreeMono;-inkscape-font-specification:'FreeMono Bold';fill:#fff9f9;fill-opacity:1;stroke-width:0.26458332">+0000V</tspan></text>
     <text
-       id="ch3_text"
-       y="103.104"
-       x="99.483322"
+       id="ch1_text"
+       y="81.540474"
+       x="100.01249"
        style="font-style:normal;font-weight:normal;font-size:3.52777767px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#fff9f9;fill-opacity:1;stroke:none;stroke-width:0.26458332"
        xml:space="preserve"><tspan
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:FreeMono;-inkscape-font-specification:'FreeMono Bold';fill:#fff9f9;fill-opacity:1;stroke-width:0.26458332"
-         y="103.104"
-         x="99.483322"
-         id="tspan2528"
+         y="81.540474"
+         x="100.01249"
+         id="tspan2520"
          sodipodi:role="line">+0000V</tspan></text>
   </g>
 </svg>

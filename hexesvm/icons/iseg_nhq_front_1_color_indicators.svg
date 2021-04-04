@@ -1,0 +1,59 @@
+<svg
+   width="82.857155"
+   height="538.57135"
+   viewBox="0 0 21.922623 142.49701">
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-93.927086,-61.331841)">
+    <circle
+       r="1.1980795"
+       cy="119.05257"
+       cx="112.16132"
+       id="ch1_hv_on"
+       style="fill:#ffd400;fill-opacity:0.95754718;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+    <circle
+       r="1.1980795"
+       cy="135.49052"
+       cx="104.88839"
+       id="ch1_pol_pos"
+       style="fill:#ff0b00;fill-opacity:1;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+    <circle
+       style="fill:#00ff4d;fill-opacity:0.97169812;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="ch1_pol_neg"
+       cx="111.76823"
+       cy="135.49052"
+       r="1.1980795" />
+    <circle
+       style="fill:#ff0b00;fill-opacity:1;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="ch1_err"
+       cx="104.88839"
+       cy="107.787"
+       r="1.1980795" />
+    <circle
+       style="fill:#ffd400;fill-opacity:0.95754718;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="ch2_hv_on"
+       cx="112.16132"
+       cy="167.20676"
+       r="1.1980795" />
+    <circle
+       style="fill:#ff0b00;fill-opacity:1;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="ch2_pol_pos"
+       cx="104.88839"
+       cy="183.64473"
+       r="1.1980795" />
+    <circle
+       r="1.1980795"
+       cy="183.64473"
+       cx="111.76823"
+       id="ch2_pol_neg"
+       style="fill:#00ff4d;fill-opacity:0.97169812;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+    <circle
+       r="1.1980795"
+       cy="155.94118"
+       cx="104.88839"
+       id="ch2_err"
+       style="fill:#ff0b00;fill-opacity:1;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+  </g>
+</svg>
