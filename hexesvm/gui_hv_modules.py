@@ -203,6 +203,12 @@ class nhr_module_tab(gen_module_tab):
         self.module_ilim_line_edit = _qw.QLineEdit(self)
         self.module_ilim_line_edit.setEnabled(False)
 
+        # Add button to set save values on the board
+        self.module_save_values = _qw.QPushButton("&Save values")
+        self.module_save_values.clicked.connect(partial(self.set_module_save_values))
+        self.module_save_values.setEnabled(False)  
+        self.grid.addWidget(self.module_save_values, 1,7)
+
         self.grid.addWidget(self.module_ulim, 2,6)
         self.grid.addWidget(self.module_ulim_line_edit,2,7)
         self.grid.addWidget(self.module_ilim,3,6)
@@ -252,13 +258,16 @@ class nhr_module_tab(gen_module_tab):
         
     def update_module_tab(self):
         super().update_module_tab()
-        # Update the I_lim and U_lim fields
+        # Update the I_lim and U_lim fields and push button
         if self.module.is_connected:
             self.module_ilim_line_edit.setPlaceholderText(str(self.module.i_lim)+"%")
             self.module_ulim_line_edit.setPlaceholderText(str(self.module.u_lim)+"%")
+            self.module_save_values.setEnabled(True)  
         else:  
             self.module_ilim_line_edit.setPlaceholderText("")
             self.module_ulim_line_edit.setPlaceholderText("")
+            self.module_save_values.setEnabled(False)  
+            
         self.build_indicator_svg_string()
         self.indicator_svg_widget.load(self.indicator_svg_content.encode())
         self.build_texts_svg_string()
@@ -340,6 +349,23 @@ class nhr_module_tab(gen_module_tab):
 
         self.texts_svg_content = new_string
         return        
+
+    def set_module_save_values(self):
+        if not self.module.is_connected:
+            self.err_msg_set_module_no_conn = _qw.QMessageBox.warning(self, "Module", 
+                "Module is not connected!")
+            return False
+
+        self.stop_reader_thread()
+        while self.module.board_occupied:
+            time.sleep(0.2)        
+        self.module.board_occupied = True
+
+        success = self.module.set_safe_values()
+        self.module.board_occupied = False
+        self.start_reader_thread()
+        return success
+
 
 class nhq_module_tab(gen_module_tab):
     # Class in which the looks of an NHQ module interface are defined
