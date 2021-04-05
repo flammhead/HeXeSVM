@@ -360,10 +360,19 @@ class nhr_module_tab(gen_module_tab):
         while self.module.board_occupied:
             time.sleep(0.2)        
         self.module.board_occupied = True
-
-        success = self.module.set_safe_values()
+        # Due to strange Hardware behaviour, the set_safe_values() won't be used...
+        # success = self.module.set_safe_values()
+        # Rather set good values for each channel individually
+        success = True
+        for this_channel in self.channel_tabs.values():
+            this_answer_1 = this_channel.channel.turn_off_hv()
+            this_answer_2 = this_channel.channel.write_set_voltage(0)
+            success = success and (not this_answer_1) and (not this_answer_2)
         self.module.board_occupied = False
         self.start_reader_thread()
+        if success:
+            self.save_values_success = _qw.QMessageBox.information(self, "Module", 
+                "Successfully set safe values!")
         return success
 
 
