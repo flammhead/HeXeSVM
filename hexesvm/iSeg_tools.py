@@ -276,11 +276,15 @@ class nhr_hv_channel(gen_hv_channel):
         #Convert to binary and reverse to have same numbering as in manual
         binary = '{0:32b}'.format(value)[::-1]
         self.polarity_positive = (binary[0] == '1')
-        self.hv_switch_off = (binary[3] == '0')        
+        # self.hv_switch_off = (binary[3] == '0')
         self.channel_in_error = (binary[5] == '1')        
         self.channel_is_ramping = (binary[4] == '1') 
         self.hardware_inhibit = (binary[12] == '1')                
 
+        # Read if HV is on (somehow the register gives wrong information sometimes...)
+        command_hv_on = (":READ:VOLT:ON? (@%d)" % self.channel)
+        answer_hv_on = self.module.send_long_command(command_hv_on)
+        self.hv_switch_off = (answer_hv_on == '0')
         if self.hv_switch_off:
             self.status = ""
         elif not self.channel_is_ramping:

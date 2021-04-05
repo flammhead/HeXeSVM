@@ -298,14 +298,16 @@ class nhr_module_tab(gen_module_tab):
                     hv_chan = this_channel_tab.channel
                     if this_attribute == 'led_ok' and not hv_chan.channel_is_tripped:
                         new_color = self.led_colors['ok']               
-                    if this_attribute == 'hv_on' and not hv_chan.hv_switch_off:
-                        new_color = self.led_colors['hv_on']
+                    if this_attribute == 'hv_on': 
+                        if not hv_chan.hv_switch_off:
+                            new_color = self.led_colors['hv_on']
                         # Do the animation of the ON LED while board is ramping
-                        if hv_chan.channel_is_ramping and this_channel_tab.on_led_indicator_state:
-                            new_color = self.led_colors['off']
-                            this_channel_tab.on_led_indicator_state = False
-                        else:
-                            this_channel_tab.on_led_indicator_state = True
+                        if hv_chan.channel_is_ramping:
+                            if this_channel_tab.on_led_indicator_state:
+                                new_color = self.led_colors['off']
+                            else:
+                                new_color = self.led_colors['hv_on']
+                            this_channel_tab.on_led_indicator_state = not this_channel_tab.on_led_indicator_state
                     if this_attribute == 'pol_neg' and not hv_chan.polarity_positive:
                         new_color = self.led_colors['pol_neg']                          
                     if this_attribute == 'pol_pos' and hv_chan.polarity_positive:
