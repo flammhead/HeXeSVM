@@ -322,7 +322,7 @@ class MainWindow(_qw.QMainWindow):
     def _init_overview(self):
         MainWindow.log.debug("Called MainWindow._init_overview")
         self.hexe_drawing = _qw.QLabel()
-        sketch_pixmap = _qg.QPixmap('hexesvm/icons/hexe_sketch_hv.svg')
+        sketch_pixmap = _qg.QPixmap(self.defaults['path_setup_sketch'])
         self.hexe_drawing.setPixmap(sketch_pixmap.scaledToHeight(self.frameGeometry().height()))
 
         self.channel_labels = []
@@ -368,7 +368,7 @@ class MainWindow(_qw.QMainWindow):
         self.hv_kill_button.clicked.connect(self.kill_all_hv)
         self.hv_kill_button.setStyleSheet("QPushButton {background-color: red;}");
         
-        grid_layout_y_positions = ((1,2,3,5,6))
+        grid_layout_y_positions = ((1,2,3,4,5,6))
         
         grid = _qw.QGridLayout()
         grid.setSpacing(10)

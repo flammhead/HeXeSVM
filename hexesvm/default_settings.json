@@ -11,6 +11,7 @@
 	"db_user_name": "hexewriter",
 
 	"temp_data_filename": "tempdata_log.dat", 
+	"path_setup_sketch": "hexesvm/icons/hexe_sketch_hv_nai.svg",
 
 	"email_from_address": "hexe@mpi-hd.mpg.de",
 	"email_recipients_info": "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de",
@@ -29,7 +30,7 @@
 	"modules": [
 	{
 		"name": "PMT module",
-		"port": "COM1",
+		"port": "COM11",
 		"type": "NHQ",
 		"serial_no": "487472",
 		"is_high_precission": false,
@@ -59,13 +60,36 @@
             "board_name": "B",
 			"db_u_name": "u_pmt_2",
 			"db_i_name": "i_pmt_2",
-			"img_pos": 4
+			"img_pos": 5
+		}
+		]
+	},
+	{
+		"name": "NaIce module",
+		"port": "COM4",
+		"type": "NHQ",
+		"serial_no": "486419",
+		"is_high_precission": false,
+
+		"channels": [
+		{
+			"index": "1",
+			"name": "NaIce",
+			"resistance": 40.5e6,
+			"resistance_tolerance": 0.05,
+			"software_spark_mode": "off",
+			"freq_trip_interval": 42,
+			"trip_detect_voltage": 3,
+            "board_name": "A",
+			"db_u_name": "u_nai",
+			"db_i_name": "i_nai",
+			"img_pos": 3
 		}
 		]
 	},
 	{
 		"name": "Drift module",
-		"port": "COM3",
+		"port": "COM13",
 		"type": "NHR",
 		"serial_no": "NR042060r4050000200",
 		"is_high_precission": false,
@@ -82,7 +106,7 @@
             "board_name": "0",
 			"db_u_name": "u_cathode",
 			"db_i_name": "i_cathode",
-			"img_pos": 3
+			"img_pos": 4
 		},
 		{
 			"index": "1",

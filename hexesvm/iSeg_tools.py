@@ -612,7 +612,7 @@ class nhq_hv_channel(gen_hv_channel):
         return status[1]
         
     def write_set_voltage(self, voltage):
-        try: voltage_int = int(voltage)
+        try: voltage_int = int(abs(voltage))
         except (ValueError, TypeError): return "ERR"
         #This solution is meant to be temporary!...
         if self.module.model_no == "487472" and voltage_int > 1000:
