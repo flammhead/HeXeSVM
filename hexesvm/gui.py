@@ -512,7 +512,7 @@ class MainWindow(_qw.QMainWindow):
             file_content = ""
             with open(filename[0], "r") as f_in:
                 file_content = f_in.read()
-                file_content = file_content.replace('\r', '').replace('\t','')
+                file_content = file_content.replace('\r', '').replace('\t','').replace(' ','')
                 data_string = io.StringIO(file_content)
                 data = _pd.read_csv(data_string, header=0, comment='#', sep=",")
  
@@ -527,7 +527,7 @@ class MainWindow(_qw.QMainWindow):
 
             if len(imported_header) == len(expected_header):
                 for idx, import_col in enumerate(imported_header):
-                    if import_col == expected_header[idx]:
+                    if import_col == expected_header[idx].replace(' ', ''):
                         pass
                     else:
                         self.err_msg = _qw.QMessageBox.warning(self, "Data", "Loaded Data headers not matching expected headers!")
@@ -556,13 +556,13 @@ class MainWindow(_qw.QMainWindow):
                     newTableItem = _qw.QTableWidgetItem()
                     this_header = data.columns.tolist()[j]
                     if this_header[0] == 'U':
-                        newTableItem.setText("%+.1f" % (data_np[i,j]))
+                        newTableItem.setText("%+.2f" % (data_np[i,j]))
                         if data_np[i,j] > 0:
                             newTableItem.setForeground(_qg.QBrush(_qg.QColor(214, 26, 26)))
                         else:
                             newTableItem.setForeground(_qg.QBrush(_qg.QColor(50, 201, 24)))
                     else:
-                        newTableItem.setText("%.1f" % (data_np[i,j]))
+                        newTableItem.setText("%.2f" % (data_np[i,j]))
 
                     self.rampTable.setItem(i,j, newTableItem)
             self.rampTableDataPd = data
@@ -609,11 +609,12 @@ class MainWindow(_qw.QMainWindow):
                 return False
             for this_chan in this_mod.channel_tabs.values():
                 if not this_mod.module.polarity_switchable:
-                    requested_voltages = self.rampTableDataPd["U("+this_chan.channel.name+")"]
+                    requested_voltages = self.rampTableDataPd["U("+this_chan.channel.name.replace(' ','')+")"]
                     polarities = _np.sign(requested_voltages)
+                    pol_pos = polarities >= 0
+                    pol_neg = polarities <= 0
                     ch_is_pos = this_chan.channel.polarity_positive
-                    if not((ch_is_pos and polarities.all() >= 0) 
-                            or (not ch_is_pos and polarities.all() <= 0)):
+                    if not((ch_is_pos and pol_pos.all()) or (not ch_is_pos and pol_neg.all())):
                         self.err_msg = _qw.QMessageBox.warning(self, "Data", "Ramp schedule requests wrong or changing polarity for channel " + this_chan.channel.name+ ", which does not support electronic switching! Abort ramping!")
                         return False
 

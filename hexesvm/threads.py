@@ -147,7 +147,7 @@ class ScheduleRampIsegModule(_qc.QThread):
         curr_row = self.rampTableCurrentIndex
         self.highlight_row.emit(curr_row)
         for jdx in range(len(self.gui.channel_order_dict)):
-            this_channel = self.gui.channel_order_dict[jdx][1]
+            this_channel = self.gui.channel_order_dict[jdx][1].replace(' ','')
             voltages.append(self.gui.rampTableDataPd["U("+this_channel+")"][curr_row])
             speeds.append(self.gui.rampTableDataPd["V("+this_channel+")"][curr_row])
 
@@ -230,7 +230,11 @@ class ScheduleRampIsegModule(_qc.QThread):
         return
             
     def new_values_taken(self, channel, voltage, speed):
-        voltage_taken = channel.set_voltage == float(voltage)
+        channel_polarity_switchable = channel.module.polarity_switchable
+        if channel_polarity_switchable:
+            voltage_taken = channel.set_voltage == float(voltage)
+        else:
+            voltage_taken = channel.set_voltage == abs(float(voltage))
         speed_taken = channel.ramp_speed == float(speed)
 
         if voltage == 0:
