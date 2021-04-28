@@ -8,25 +8,25 @@
 	"table_name": "hexe_sc_hv",
 	"interlock_table_name": "hexe_sc",
 	"db_time_variable": "time",
-	"db_user_name": "hexewriter",
+	"db_user_name": "writer",
 
 	"temp_data_filename": "tempdata_log.dat", 
 	"path_setup_sketch": "hexesvm/icons/hexe_sketch_hv_nai.svg",
 
 	"email_from_address": "hexe@mpi-hd.mpg.de",
-	"email_recipients_info": "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de",
-	"email_recipients_alarm": "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de, cichon@mpi-hd.mpg.de, natascha.rupp@hotmail.de, natascha.rupp@mpi-hd.mpg.de",
+	"email_recipients_info": "hexe@mpi-hd.mpg.de",
+	"email_recipients_alarm": "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de, hoetzsch@mpi-hd.mpg.de, natascha.rupp@mpi-hd.mpg.de, dominick.cichon@mpi-hd.mpg.de, hexe.shifter1@gmail.com",
 	"email_smtp_server": "imap.mpi-hd.mpg.de",
-	"sms_recipients": "+491774851456;+491748029906;+491637542725",
+	"sms_recipients": "+491774851456;+4917660377817;+4915172958344;+491637542725;+491748029906",
 	"sms_from_address": "hexe@sms.mpi-hd.mpg.de",
 
-	"interlock_enabled": false,
+	"interlock_enabled": true,
     "interlock_parameter": "p1",
 	"interlock_value": 1.2,
 	
-    "max_ramp_schedule_duration": 96,
+    "max_ramp_schedule_duration": 120,
 	
-	"use_virtual_hardware": true,
+	"use_virtual_hardware": false,
 	"modules": [
 	{
 		"name": "PMT module",
