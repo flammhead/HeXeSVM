@@ -12,7 +12,7 @@ from functools import partial
 
 from hexesvm import threads as _thr 
 # we need to import from pyserial for the exception handeling
-from serial import SerialException
+from serial.serialutil import SerialException
 
 # Definition of GUI components containing the HV modules
 
@@ -115,7 +115,7 @@ class gen_module_tab(_qw.QWidget):
         try:
             self.module.establish_connection()
             
-        except (FileNotFoundError, PortNotOpenError):
+        except (FileNotFoundError):
             gen_module_tab.log.warning("Could not connect to HV Module: "
                    			"Wrong COM Port")
             self.main_ui.statusBar().showMessage("Wrong COM Port")
@@ -126,11 +126,11 @@ class gen_module_tab(_qw.QWidget):
             
         except SerialException:
             gen_module_tab.log.warning("Could not connect to HV Module: "
-                   			"COM Port already in use!")
+                   			"Wrong COM Port or COM Port is already in use!")
             self.main_ui.statusBar().showMessage("Wrong COM Port")
             self.err_msg_module = _qw.QMessageBox.warning(self, "HV module",
                                    	"Connection Failed! "
-                                   	"Com port already in use!")
+                                   	"Wrong COM Port or COM Port is already in use!")
             return
 
         self.module.sync_module()
