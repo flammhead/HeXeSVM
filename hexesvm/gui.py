@@ -152,6 +152,12 @@ class MainWindow(_qw.QMainWindow):
             response_mod = self.modules[key].kill_hv()
             response.append((key, response_mod))
             message+="\n"+key+"\t"+str(response_mod)
+        # Send Mail & SMS notification for HV Kill
+        dummy_module = self.modules[list(self.modules.keys())[0]]
+        dummy_channel = dummy_module.child_channels[0]
+        self.email_sender.send_alarm(dummy_channel, 2, 'kill')
+        self.email_sender.send_sms(dummy_channel, 2, 'kill')
+
         # restart the reader threads
         for key in self.modules.keys():
             if not self.modules[key].is_connected:

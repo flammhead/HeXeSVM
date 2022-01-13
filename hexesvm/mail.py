@@ -51,6 +51,8 @@ class MailNotifier():
             mail_subject += " single trip"
         elif alarm_kind == "frequent":
             mail_subject += " frequent trip"
+        elif alarm_kind == "kill":
+            mail_subject += "HV KILL"
 
         msg['Subject'] = mail_subject
         message_string = "Possible HV trip detected.\n"
@@ -86,6 +88,8 @@ class MailNotifier():
             message_string += " single trip"
         elif alarm_kind == "frequent":
             message_string += " frequent trip"
+        elif alarm_kind == "kill":
+            message_string += "HV KILL"
 
 
         msg.attach(MIMEText(message_string,'plain'))

@@ -16,7 +16,9 @@ class Interlock(_qc.QThread):
 		self.parameter_value = float('nan')
 		self.container = None
 		self.is_connected = False
-		
+		self.grace_counter = 0
+		self.max_read_attempts = 5		
+
 		self.connection = None
 
 	def set_sql_container(self, sql_container):
@@ -71,17 +73,31 @@ class Interlock(_qc.QThread):
 		cursor.close()
 		self.is_running = True
 		if len(data) == 0:
-			print("Interlock received wrong data (too little data) from DB going to Lock!")
+			print("Interlock received wrong data (too little data) from DB!")
+			if self.grace_counter < self.max_read_attempts:
+				self.grace_counter += 1
+				print("Interlock will be activated after", 
+        	                       self.grace_counter, "further attempts")
+				return True
+
 			self.lock_state = False
 			return False
 
 		try:
 			self.parameter_value = (float(data[-1,0]))
 		except TypeError:
-			print("Interlock received wrong data (wrong type) from DB going to Lock!")
+			print("Interlock received wrong data (wrong type)!")
+			if self.grace_counter < self.max_read_attempts:
+				self.grace_counter += 1
+				print("Interlock will be activated after", 
+        	                       self.grace_counter, "further attempts")
+				return True
+
 			self.lock_state = False			
 			return False
 
+		# DB read-out worked fine. Grade counter can be reset to zero
+		self.grace_counter = 0
 		self.lock_state = self.parameter_value > self.lock_value
 		if self.lock_state:
 			return True
