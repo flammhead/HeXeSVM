@@ -5,12 +5,18 @@ from hexesvm import iSeg_tools as _iseg
 
 class MailNotifier():
 
-    def __init__(self):
+    def __init__(self, mother_ui):
 
-        self.from_address = "hexe@mpi-hd.mpg.de"
-        self.recipients_info = "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de"
-        self.recipients_alarm = "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de, cichon@mpi-hd.mpg.de, natascha.rupp@hotmail.de, natascha.rupp@mpi-hd.mpg.de"
-        self.sms_numbers = "+491774851456;+491748029906;+491637542725"
+        ui = mother_ui
+
+        # Extract default values via the loaded json file from the UI
+        self.from_address = ui.defaults['email_from_address']
+        self.recipients_info = ui.defaults['email_recipients_info']
+        self.recipients_alarm = ui.defaults['email_recipients_alarm'] 
+        self.sms_numbers = ui.defaults['sms_recipients']
+        self.sms_from_address = ui.defaults['sms_from_address']
+        self.smtp_server = ui.defaults['email_smtp_server']
+
 
     def set_mail_recipient_info(self, recipient):
     
@@ -45,6 +51,8 @@ class MailNotifier():
             mail_subject += " single trip"
         elif alarm_kind == "frequent":
             mail_subject += " frequent trip"
+        elif alarm_kind == "kill":
+            mail_subject += "HV KILL"
 
         msg['Subject'] = mail_subject
         message_string = "Possible HV trip detected.\n"
@@ -52,7 +60,7 @@ class MailNotifier():
         message_string += "Voltage: "+str(hv_channel.voltage)+"\n"
         message_string += "Current: "+str(hv_channel.current)+"\n"
         msg.attach(MIMEText(message_string,'plain'))
-        mail_conn = sm.SMTP("imap.mpi-hd.mpg.de")
+        mail_conn = sm.SMTP(self.smtp_server)
         recipients_array = recipients_clean.split(",")
         mail_conn.sendmail(self.from_address, recipients_array, msg.as_string())
         return
@@ -80,10 +88,12 @@ class MailNotifier():
             message_string += " single trip"
         elif alarm_kind == "frequent":
             message_string += " frequent trip"
+        elif alarm_kind == "kill":
+            message_string += "HV KILL"
 
 
         msg.attach(MIMEText(message_string,'plain'))
-        mail_conn = sm.SMTP("imap.mpi-hd.mpg.de")
-        mail_conn.sendmail(self.from_address, "hexe@sms.mpi-hd.mpg.de", msg.as_string())
+        mail_conn = sm.SMTP(self.smtp_server)
+        mail_conn.sendmail(self.from_address, self.sms_from_address, msg.as_string())
 
         return

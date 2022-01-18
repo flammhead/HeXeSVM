@@ -1,0 +1,107 @@
+<svg
+   width="82.857155"
+   height="538.57135"
+   viewBox="0 0 21.922623 142.49701">
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-93.927086,-61.331841)">
+    <circle
+       r="1.1980795"
+       cy="126.60178"
+       cx="109.58163"
+       id="ch0_hv_on"
+       style="fill:#ffd400;fill-opacity:0.95754718;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+    <circle
+       r="1.1980795"
+       cy="131.89343"
+       cx="101.64417"
+       id="ch0_pol_pos"
+       style="fill:#ff0b00;fill-opacity:1;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+    <circle
+       style="fill:#00fcff;fill-opacity:1;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="ch0_pol_neg"
+       cx="109.58163"
+       cy="131.89343"
+       r="1.1980795" />
+    <circle
+       style="fill:#00ff4d;fill-opacity:0.97169812;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="ch0_led_ok"
+       cx="101.65852"
+       cy="126.60178"
+       r="1.1980795" />
+    <circle
+       style="fill:#ffd400;fill-opacity:0.95754718;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="ch1_hv_on"
+       cx="109.58163"
+       cy="138.24344"
+       r="1.1980795" />
+    <circle
+       style="fill:#ff0b00;fill-opacity:1;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="ch1_pol_pos"
+       cx="101.64417"
+       cy="143.5351"
+       r="1.1980795" />
+    <circle
+       r="1.1980795"
+       cy="143.5351"
+       cx="109.58163"
+       id="ch1_pol_neg"
+       style="fill:#00fcff;fill-opacity:1;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+    <circle
+       r="1.1980795"
+       cy="138.24344"
+       cx="101.65852"
+       id="ch1_led_ok"
+       style="fill:#00ff4d;fill-opacity:0.97169812;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+    <circle
+       r="1.1980795"
+       cy="149.35594"
+       cx="109.58163"
+       id="ch2_hv_on"
+       style="fill:#ffd400;fill-opacity:0.95754718;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+    <circle
+       r="1.1980795"
+       cy="154.6476"
+       cx="101.64417"
+       id="ch2_pol_pos"
+       style="fill:#ff0b00;fill-opacity:1;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+    <circle
+       style="fill:#00fcff;fill-opacity:1;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="ch2_pol_neg"
+       cx="109.58163"
+       cy="154.6476"
+       r="1.1980795" />
+    <circle
+       style="fill:#00ff4d;fill-opacity:0.97169812;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="ch2_led_ok"
+       cx="101.65852"
+       cy="149.35594"
+       r="1.1980795" />
+    <circle
+       style="fill:#ffd400;fill-opacity:0.95754718;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="ch3_hv_on"
+       cx="109.58163"
+       cy="160.46844"
+       r="1.1980795" />
+    <circle
+       style="fill:#ff0b00;fill-opacity:1;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="ch3_pol_pos"
+       cx="101.64417"
+       cy="165.7601"
+       r="1.1980795" />
+    <circle
+       r="1.1980795"
+       cy="165.7601"
+       cx="109.58163"
+       id="ch3_pol_neg"
+       style="fill:#00fcff;fill-opacity:1;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+    <circle
+       r="1.1980795"
+       cy="160.46844"
+       cx="101.65852"
+       id="ch3_led_ok"
+       style="fill:#00ff4d;fill-opacity:0.97169812;stroke:none;stroke-width:10;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+  </g>
+</svg>

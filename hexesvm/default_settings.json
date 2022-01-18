@@ -1,0 +1,141 @@
+{
+	"title": "HeXeSVM default values",
+	"date": "2020-09-23",
+	"version": "Alpha",
+
+	"db_address": "localhost",
+	"db_type": "postgres",
+	"table_name": "hexe_sc_hv",
+	"interlock_table_name": "hexe_sc",
+	"db_time_variable": "time",
+	"db_user_name": "writer",
+
+	"temp_data_filename": "tempdata_log.dat", 
+	"path_setup_sketch": "hexesvm/icons/hexe_sketch_hv_nai.svg",
+
+	"email_from_address": "hexe@mpi-hd.mpg.de",
+	"email_recipients_info": "hexe@mpi-hd.mpg.de",
+	"email_recipients_alarm": "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de, hoetzsch@mpi-hd.mpg.de, natascha.rupp@mpi-hd.mpg.de, dominick.cichon@mpi-hd.mpg.de, hexe.shifter1@gmail.com",
+	"email_smtp_server": "imap.mpi-hd.mpg.de",
+	"sms_recipients": "+491774851456;+4917660377817;+4915172958344;+491637542725;+491748029906",
+	"sms_from_address": "hexe@sms.mpi-hd.mpg.de",
+
+	"interlock_enabled": true,
+    "interlock_parameter": "p1",
+	"interlock_value": 1.2,
+	
+    "max_ramp_schedule_duration": 120,
+	
+	"use_virtual_hardware": false,
+	"modules": [
+	{
+		"name": "PMT module",
+		"port": "COM11",
+		"type": "NHQ",
+		"serial_no": "487472",
+		"is_high_precission": false,
+
+		"channels": [
+		{
+			"index": "1",
+			"name": "Top PMT",
+			"resistance": 40.5e6,
+			"resistance_tolerance": 0.05,
+			"software_spark_mode": "off",
+			"freq_trip_interval": 42,
+			"trip_detect_voltage": 3,
+            "board_name": "A",
+			"db_u_name": "u_pmt_1",
+			"db_i_name": "i_pmt_1",
+			"img_pos": 0
+		},
+		{
+			"index": "2",
+			"name": "Bottom PMT",
+			"resistance": 40.5e6,
+			"resistance_tolerance": 0.05,
+			"software_spark_mode": "off",
+			"freq_trip_interval": 10,
+			"trip_detect_voltage": 3,
+            "board_name": "B",
+			"db_u_name": "u_pmt_2",
+			"db_i_name": "i_pmt_2",
+			"img_pos": 5
+		}
+		]
+	},
+	{
+		"name": "NaIce module",
+		"port": "COM4",
+		"type": "NHQ",
+		"serial_no": "486419",
+		"is_high_precission": false,
+
+		"channels": [
+		{
+			"index": "1",
+			"name": "NaIce",
+			"resistance": 40.5e6,
+			"resistance_tolerance": 0.05,
+			"software_spark_mode": "off",
+			"freq_trip_interval": 42,
+			"trip_detect_voltage": 3,
+            "board_name": "A",
+			"db_u_name": "u_nai",
+			"db_i_name": "i_nai",
+			"img_pos": 3
+		}
+		]
+	},
+	{
+		"name": "Drift module",
+		"port": "COM13",
+		"type": "NHR",
+		"serial_no": "NR042060r4050000200",
+		"is_high_precission": false,
+
+		"channels": [
+		{
+			"index": "0",
+			"name": "Cathode",
+			"resistance": 40e9,
+			"resistance_tolerance": 0.05,
+			"software_spark_mode": "off",
+			"freq_trip_interval": 10,
+			"trip_detect_voltage": 3,
+            "board_name": "0",
+			"db_u_name": "u_cathode",
+			"db_i_name": "i_cathode",
+			"img_pos": 4
+		},
+		{
+			"index": "1",
+			"name": "Gate",
+			"resistance": 40e9,
+			"resistance_tolerance": 0.05,
+			"software_spark_mode": "off",
+			"freq_trip_interval": 10,
+			"trip_detect_voltage": 3,
+            "board_name": "1",
+			"db_u_name": "u_gate",
+			"db_i_name": "i_gate",
+			"img_pos": 2
+		},
+		{
+			"index": "2",
+			"name": "Anode",
+			"resistance": 10e12,
+			"resistance_tolerance": 0.01,
+			"software_spark_mode": "off",
+			"freq_trip_interval": 10,
+			"trip_detect_voltage": 3,
+            "board_name": "2",
+			"db_u_name": "u_anode",
+			"db_i_name": "i_anode",
+			"img_pos": 1
+		}
+		]
+	}
+	]
+
+}
