@@ -747,7 +747,12 @@ class gen_channel_tab(_qw.QWidget):
     def trip_detection_autoreramp(self):
     
         # check for trips, and auto-reramp
-        if not _np.isnan(self.channel.voltage):
+        if not (_np.isnan(self.channel.voltage) or _np.isnan(self.channel.set_voltage)):
+            # If the apply button has been pushed, the set_voltage is np.nan
+            # This would result in the channel being regarded as NOT tripped
+            # And subsequently trigger a second frequent trip.
+            # Trip detection will be paused during this time
+
             if self.trip_detect_box.checkState():
                 # defining the trip_conditions 
                 low_volt = abs(self.channel.voltage) < self.channel.trip_voltage
