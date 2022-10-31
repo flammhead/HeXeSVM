@@ -15,9 +15,9 @@
 
 	"email_from_address": "hexe@mpi-hd.mpg.de",
 	"email_recipients_info": "hexe@mpi-hd.mpg.de",
-	"email_recipients_alarm": "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de, hoetzsch@mpi-hd.mpg.de, natascha.rupp@mpi-hd.mpg.de, dominick.cichon@mpi-hd.mpg.de, hexe.shifter1@gmail.com",
+	"email_recipients_alarm": "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de, hoetzsch@mpi-hd.mpg.de, mona.piotter@mpi-hd.mpg.de, robert.hammann@mpi-hd.mpg.de, hexe.shifter1@gmail.com",
 	"email_smtp_server": "imap.mpi-hd.mpg.de",
-	"sms_recipients": "+491774851456;+4917660377817;+4915172958344;+491637542725;+491748029906",
+	"sms_recipients": "+4915172958344;+4917660377817;+4917696349260;+4915734503623;+491774851456",
 	"sms_from_address": "hexe@sms.mpi-hd.mpg.de",
 
 	"interlock_enabled": true,

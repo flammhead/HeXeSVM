@@ -8,7 +8,7 @@ import os
 
 from_address = "hexe@mpi-hd.mpg.de"
 #recipients_alarm = "fjoerg@mpi-hd.mpg.de, hexe.shifter1@gmail.com"
-recipients_alarm = "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de, hexe.shifter1@gmail.com, cichon@mpi-hd.mpg.de, natascha.rupp@hotmail.de, natascha.rupp@mpi-hd.mpg.de"
+recipients_alarm = "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de, hoetzsch@mpi-hd.mpg.de, mona.piotter@mpi-hd.mpg.de, robert.hammann@mpi-hd.mpg.de, hexe.shifter1@gmail.com"
 # sms alarms not used right now
 #sms_numbers = "+491774851456;+491748029906;+491637542725"
 alarm_sent = False

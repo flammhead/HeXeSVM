@@ -232,9 +232,9 @@ class ScheduleRampIsegModule(_qc.QThread):
     def new_values_taken(self, channel, voltage, speed):
         channel_polarity_switchable = channel.module.polarity_switchable
         if channel_polarity_switchable:
-            voltage_taken = channel.set_voltage == float(voltage)
+            voltage_taken = _np.round(channel.set_voltage,2) == _np.round(float(voltage),2)
         else:
-            voltage_taken = channel.set_voltage == abs(float(voltage))
+            voltage_taken = _np.round(channel.set_voltage,2) == _np.round(abs(float(voltage)),2)
         speed_taken = channel.ramp_speed == float(speed)
 
         if voltage == 0:
