@@ -13,6 +13,7 @@ class MailNotifier():
         self.from_address = ui.defaults['email_from_address']
         self.recipients_info = ui.defaults['email_recipients_info']
         self.recipients_alarm = ui.defaults['email_recipients_alarm'] 
+        self.sms_mail_address = ui.defaults['sms_mail_address'] 
         self.sms_numbers = ui.defaults['sms_recipients']
         self.sms_from_address = ui.defaults['sms_from_address']
         self.smtp_server = ui.defaults['email_smtp_server']
@@ -69,7 +70,7 @@ class MailNotifier():
 
         msg = MIMEMultipart()
         msg['From'] = self.from_address
-        msg['To'] = "hexe@sms.mpi-hd.mpg.de"
+        msg['To'] = self.sms_mail_address
         msg['Subject'] = "SMS"
         message_string = "PHONENUMBER: "
         message_string += self.sms_numbers
