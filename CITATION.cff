@@ -1,0 +1,10 @@
+cff-version: 1.1.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: Jörg
+  given-names: Florian
+orcid: https://orcid.org/0000-0003-1719-3294
+title: Heidelberg Xenon secure voltage management (HeXeSVM): Alpha
+doi: 10.5281/zenodo.14247562
+version: v0.0.0-alpha
+date-released: 2024-11-29
