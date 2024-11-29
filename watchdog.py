@@ -6,11 +6,11 @@ import socket as _soc
 import os
 
 
-from_address = "hexe@mpi-hd.mpg.de"
-#recipients_alarm = "fjoerg@mpi-hd.mpg.de, hexe.shifter1@gmail.com"
-recipients_alarm = "hexe@mpi-hd.mpg.de, fjoerg@mpi-hd.mpg.de, hoetzsch@mpi-hd.mpg.de, mona.piotter@mpi-hd.mpg.de, robert.hammann@mpi-hd.mpg.de, hexe.shifter1@gmail.com"
+from_address = "FROM@EXAMPLE.COM"
+#recipients_alarm = "RECIPIENT1@EXAMPLE.COM, RECIPIENT2@EXAMPLE.COM"
+recipients_alarm = "RECIPIENT1@EXAMPLE.COM, RECIPIENT2@EXAMPLE.COM"
 # sms alarms not used right now
-#sms_numbers = "+491774851456;+491748029906;+491637542725"
+#sms_numbers = "PHONENUMBER1;PHONENUMBER2"
 alarm_sent = False
 delta_t_max = 60
 
@@ -98,7 +98,7 @@ def send_sms(self, hv_channel, alarm_priority, alarm_kind):
 
     msg = MIMEMultipart()
     msg['From'] = self.from_address
-    msg['To'] = "hexe@sms.mpi-hd.mpg.de"
+    msg['To'] = "SMS@EXAMPLE.COM"
     msg['Subject'] = "SMS"
     message_string = "PHONENUMBER: "
     message_string += self.sms_numbers
@@ -121,7 +121,7 @@ def send_sms(self, hv_channel, alarm_priority, alarm_kind):
 
     msg.attach(MIMEText(message_string,'plain'))
     mail_conn = sm.SMTP("imap.mpi-hd.mpg.de")
-    mail_conn.sendmail(self.from_address, "hexe@sms.mpi-hd.mpg.de", msg.as_string())
+    mail_conn.sendmail(self.from_address, "SMS@EXAMPLE.COM", msg.as_string())
 
     return
 '''
